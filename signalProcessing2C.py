@@ -17,11 +17,11 @@ plotIndividualPeaks = False     #True = plots signal trace and peak picking for 
 compareFiles = True            #True = generates plots comparing the different groups in your dataset; False = only writes wave stats
 fileNameIndex = -1              #Necessary for "compareFiles = True", identifies the group index in the filename.
 acfPeakProm = 0.1               #Minimum peak prominence to choose in an ACF, set 0-1. Larger values are more stringent. 
-baseDirectory = "/Users/bementmbp/Desktop/ccfTest1"      #Base directory for the GUI. Can hard code file path by commenting line 23 and uncommenting line 24. 
+baseDirectory = "/Users/bementmbp/Desktop/"      #Base directory for the GUI. Can hard code file path by commenting line 23 and uncommenting line 24. 
 
 def findWorkspace(directory, prompt):                                                       #accepts a starting directory and a prompt for the GUI
-    #targetWorkspace = askdirectory(initialdir=directory, message=prompt)                    #opens prompt asking for folder, keep commented to default to baseDirectory
-    targetWorkspace = directory                                                            #comment this out later if you want a GUI
+    targetWorkspace = askdirectory(initialdir=directory, message=prompt)                    #opens prompt asking for folder, keep commented to default to baseDirectory
+    #targetWorkspace = directory                                                            #comment this out later if you want a GUI
     filelist = [fname for fname in os.listdir(targetWorkspace) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
     return(targetWorkspace, filelist)                                                       #returns the folder path and list of file names
 
