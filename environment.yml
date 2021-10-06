@@ -1,0 +1,12 @@
+name: base
+channels:
+  - defaults
+dependencies:
+  - pathlib
+  - numpy
+  - pandas
+  - seaborn
+  - matplotlib
+  - scipy
+
+
