@@ -1,4 +1,5 @@
-# 	•	Move all of the movies that you would like to analyze into a folder together on your computer
+# 	
+	•	Move all of the movies that you would like to analyze into a folder together on your computer
 	•	Go to https://www.anaconda.com/products/individual and download Anaconda
 	•	Save both “signalProcessing2C.py” and “environment.yml” to your desktop
 	•	Open the terminal and navigate to the desktop by typing “cd desktop” and hitting enter
