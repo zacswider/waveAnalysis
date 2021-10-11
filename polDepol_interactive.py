@@ -8,7 +8,7 @@ from matplotlib.widgets import Slider
 from tkinter.filedialog import askdirectory     
 from matplotlib.animation import FuncAnimation   
 
-rawFilePath = "/Users/bementmbp/Desktop/polDepolTesting/200630_Live_SFC_Aegg_GFP-Utr_2mCh-EMTB_E06-T01_Max-UtrCrop_260-620.tif"
+rawFilePath = "/Users/zacswider/Desktop/211006_Live_Flvw_Aegg_mVns-ssra-caax_mCh-Utr_Chn1GAP-sspb_E03-T02_Max.tif"
 raw = skio.imread(rawFilePath).astype('float64') #array of shape (frames, y, x)
 diffNumber = 5
 windowSize = 5
@@ -30,10 +30,10 @@ ax = fig.add_subplot(111)               #Create main axis; 111=row,column,positi
 fig.subplots_adjust(bottom=0.2, top=0.75)   #position as a fraction of the figure width
 diffAx = fig.add_axes([0.3, 0.85, 0.4, 0.05])    #rectangle of size [x0, y0, width, height]
 rollAx = fig.add_axes([0.3, 0.92, 0.4, 0.05])
-rollValues = np.linspace(1,15,8)
+rollValues = np.array([1,3,5,7,9,11,13,15])
 diffValues = np.linspace(1,15,15)
-diffSlider = Slider(ax=diffAx, label='Frames to difference ', valmin=0, valmax=15, valinit=5,valfmt=' %1.1f Frames', valstep=diffValues, facecolor='#cc7000')
-rollSlider = Slider(ax=rollAx, label='Frames to average ', valmin=1, valmax=15, valinit=5, valfmt='%i Frames', valstep=rollValues, facecolor='#cc7000')
+diffSlider = Slider(ax=diffAx, label='Frames to difference ', valmin=1, valmax=15, valinit=5, valfmt=' %1.1f Frames', valstep=diffValues.any(), facecolor='#cc7000')
+rollSlider = Slider(ax=rollAx, label='Frames to average ', valmin=1, valmax=15, valinit=5, valfmt='%i Frames', valstep=rollValues.any(), facecolor='#cc7000')
 ax.set_ylabel('relative assembly and disassembly')
 ax.set_xlabel('time (frames)')
 
