@@ -5,7 +5,7 @@
 • Open the terminal and navigate to the desktop by typing “cd desktop” and hitting enter
 • paste the following code into the terminal and hit enter:
 
-conda env update --prefix ./env --file environment.yml  --prune
+#conda env update --prefix ./env --file environment.yml  --prune
 
 • start the analysis by typing the following into the terminal and hitting enter:
 
