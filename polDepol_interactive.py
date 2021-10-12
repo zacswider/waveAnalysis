@@ -8,7 +8,7 @@ from matplotlib.widgets import Slider
 from tkinter.filedialog import askdirectory     
 from matplotlib.animation import FuncAnimation   
 
-rawFilePath = "/Users/zacswider/Desktop/211006_Live_Flvw_Aegg_mVns-ssra-caax_mCh-Utr_Chn1GAP-sspb_E03-T02_Max.tif"
+rawFilePath = "/Users/bementmbp/Desktop/BementLab/2_Projects/23_DevPaper/Figures/Figure4D/190219_Live_Flvw_Emb_Utr647_E02-T01_MaxCrop_40-250_Utr.tif"
 raw = skio.imread(rawFilePath).astype('float64') #array of shape (frames, y, x)
 diffNumber = 5
 windowSize = 5
@@ -32,8 +32,14 @@ diffAx = fig.add_axes([0.3, 0.85, 0.4, 0.05])    #rectangle of size [x0, y0, wid
 rollAx = fig.add_axes([0.3, 0.92, 0.4, 0.05])
 rollValues = np.array([1,3,5,7,9,11,13,15])
 diffValues = np.linspace(1,15,15)
-diffSlider = Slider(ax=diffAx, label='Frames to difference ', valmin=1, valmax=15, valinit=5, valfmt=' %1.1f Frames', valstep=diffValues.any(), facecolor='#cc7000')
-rollSlider = Slider(ax=rollAx, label='Frames to average ', valmin=1, valmax=15, valinit=5, valfmt='%i Frames', valstep=rollValues.any(), facecolor='#cc7000')
+try:
+    diffSlider = Slider(ax=diffAx, label='Frames to difference ', valmin=1, valmax=15, valinit=5, valfmt=' %1.1f Frames', valstep=diffValues, facecolor='#cc7000')
+except ValueError:
+    diffSlider = Slider(ax=diffAx, label='Frames to difference ', valmin=1, valmax=15, valinit=5, valfmt=' %1.1f Frames', valstep=diffValues.all(), facecolor='#cc7000')
+try:
+    rollSlider = Slider(ax=rollAx, label='Frames to average ', valmin=1, valmax=15, valinit=5, valfmt='%i Frames', valstep=rollValues, facecolor='#cc7000')
+except ValueError:
+    rollSlider = Slider(ax=rollAx, label='Frames to average ', valmin=1, valmax=15, valinit=5, valfmt='%i Frames', valstep=rollValues.all(), facecolor='#cc7000')
 ax.set_ylabel('relative assembly and disassembly')
 ax.set_xlabel('time (frames)')
 
