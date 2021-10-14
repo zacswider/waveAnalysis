@@ -14,7 +14,7 @@ import fnmatch                                  #filename matching
 np.seterr(divide='ignore', invalid='ignore')
 
 boxSizeInPx = 20                #ENTER DESIRED BOXED SIZE HERE
-plotIndividualACFs = True      #TRUE = PLOTS BOXES; FALSE = ONLY PLOTS POP MEANS
+plotIndividualACFs = False      #TRUE = PLOTS BOXES; FALSE = ONLY PLOTS POP MEANS
 plotIndividualCCFs = False      #not functioning
 plotIndividualPeaks = False      #TRUE = plots peaks for each box. 
 smoothACF = False               #TRUE = smooths the ACF to better eliminate noisy peaks
@@ -199,6 +199,48 @@ def plotACFs(chBoxMeans, acorArrays, periods, npts, nBoxes, boxSavePath, subFold
         plt.clf()
         plt.close(fig)
 
+def plotCCFs(boxMeanArray, corArray, shiftArray, nBoxes, npts, boxSavePath, subFolderName):
+    ccfSavePath = os.path.join(boxSavePath, subFolderName)
+    os.makedirs(ccfSavePath, exist_ok=True)
+    
+    if boxMeanArray.shape[0] == 2: #if 2 slices, split into two signals
+        signal1 = boxMeanArray[0, :, :] 
+        signal2 = boxMeanArray[1, :, :]
+        assert len(signal1) == len(signal2), "signals must be the same size"    #user feedback
+        signal1 = (signal1-np.min(signal1))/(np.max(signal1)-np.min(signal1))   #normalizes signal1 to 0-1
+        signal2 = (signal2-np.min(signal2))/(np.max(signal2)-np.min(signal2))   #normalizes signal2 to 0-1
+
+    plotProfileAxis=np.arange(npts)
+    ccfAxis=np.arange(-npts+1, npts)
+
+    for i in range(0, nBoxes):
+        fig, axs = plt.subplots(nrows=2)                                        #subplot with two rows
+        fig.subplots_adjust(hspace=0.4)                                         #set white space between plots
+        ax = axs[0]                                                             #start plotting the first row
+        ax.plot(plotProfileAxis, signal1[i], 'tab:orange', label='Ch1'),                     #plots signal1 against its x-axis
+        ax.plot(plotProfileAxis, signal2[i], 'tab:cyan', label='Ch2'),                       #plots signal2 against its x-axis
+        ax.set_ylabel('norm box px value (AU)')                                 #sets y-axis label
+        ax.set_xlabel('Time (frames)')                                          #sets x-axis label
+        ax.legend(loc='upper right', fontsize='small', ncol=1)                  #places the fig legend
+
+        ax = axs[1]                                                             #start plotting the second row
+        ax.plot(ccfAxis, corArray[i])                                           #plots the ccor against it x-axis       
+        ax.set_ylabel('Cross-correlation')                                      #sets y-axis label
+        
+        if shiftArray[i] < 0:
+            ax.set_xlabel("Ch1 leads by " + str(abs(shiftArray[i])) + " frames")        #sets x-axis label specifying that Ch1 leads
+        elif shiftArray[i] > 0:
+            ax.set_xlabel("Ch2 leads by " + str(abs(shiftArray[i])) + " frames")        #sets x-axis label specifying that Ch2 leads    
+        else:
+            ax.set_xlabel("There is no detectable shift between signals")       #sets x-axis label specifying that neither channel leads
+        
+        plt.axvline(x=shiftArray[i], alpha = 0.5, c = 'red', linestyle = '--')          #adds a vertical line identifying the chosen peak 
+        
+        graphName = "BoxNo" + str(i) + ".png"
+        boxName = os.path.join(ccfSavePath, graphName)  #names the figure
+        plt.savefig(boxName, dpi=75)                                            #saves the figure
+        plt.close(fig)                                                          #clears the figure
+
 def printBoxPeaks(channelNumber, raw, boxNumber, smoothed, smoothPeaks, heights, leftIndex, rightIndex, proms, savePath, nBoxes, npts): #graphs/saves individual peak plots
     x = np.arange(npts)                                         #make array of numbers from 0 to npts
     fig, axs = plt.subplots(nrows=2)                            #initialize a figure with 2 subplots
@@ -373,16 +415,16 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
     else: print("I can only handle up to 2 channels!")
 
     assert ch2BoxMeans.size == ch1BoxMeans.size, "ch1BoxMeans and ch2BoxMeans are not the same size, something went horribly wrong"
-        
-    npts = ch1BoxMeans.shape[1]     #number of frames
-    nBoxes = ch1BoxMeans.shape[0]   #number of boxes
+    chBoxMeans = np.array([ch1BoxMeans, ch2BoxMeans])   #3D array of channel means (2ch, nBoxes, npts)
+    
+    npts = chBoxMeans.shape[2]     #number of frames in a slice
+    nBoxes = chBoxMeans.shape[1]   #number of boxes in a slice
 
     if imageChannels ==2:
         ccfArray, shifts= findCCF(ch1BoxMeans, ch2BoxMeans, npts, nBoxes) #get ccf and shifts for each box. Each row in ccfArray is the ccf for a box over time   
         meanCCFDf = plotCF(ccfArray, npts, shifts, "CCF.png")             #plot the CCF function
-    
-    chBoxMeans = np.array([ch1BoxMeans, ch2BoxMeans])   #3D array of channel means (2ch, nBoxes, npts)
-    del [[ch1BoxMeans, ch2BoxMeans]]
+        if plotIndividualCCFs == True:
+            plotCCFs(chBoxMeans, ccfArray, shifts, nBoxes, npts, boxSavePath, "CCF_Plots")
 
     '''Find the ACFs for each box, for all channels'''
     acorArrays, periods= findACF(chBoxMeans, npts, nBoxes) #acorArrays = ndarray where each row is the ACF for a box over time. Periods = ndarray of periods for all boxes  
@@ -398,7 +440,8 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
             chperiods = periods[channel]                             #select the periods from each channel
             subFolderName = "Ch"+str(channel+1)+"ACF_Plots"          #create a subfolder for the output
             plotACFs(inputMeans, chacorArray, chperiods, npts, nBoxes, boxSavePath, subFolderName)  #plot the ACFs for each box, for each channel
-        
+
+
     '''Plot the average ACF for Ch1'''
     meanCh1ACFDf = plotCF(acorArrays[0, :,:], npts, periods[0], 'Ch1ACF.png')       #plot the mean Ch1 ACF
     meanCh1ACFDf.to_csv(os.path.join(boxSavePath,"correlations.csv"), index=False)  #save the mean Ch1 ACF as a csv
@@ -449,10 +492,3 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
     print(str(round((i+1)/len(fileNames)*100, 1)) + "%" + " Finished with Analysis") #updates progress to terminal window
     
     masterStatsDf.to_csv(os.path.join(directory, '0_filestats.csv'), index=False)    #saves master stats file at the end of the analysis 
-<<<<<<< HEAD:signal-processing_ani
-
-    
-=======
-    
-    
->>>>>>> 8897cb7f7b1111a777ac758e201b3d34ec2064db:signal-processing_ani.py
