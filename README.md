@@ -1,4 +1,4 @@
-# 	
+# Instructions for use:	
 • If you have never used Python before (that's you, Bill), follow the steps below.
 
 • Click the green "Code" button and select "Download ZIP"
