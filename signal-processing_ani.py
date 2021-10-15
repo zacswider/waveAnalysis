@@ -191,10 +191,10 @@ def plotACFs(chBoxMeans, acorArrays, periods, npts, nBoxes, boxSavePath, subFold
             ax.set_xlabel("Period is " + str(periods[i]) + " frames")
             plt.axvline(x=periods[i], alpha = 0.5, c = 'red', linestyle = '--')
             plt.axvline(x=-periods[i], alpha = 0.5, c = 'red', linestyle = '--')
-            graphName = "box" + str(i) + ".png"
+            graphName = "Box" + str(i) + ".png"
 
         boxName = os.path.join(acfSavePath, graphName)
-        print("Saving Graph ", graphName)
+        print("Saving ACF Graph ", graphName)
         plt.savefig(boxName, dpi=75, )
         plt.clf()
         plt.close(fig)
@@ -238,6 +238,7 @@ def plotCCFs(boxMeanArray, corArray, shiftArray, nBoxes, npts, boxSavePath, subF
         
         graphName = "BoxNo" + str(i) + ".png"
         boxName = os.path.join(ccfSavePath, graphName)  #names the figure
+        print("Saving CCF Graph", graphName)
         plt.savefig(boxName, dpi=75)                                            #saves the figure
         plt.close(fig)                                                          #clears the figure
 
@@ -265,7 +266,7 @@ def printBoxPeaks(channelNumber, raw, boxNumber, smoothed, smoothPeaks, heights,
     ax.set_xlabel('Time (frames)')    
     
     graphName = "Ch" + str(channelNumber) + "_BoxNo" + str(boxNumber) + ".png" #sets graph name
-    print("Saving Graph ", graphName)
+    print("Saving Peaks Graph ", graphName)
     plt.savefig(os.path.join(savePath, graphName), dpi=74)                     #saves the figure  
     plt.clf()
     plt.close(fig)
