@@ -9,7 +9,7 @@ import scipy.signal as sig
 import os                                       
 import sys                                      
 import math         
-import fnmatch                                  #filename matching 
+import fnmatch  #filename matching 
 
 import tkinter as tk
 from tkinter.filedialog import askdirectory 
@@ -20,7 +20,7 @@ np.seterr(divide='ignore', invalid='ignore')
 #initiates Tk window
 root = tk.Tk()
 root.title('Select your options')
-root.geometry('350x200')
+root.geometry('500x200')
 
 #sets number of columns in the main window
 root.columnconfigure(0, weight=1)
@@ -37,6 +37,7 @@ plotIndividualCCFsVar = tk.BooleanVar()
 plotIndividualPeaksVar = tk.BooleanVar()
 acfPeakPromVar = tk.DoubleVar()
 acfPeakPromVar.set(0.1) #set default value
+groupNamesVar = tk.StringVar() 
 
 
 '''widget creation'''
@@ -44,12 +45,16 @@ acfPeakPromVar.set(0.1) #set default value
 boxSizeBox = ttk.Entry(root, width = 3, textvariable=boxSizeVar) #creates box widget
 boxSizeBox.grid(column=0, row=0, padx=10, sticky='E') #places widget in frame
 boxSizeBox.focus() #focuses cursor in box
-boxSizeBox.icursor(1) #positions cursor after default input characters
+boxSizeBox.icursor(2) #positions cursor after default input characters
 ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=0, columnspan=2, padx=10, sticky='W') #create label text
 
 #create acfpeakprom entry widget
 ttk.Entry(root, width = 3, textvariable=acfPeakPromVar).grid(column=0, row=1, padx=10, sticky='E') #create the widget
 ttk.Label(root, text='Enter ACF peak prominence threshold').grid(column=1, row=1, padx=10, sticky='W') #create label text
+
+#create groupNames entry widget
+ttk.Entry(root, width = 3, textvariable=groupNamesVar).grid(column=0, row=2, padx=10, sticky='E') #create the widget
+ttk.Label(root, text='Enter group names separated by commas').grid(column=1, row=2, padx=10, sticky='W') #create label text
 
 #create checkbox widgets and labels
 ttk.Checkbutton(root, variable=smoothMySignalVar).grid(column=0, row=3, sticky='E', padx=15) #smooth my signal
@@ -64,6 +69,10 @@ ttk.Label(root, text='Plot individual CCFs').grid(column=1, row=5, columnspan=2,
 ttk.Checkbutton(root,  variable=plotIndividualPeaksVar).grid(column=0, row=6, sticky='E', padx=15) #plot individual peaks
 ttk.Label(root, text='Plot individual peaks').grid(column=1, row=6, columnspan=2, padx=10, sticky='W')
  
+#create groupNames entry widget
+ttk.Entry(root, textvariable=groupNamesVar).grid(column=0, row=2, padx=10, sticky='W') #create the widget
+ttk.Label(root, text='Enter group names separated by commas').grid(column=1, row=2, padx=10, sticky='W') #create label text
+
 #Creates the 'Start Analysis' button
 startButton = ttk.Button(root, text='Start Analysis', command=root.destroy) #creates the button and bind it to close the window when clicked
 startButton.grid(column=1, row=7) #place it in the tk window
@@ -77,6 +86,10 @@ plotIndividualACFs= plotIndividualACFsVar.get()
 plotIndividualCCFs = plotIndividualCCFsVar.get()
 plotIndividualPeaks = plotIndividualPeaksVar.get()
 acfPeakProm = acfPeakPromVar.get()
+groupNames = groupNamesVar.get()
+groupNames = [x.strip() for x in groupNames.split(',')] #list of group names. splits string input by commans and removes spaces
+
+
 
 '''processing functions'''
 baseDirectory = "/Users/aniv/Desktop/test-cropped/"         #BASE DIRECTORY FOR THE GUI
@@ -438,18 +451,26 @@ def calcListStats(Df, x):   #calculate the statistics for a given range in a dat
 
     return(statsDf)
 
+def setGroups(groupNames, nameWithoutExtension):
+    for group in groupNames:
+        if fnmatch.fnmatch(nameWithoutExtension, "*"+group+"*"):
+            return(group)
+
 
 ### MAIN ####
 directory, fileNames = findWorkspace(baseDirectory, "PLEASE SELECT YOUR SOURCE WORKSPACE")  #string object describing the file path, list object containing all file names ending with .tif
 masterStatsDf = pd.DataFrame()  #empty dataframe for final stats output of all movies
 
 for i in range(len(fileNames)):  #iterates through the .tif files in the specified directory
-
+    
     print("Starting to work on " + fileNames[i] + "!")
     imageStack=skio.imread(directory + "/" + fileNames[i])                                #reads image as ndArray
     nameWithoutExtension = fileNames[i].rsplit(".",1)[0]                                  #gets the filename without the .tif extension
     boxSavePath = pathlib.Path(directory + "/0_signalProcessing/" + nameWithoutExtension) #sets save path for output
     boxSavePath.mkdir(exist_ok=True, parents=True)                                        #makes save path for output, if it doesn't already exist
+    
+    group = setGroups(groupNames, nameWithoutExtension)
+    print("group is: ", group )
     
     """Attempt the verify the number of channels in the image"""
     if imageStack.shape[1] == 2:    #imageStack.shape[1] will either be the number of channels, or the number of pixels on the y-axis
@@ -541,6 +562,7 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
     '''Create entry for 0_filestats.csv (master file)'''
     masterStatsEntry = pd.DataFrame({      #dataframe entry to be added to the master stats csv file containing all movies (at end of script)
         'Filename' : nameWithoutExtension,              
+        'Group' : group,
         'Num Boxes' : nBoxes,
         'Ch1 Pcnt Zeros': pcntZeros[0]}, index=[0],)
 
