@@ -95,8 +95,8 @@ groupNames = [x.strip() for x in groupNames.split(',')] #list of group names. sp
 baseDirectory = "/Users/aniv/Desktop/test-cropped/"         #BASE DIRECTORY FOR THE GUI
 
 def findWorkspace(directory, prompt):               #GUI for selecting your working directory
-    #targetWorkspace = askdirectory(initialdir=directory, message=prompt)                           #opens prompt asking for folder, keep commented to default to baseDirectory
-    targetWorkspace = directory                                                                     #comment this out later if you want a GUI
+    targetWorkspace = askdirectory(initialdir=directory, message=prompt)                           #opens prompt asking for folder, keep commented to default to baseDirectory
+    #targetWorkspace = directory                                                                     #comment this out later if you want a GUI
     filelist = [fname for fname in sorted(os.listdir(targetWorkspace)) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
     return(targetWorkspace, filelist)                                                               #returns the folder path and list of file names
 
@@ -541,7 +541,7 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
         'Ch2 Periods': periods[1]
         })
         peakValues = pd.merge(ch1PeakValues, ch2PeakValues, left_index=True, right_index=True)  #merge all peak values together 
-        statsDf = calcListStats(boxMeasurements, 3) #calculates statistics on the boxMeasurements over columns 1 and 2
+        statsDf = calcListStats(boxMeasurements, 4) #calculates statistics on the boxMeasurements over columns 1 and 2
     
     else: #create the dataframe entry for 1-channel data (no CCF or Ch2 values)
         boxMeasurements = pd.DataFrame({  #create a dataframe for measurements from individual boxes
