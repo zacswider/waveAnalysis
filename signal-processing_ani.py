@@ -1,5 +1,4 @@
 from genericpath import exists
-from tkinter.filedialog import askdirectory 	#Imports the ability of open a GUI asking for the base folder to start working from
 import pathlib                                  #Object-oriented filesystem paths
 import numpy as np                              
 import pandas as pd                             
@@ -11,15 +10,75 @@ import os
 import sys                                      
 import math         
 import fnmatch                                  #filename matching 
+
+import tkinter as tk
+from tkinter.filedialog import askdirectory 
+from tkinter import ttk
+
 np.seterr(divide='ignore', invalid='ignore')
 
-boxSizeInPx = 20                #ENTER DESIRED BOXED SIZE HERE
-plotIndividualACFs = False      #TRUE = PLOTS BOXES; FALSE = ONLY PLOTS POP MEANS
-plotIndividualCCFs = False      #not functioning
-plotIndividualPeaks = False      #TRUE = plots peaks for each box. 
-smoothACF = False               #TRUE = smooths the ACF to better eliminate noisy peaks
-smoothMySignal = True           #TRUE = SMOOTHS THE BOX MEANS PRIOR TO CALCULATING THE WAVE AMPLITUDE AND WIDTHS
-acfPeakProm = 0.1               #prominance value for peak detection
+#initiates Tk window
+root = tk.Tk()
+root.title('Select your options')
+root.geometry('350x200')
+
+#sets number of columns in the main window
+root.columnconfigure(0, weight=1)
+root.columnconfigure(1, weight=1)
+root.columnconfigure(2, weight=1)
+
+#defining variable types for the different widget fields
+boxSizeVar = tk.IntVar()
+boxSizeVar.set(20) #set default value 
+smoothMySignalVar = tk.BooleanVar()
+smoothMySignalVar.set(True) #set default value
+plotIndividualACFsVar = tk.BooleanVar()
+plotIndividualCCFsVar = tk.BooleanVar()
+plotIndividualPeaksVar = tk.BooleanVar()
+acfPeakPromVar = tk.DoubleVar()
+acfPeakPromVar.set(0.1) #set default value
+
+
+'''widget creation'''
+#create boxSize entry widget
+boxSizeBox = ttk.Entry(root, width = 3, textvariable=boxSizeVar) #creates box widget
+boxSizeBox.grid(column=0, row=0, padx=10, sticky='E') #places widget in frame
+boxSizeBox.focus() #focuses cursor in box
+boxSizeBox.icursor(1) #positions cursor after default input characters
+ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=0, columnspan=2, padx=10, sticky='W') #create label text
+
+#create acfpeakprom entry widget
+ttk.Entry(root, width = 3, textvariable=acfPeakPromVar).grid(column=0, row=1, padx=10, sticky='E') #create the widget
+ttk.Label(root, text='Enter ACF peak prominence threshold').grid(column=1, row=1, padx=10, sticky='W') #create label text
+
+#create checkbox widgets and labels
+ttk.Checkbutton(root, variable=smoothMySignalVar).grid(column=0, row=3, sticky='E', padx=15) #smooth my signal
+ttk.Label(root, text='Smooth my signal').grid(column=1, row=3, columnspan=2, padx=10, sticky='W')
+
+ttk.Checkbutton(root, variable=plotIndividualACFsVar).grid(column=0, row=4, sticky='E', padx=15)
+ttk.Label(root, text='Plot individual ACFs').grid(column=1, row=4, columnspan=2, padx=10, sticky='W') #plot individual ACFs
+
+ttk.Checkbutton(root, variable=plotIndividualCCFsVar).grid(column=0, row=5, sticky='E', padx=15) #plot individual CCFs
+ttk.Label(root, text='Plot individual CCFs').grid(column=1, row=5, columnspan=2, padx=10, sticky='W')
+
+ttk.Checkbutton(root,  variable=plotIndividualPeaksVar).grid(column=0, row=6, sticky='E', padx=15) #plot individual peaks
+ttk.Label(root, text='Plot individual peaks').grid(column=1, row=6, columnspan=2, padx=10, sticky='W')
+ 
+#Creates the 'Start Analysis' button
+startButton = ttk.Button(root, text='Start Analysis', command=root.destroy) #creates the button and bind it to close the window when clicked
+startButton.grid(column=1, row=7) #place it in the tk window
+
+root.mainloop() #run the script
+
+#get the values stored in the widget
+boxSizeInPx = boxSizeVar.get()
+smoothMySignal = smoothMySignalVar.get() 
+plotIndividualACFs= plotIndividualACFsVar.get()
+plotIndividualCCFs = plotIndividualCCFsVar.get()
+plotIndividualPeaks = plotIndividualPeaksVar.get()
+acfPeakProm = acfPeakPromVar.get()
+
+'''processing functions'''
 baseDirectory = "/Users/aniv/Desktop/test-cropped/"         #BASE DIRECTORY FOR THE GUI
 
 def findWorkspace(directory, prompt):               #GUI for selecting your working directory
