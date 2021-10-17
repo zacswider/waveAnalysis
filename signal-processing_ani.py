@@ -434,7 +434,7 @@ def plotPeaks(peaksDf, boxSavePath, fileName):          #plot all of the peak va
     plt.close()
 
 def calcListStats(Df, x):   #calculate the statistics for a given range in a dataframe
-    columnList = list(Df.columns[1:x])  #list of column headers for a specified range
+    columnList = list(Df.columns[1:x+1])  #list of column headers for a specified range
     headers =[] #empty list for future column headers
     stats =[]   #empty list for future stats output
     for column in columnList:
@@ -541,7 +541,7 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
         'Ch2 Periods': periods[1]
         })
         peakValues = pd.merge(ch1PeakValues, ch2PeakValues, left_index=True, right_index=True)  #merge all peak values together 
-        statsDf = calcListStats(boxMeasurements, 4) #calculates statistics on the boxMeasurements over columns 1 and 2
+        
     
     else: #create the dataframe entry for 1-channel data (no CCF or Ch2 values)
         boxMeasurements = pd.DataFrame({  #create a dataframe for measurements from individual boxes
@@ -550,11 +550,12 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
         })
         
         peakValues = ch1PeakValues #if 1-channel, just renames this df 
-        statsDf = calcListStats(boxMeasurements, 2) #calculates statistics on the boxMeasurements over columns 1 only
+        
     
     '''Adding stats values to BoxMeasurements.csv'''
     pcntZeros = calculatePcntZeros(periods)  #calculate %0's in the periods
     boxMeasurements = pd.merge(boxMeasurements, peakValues, left_index=True, right_index=True)           #add the widths, mins, maxs, amps and relAmps from each box to the dataframe
+    statsDf = calcListStats(boxMeasurements, len(boxMeasurements.columns))                               #calculate stats for all columns of the dataframe
     boxMeasurements[''] = np.NaN                                                                         #adds extra column of space        
     boxMeasurements = pd.merge(boxMeasurements, statsDf, how='outer', left_index=True, right_index=True) #merge the stats calculations into the boxMeasurements dataframe
     boxMeasurements.to_csv(os.path.join(boxSavePath, "BoxMeasurements.csv"), index=False)                #save the dataframe
