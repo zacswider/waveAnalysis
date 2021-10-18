@@ -40,6 +40,7 @@ acfPeakPromVar = tk.DoubleVar()             #variable for peak prominance thresh
 acfPeakPromVar.set(0.1)                     #set default value
 groupNamesVar = tk.StringVar()   #variable for group names list
 folderPath = tk.StringVar()      #variable for path to images
+compareFilesVar = tk.BooleanVar() #variable for plotting group-wise comparisons
 
 #function for getting path to user's directory
 def getFolderPath():
@@ -80,10 +81,13 @@ ttk.Label(root, text='Plot individual CCFs').grid(column=1, row=6, columnspan=2,
 
 ttk.Checkbutton(root, variable=plotIndividualPeaksVar).grid(column=0, row=7, sticky='E', padx=15) #plot individual peaks
 ttk.Label(root, text='Plot individual peaks').grid(column=1, row=7, columnspan=2, padx=10, sticky='W')
+
+ttk.Checkbutton(root, variable=compareFilesVar).grid(column=0, row=8, sticky='E', padx=15) #plot group-wise comparisons
+ttk.Label(root, text='Plot group-wise comparisons').grid(column=1, row=8, columnspan=2, padx=10, sticky='W')
  
 #Creates the 'Start Analysis' button
 startButton = ttk.Button(root, text='Start Analysis', command=root.destroy) #creates the button and bind it to close the window when clicked
-startButton.grid(column=1, row=8, pady=10, sticky='W') #place it in the tk window
+startButton.grid(column=1, row=9, pady=10, sticky='W') #place it in the tk window
 
 root.mainloop() #run the script
 
@@ -97,6 +101,7 @@ acfPeakProm = acfPeakPromVar.get()
 groupNames = groupNamesVar.get()
 groupNames = [x.strip() for x in groupNames.split(',')] #list of group names. splits string input by commans and removes spaces
 targetWorkspace = folderPath.get() 
+compareFiles = compareFilesVar.get()
 
 '''processing functions'''
 
@@ -393,6 +398,19 @@ def plotCF(corFunction, npts, shifts, fileName): #plot the correlation function 
     
     return(cfDataDf)
 
+def plotComparisons(dataFrame, comparisonsToMake, groupNames):
+    compareSavePath = os.path.join(directory, "0_comparisons")
+    os.makedirs(compareSavePath, exist_ok=True) #makes folder 
+
+    for variable in comparisonsToMake:
+        fullSavePath = os.path.join(compareSavePath, variable)
+        ax = sns.boxplot(x="Group", y=variable, data=dataFrame, palette = "Set2", showfliers = False)		#Makes a boxplot
+        ax = sns.swarmplot(x="Group", y=variable, data=dataFrame, color=".25")							#Makes a scatterplot
+        ax.set_xticklabels(ax.get_xticklabels(),rotation=45)
+        fig = ax.get_figure()																			#Makes figure object
+        fig.savefig(fullSavePath, dpi=300, bbox_inches='tight')						#saves the plot to the specified file destination	
+        plt.close()
+
 def mergeAndSave(Df1, Df2, savePath, save=True, fileName=" ", **kwargs):    #merge and save dataframes
     mergedDf = pd.merge(Df1, Df2)   #merges two dataframes with default options
     
@@ -561,8 +579,8 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
     boxMeasurements = pd.merge(boxMeasurements, peakValues, left_index=True, right_index=True)           #add the widths, mins, maxs, amps and relAmps from each box to the dataframe
     statsDf = calcListStats(boxMeasurements, len(boxMeasurements.columns))                               #calculate stats for all columns of the dataframe
     boxMeasurements[''] = np.NaN                                                                         #adds extra column of space        
-    boxMeasurements = pd.merge(boxMeasurements, statsDf, how='outer', left_index=True, right_index=True) #merge the stats calculations into the boxMeasurements dataframe
-    boxMeasurements.to_csv(os.path.join(boxSavePath, "BoxMeasurements.csv"), index=False)                #save the dataframe
+    boxMeasurementsMerged = pd.merge(boxMeasurements, statsDf, how='outer', left_index=True, right_index=True) #merge the stats calculations into the boxMeasurements dataframe
+    boxMeasurementsMerged.to_csv(os.path.join(boxSavePath, "BoxMeasurements.csv"), index=False)                #save the dataframe
 
     '''Create entry for 0_filestats.csv (master file)'''
     masterStatsEntry = pd.DataFrame({      #dataframe entry to be added to the master stats csv file containing all movies (at end of script)
@@ -579,3 +597,8 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
     print(str(round((i+1)/len(fileNames)*100, 1)) + "%" + " Finished with Analysis") #updates progress to terminal window
     
     masterStatsDf.to_csv(os.path.join(directory, '0_filestats.csv'), index=False)    #saves master stats file at the end of the analysis 
+
+    if compareFiles == True:
+        comparisonsToMake = [columnName + " Mean" for columnName in boxMeasurements.columns] #get a list of the column names to plot
+        comparisonsToMake = comparisonsToMake[1:-1] #removes first and last elements from the list ("Box#, and "NaN")
+        plotComparisons(masterStatsDf, comparisonsToMake, groupNames)
