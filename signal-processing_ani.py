@@ -398,11 +398,11 @@ def plotCF(corFunction, npts, shifts, fileName): #plot the correlation function 
     
     return(cfDataDf)
 
-def plotComparisons(dataFrame, comparisonsToMake, groupNames):
+def plotComparisons(dataFrame, comparisonsToMake, groupNames): #takes the list of group names and mean values, and makes plots
     compareSavePath = os.path.join(directory, "0_comparisons")
     os.makedirs(compareSavePath, exist_ok=True) #makes folder 
 
-    for variable in comparisonsToMake:
+    for variable in comparisonsToMake: 
         fullSavePath = os.path.join(compareSavePath, variable)
         ax = sns.boxplot(x="Group", y=variable, data=dataFrame, palette = "Set2", showfliers = False)		#Makes a boxplot
         ax = sns.swarmplot(x="Group", y=variable, data=dataFrame, color=".25")							#Makes a scatterplot
@@ -601,4 +601,4 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
     if compareFiles == True:
         comparisonsToMake = [columnName + " Mean" for columnName in boxMeasurements.columns] #get a list of the column names to plot
         comparisonsToMake = comparisonsToMake[1:-1] #removes first and last elements from the list ("Box#, and "NaN")
-        plotComparisons(masterStatsDf, comparisonsToMake, groupNames)
+        plotComparisons(masterStatsDf, comparisonsToMake, groupNames) 
