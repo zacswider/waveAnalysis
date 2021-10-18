@@ -17,10 +17,11 @@ from tkinter import ttk
 
 np.seterr(divide='ignore', invalid='ignore')
 
+'''GUI Window '''
 #initiates Tk window
 root = tk.Tk()
 root.title('Select your options')
-root.geometry('500x200')
+root.geometry('500x250')
 
 #sets number of columns in the main window
 root.columnconfigure(0, weight=1)
@@ -28,54 +29,61 @@ root.columnconfigure(1, weight=1)
 root.columnconfigure(2, weight=1)
 
 #defining variable types for the different widget fields
-boxSizeVar = tk.IntVar()
-boxSizeVar.set(20) #set default value 
-smoothMySignalVar = tk.BooleanVar()
-smoothMySignalVar.set(True) #set default value
-plotIndividualACFsVar = tk.BooleanVar()
-plotIndividualCCFsVar = tk.BooleanVar()
-plotIndividualPeaksVar = tk.BooleanVar()
-acfPeakPromVar = tk.DoubleVar()
-acfPeakPromVar.set(0.1) #set default value
-groupNamesVar = tk.StringVar() 
+boxSizeVar = tk.IntVar()            #variable for box grid size
+boxSizeVar.set(20)                  #set default value 
+smoothMySignalVar = tk.BooleanVar() #variable for smooth my signal option
+smoothMySignalVar.set(True)         #set default value
+plotIndividualACFsVar = tk.BooleanVar()     #variable for plotting individual ACFs
+plotIndividualCCFsVar = tk.BooleanVar()     #variable for plotting individual CCFs
+plotIndividualPeaksVar = tk.BooleanVar()    #variable for plotting individual peaks
+acfPeakPromVar = tk.DoubleVar()             #variable for peak prominance threshold   
+acfPeakPromVar.set(0.1)                     #set default value
+groupNamesVar = tk.StringVar()   #variable for group names list
+folderPath = tk.StringVar()      #variable for path to images
 
+#function for getting path to user's directory
+def getFolderPath():
+    folderSelected = askdirectory()
+    folderPath.set(folderSelected)
 
 '''widget creation'''
-#create boxSize entry widget
+#file path selection widget
+fileEntry = ttk.Entry(root, textvariable=folderPath)
+fileEntry.grid(column=0, row=0, padx=10, sticky='E')
+browseButton = ttk.Button(root, text= 'Select source directory', command=getFolderPath)
+browseButton.grid(column=1, row=0, sticky='W')
+
+#boxSize entry widget
 boxSizeBox = ttk.Entry(root, width = 3, textvariable=boxSizeVar) #creates box widget
-boxSizeBox.grid(column=0, row=0, padx=10, sticky='E') #places widget in frame
-boxSizeBox.focus() #focuses cursor in box
-boxSizeBox.icursor(2) #positions cursor after default input characters
-ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=0, columnspan=2, padx=10, sticky='W') #create label text
+boxSizeBox.grid(column=0, row=1, padx=10, sticky='E') #places widget in frame
+boxSizeBox.focus()      #focuses cursor in box
+boxSizeBox.icursor(2)   #positions cursor after default input characters
+ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=1, columnspan=2, padx=10, sticky='W') #create label text
 
 #create acfpeakprom entry widget
-ttk.Entry(root, width = 3, textvariable=acfPeakPromVar).grid(column=0, row=1, padx=10, sticky='E') #create the widget
-ttk.Label(root, text='Enter ACF peak prominence threshold').grid(column=1, row=1, padx=10, sticky='W') #create label text
+ttk.Entry(root, width = 3, textvariable=acfPeakPromVar).grid(column=0, row=2, padx=10, sticky='E') #create the widget
+ttk.Label(root, text='Enter ACF peak prominence threshold').grid(column=1, row=2, padx=10, sticky='W') #create label text
 
 #create groupNames entry widget
-ttk.Entry(root, width = 3, textvariable=groupNamesVar).grid(column=0, row=2, padx=10, sticky='E') #create the widget
-ttk.Label(root, text='Enter group names separated by commas').grid(column=1, row=2, padx=10, sticky='W') #create label text
+ttk.Entry(root,textvariable=groupNamesVar).grid(column=0, row=3, padx=10, sticky='E') #create the widget
+ttk.Label(root, text='Enter group names separated by commas').grid(column=1, row=3, padx=10, sticky='W') #create label text
 
 #create checkbox widgets and labels
-ttk.Checkbutton(root, variable=smoothMySignalVar).grid(column=0, row=3, sticky='E', padx=15) #smooth my signal
-ttk.Label(root, text='Smooth my signal').grid(column=1, row=3, columnspan=2, padx=10, sticky='W')
+ttk.Checkbutton(root, variable=smoothMySignalVar).grid(column=0, row=4, sticky='E', padx=15) #smooth my signal
+ttk.Label(root, text='Smooth my signal').grid(column=1, row=4, columnspan=2, padx=10, sticky='W')
 
-ttk.Checkbutton(root, variable=plotIndividualACFsVar).grid(column=0, row=4, sticky='E', padx=15)
-ttk.Label(root, text='Plot individual ACFs').grid(column=1, row=4, columnspan=2, padx=10, sticky='W') #plot individual ACFs
+ttk.Checkbutton(root, variable=plotIndividualACFsVar).grid(column=0, row=5, sticky='E', padx=15)
+ttk.Label(root, text='Plot individual ACFs').grid(column=1, row=5, columnspan=2, padx=10, sticky='W') #plot individual ACFs
 
-ttk.Checkbutton(root, variable=plotIndividualCCFsVar).grid(column=0, row=5, sticky='E', padx=15) #plot individual CCFs
-ttk.Label(root, text='Plot individual CCFs').grid(column=1, row=5, columnspan=2, padx=10, sticky='W')
+ttk.Checkbutton(root, variable=plotIndividualCCFsVar).grid(column=0, row=6, sticky='E', padx=15) #plot individual CCFs
+ttk.Label(root, text='Plot individual CCFs').grid(column=1, row=6, columnspan=2, padx=10, sticky='W')
 
-ttk.Checkbutton(root,  variable=plotIndividualPeaksVar).grid(column=0, row=6, sticky='E', padx=15) #plot individual peaks
-ttk.Label(root, text='Plot individual peaks').grid(column=1, row=6, columnspan=2, padx=10, sticky='W')
+ttk.Checkbutton(root, variable=plotIndividualPeaksVar).grid(column=0, row=7, sticky='E', padx=15) #plot individual peaks
+ttk.Label(root, text='Plot individual peaks').grid(column=1, row=7, columnspan=2, padx=10, sticky='W')
  
-#create groupNames entry widget
-ttk.Entry(root, textvariable=groupNamesVar).grid(column=0, row=2, padx=10, sticky='W') #create the widget
-ttk.Label(root, text='Enter group names separated by commas').grid(column=1, row=2, padx=10, sticky='W') #create label text
-
 #Creates the 'Start Analysis' button
 startButton = ttk.Button(root, text='Start Analysis', command=root.destroy) #creates the button and bind it to close the window when clicked
-startButton.grid(column=1, row=7) #place it in the tk window
+startButton.grid(column=1, row=8, pady=10, sticky='W') #place it in the tk window
 
 root.mainloop() #run the script
 
@@ -88,15 +96,11 @@ plotIndividualPeaks = plotIndividualPeaksVar.get()
 acfPeakProm = acfPeakPromVar.get()
 groupNames = groupNamesVar.get()
 groupNames = [x.strip() for x in groupNames.split(',')] #list of group names. splits string input by commans and removes spaces
-
-
+targetWorkspace = folderPath.get() 
 
 '''processing functions'''
-baseDirectory = "/Users/aniv/Desktop/test-cropped/"         #BASE DIRECTORY FOR THE GUI
 
-def findWorkspace(directory, prompt):               #GUI for selecting your working directory
-    targetWorkspace = askdirectory(initialdir=directory, message=prompt)                           #opens prompt asking for folder, keep commented to default to baseDirectory
-    #targetWorkspace = directory                                                                     #comment this out later if you want a GUI
+def findWorkspace(targetWorkspace):               #GUI for selecting your working directory
     filelist = [fname for fname in sorted(os.listdir(targetWorkspace)) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
     return(targetWorkspace, filelist)                                                               #returns the folder path and list of file names
 
@@ -458,7 +462,7 @@ def setGroups(groupNames, nameWithoutExtension):
 
 
 ### MAIN ####
-directory, fileNames = findWorkspace(baseDirectory, "PLEASE SELECT YOUR SOURCE WORKSPACE")  #string object describing the file path, list object containing all file names ending with .tif
+directory, fileNames = findWorkspace(targetWorkspace)  #string object describing the file path, list object containing all file names ending with .tif
 masterStatsDf = pd.DataFrame()  #empty dataframe for final stats output of all movies
 
 for i in range(len(fileNames)):  #iterates through the .tif files in the specified directory
