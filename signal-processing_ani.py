@@ -460,7 +460,7 @@ def calcListStats(Df, x):   #calculate the statistics for a given range in a dat
     headers =[] #empty list for future column headers
     stats =[]   #empty list for future stats output
     for column in columnList:
-        headers.extend([column+' Mean', column+' Median', column+' Std', column+' Sem'])    #for each category, create mean, median, std, sem columns
+        headers.extend([column+' Mean', column+' Std'])    #for each category, create mean, median, std, sem columns
         mean = Df[column].mean()            #calculate the mean of the column
         median = Df[column].median()        #calculate median
         std = Df[column].std()              #calculate std
