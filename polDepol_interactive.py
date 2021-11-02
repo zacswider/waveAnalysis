@@ -2,27 +2,35 @@ import numpy as np
 import pandas as pd  
 import seaborn as sns
 import skimage.io as skio  
+from skimage.transform import downscale_local_mean as downscale
 import scipy.signal as sig                        
 import matplotlib.pyplot as plt    
 from matplotlib.widgets import Slider
 from tkinter.filedialog import askdirectory     
 from matplotlib.animation import FuncAnimation   
 
-rawFilePath = "/Users/bementmbp/Desktop/BementLab/2_Projects/23_DevPaper/Figures/Figure4D/190219_Live_Flvw_Emb_Utr647_E02-T01_MaxCrop_40-250_Utr.tif"
-raw = skio.imread(rawFilePath).astype('float64') #array of shape (frames, y, x)
-diffNumber = 5
-windowSize = 5
+rawFilePath = "/Users/bementmbp/Desktop/BementLab/2_Projects/23_DevPaper/Figures/Figure4E/190219_Live_Flvw_Emb_Utr647_E02-T01_2-323_bleachCorr_CropUtr_40-250.tif"
+foo = skio.imread(rawFilePath).astype('float64') #array of shape (frames, y, x)
+print(foo.shape)
+scaleFactor = 2
+factorArray = (1, scaleFactor, scaleFactor)
+raw = downscale(foo, factorArray)
+print(raw.shape)
+diffNumber = 3
+windowSize = 3
+plotData = True
+savePath = "/Users/bementmbp/Desktop/"
 
 def calcLines(rawData, diffNum, window):
     diff = np.subtract(rawData[diffNum:], rawData[:-diffNum])
-    polZAxis =  np.nanmean(np.where(diff>0, diff, np.nan), axis=(1,2))
-    depolZAxis = np.abs(np.nanmean(np.where(diff<0, diff, np.nan), axis=(1,2)))
+    polZAxis =  np.nansum(np.where(diff>0, diff, np.nan), axis=(1,2))           #this is now TOTAL disassembly
+    depolZAxis = np.abs(np.nansum(np.where(diff<0, diff, np.nan), axis=(1,2)))  #this is now the RATE of disassembly
     numPoints = int(rawData.shape[0]-diffNum)
     diffXAxis = np.linspace(1, numPoints, numPoints)
     rollPol = np.convolve(polZAxis, np.ones(window), 'valid') / window      #returns rolling average array
     rollDepol = np.convolve(depolZAxis, np.ones(window), 'valid') / window      #returns rolling average array
     numPointsRoll = int(rawData.shape[0]-diffNum-window//2)
-    rollXAxis = np.linspace((1+window//2), (numPointsRoll-window//2), (numPointsRoll-window//2))
+    rollXAxis = np.linspace((1+window//2), (numPointsRoll-window//2), (numPointsRoll-window//2), dtype=int)
     return(diffXAxis, polZAxis, depolZAxis, rollXAxis, rollPol, rollDepol)
 
 fig = plt.figure(figsize=(7, 5))        #figure object
@@ -33,13 +41,13 @@ rollAx = fig.add_axes([0.3, 0.92, 0.4, 0.05])
 rollValues = np.array([1,3,5,7,9,11,13,15])
 diffValues = np.linspace(1,15,15)
 try:
-    diffSlider = Slider(ax=diffAx, label='Frames to difference ', valmin=1, valmax=15, valinit=5, valfmt=' %1.1f Frames', valstep=diffValues, facecolor='#cc7000')
+    diffSlider = Slider(ax=diffAx, label='Frames to difference ', valmin=1, valmax=15, valinit=diffNumber, valfmt=' %1.1f Frames', valstep=diffValues, facecolor='#cc7000')
 except ValueError:
-    diffSlider = Slider(ax=diffAx, label='Frames to difference ', valmin=1, valmax=15, valinit=5, valfmt=' %1.1f Frames', valstep=diffValues.all(), facecolor='#cc7000')
+    diffSlider = Slider(ax=diffAx, label='Frames to difference ', valmin=1, valmax=15, valinit=diffNumber, valfmt=' %1.1f Frames', valstep=diffValues.all(), facecolor='#cc7000')
 try:
-    rollSlider = Slider(ax=rollAx, label='Frames to average ', valmin=1, valmax=15, valinit=5, valfmt='%i Frames', valstep=rollValues, facecolor='#cc7000')
+    rollSlider = Slider(ax=rollAx, label='Frames to average ', valmin=1, valmax=15, valinit=windowSize, valfmt='%i Frames', valstep=rollValues, facecolor='#cc7000')
 except ValueError:
-    rollSlider = Slider(ax=rollAx, label='Frames to average ', valmin=1, valmax=15, valinit=5, valfmt='%i Frames', valstep=rollValues.all(), facecolor='#cc7000')
+    rollSlider = Slider(ax=rollAx, label='Frames to average ', valmin=1, valmax=15, valinit=windowSize, valfmt='%i Frames', valstep=rollValues.all(), facecolor='#cc7000')
 ax.set_ylabel('relative assembly and disassembly')
 ax.set_xlabel('time (frames)')
 
@@ -49,6 +57,12 @@ depolDots, = ax.plot(xAxisDots, depolDotVals, color='darkorange', marker='o', li
 polLine, = ax.plot(xAxisRoll, polRoll, color='deepskyblue', label='recent F-actin assembly')
 depolLine, = ax.plot(xAxisRoll, depolRoll, color='darkorange', label='recent F-actin disassembly')
 ax.legend(loc='upper right', fontsize='small', frameon=False, ncol=1)
+
+if plotData == True:
+    df1 = pd.DataFrame({"xAxisDots":xAxisDots, "polDotVals":polDotVals, "depolDotVals":depolDotVals})
+    df2 = pd.DataFrame({"xAxisRoll":xAxisRoll, "polRoll":polRoll, "depolRoll":depolRoll})
+    df = pd.concat([df1, df2], ignore_index=False, axis=1)
+    df.to_csv(savePath + "plot.csv")
 
 def update(val):
     d = int(diffSlider.val)
