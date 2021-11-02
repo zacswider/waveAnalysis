@@ -8,17 +8,18 @@ import scipy.signal as sig                      #
 import scipy.fftpack as fft                     #
 import os                                       #Operating system
 import sys                                      #
+import math
 
 boxSizeInPx = 20                #ENTER DESIRED BOXED SIZE HERE
 plotIndividualACFs = False      #TRUE = PLOTS BOXES; FALSE = ONLY PLOTS POP MEANS
 plotIndividualPeaks = False
-plotSubStackACFs = True
+plotSubStackACFs = False
 smoothACF = True                #smooths the ACF to better eliminate noisy peaks
 smoothMySignal = True        #TRUE = SMOOTHS THE BOX MEANS PRIOR TO CALCULATING THE WAVE AMPLITUDE AND WIDTHS
 smoothingMethod = "savgol"  #"savgol" calls the smoothWithSavgol (polynomial fit); "fft" calls smoothWithFFT (low pass filter)
 analyzeFrames = 50                                                  #defines the length of submovies
-rollBy = 5                                                          #defines the shift (ie roll) between submovies
-baseDirectory = "/Users/bementmbp/Desktop/0_analysis"         #BASE DIRECTORY FOR THE GUI
+rollBy = 10                                                          #defines the shift (ie roll) between submovies
+baseDirectory = "/Users/bementmbp/Desktop/testing"         #BASE DIRECTORY FOR THE GUI
 
 def findWorkspace(directory, prompt):                                                       #accepts a starting directory and a prompt for the GUI
     #targetWorkspace = askdirectory(initialdir=directory, message=prompt)                   #opens prompt asking for folder, keep commented to default to baseDirectory
@@ -206,7 +207,14 @@ def subStackPlotsAndShifts(acorArray, subStackSavePath, subStackIndex, periods):
     plt.savefig(plotSavePath)                                                  #saves the figure
     plt.close()                                                               #clears the figure
 
-                                                                            #clears figure
+def calcListStats(list, numberOfBoxes):
+    npList = np.array(list)
+    mean = np.nanmean(npList)
+    median = np.nanmedian(npList)
+    std = np.nanstd(npList)
+    sem = std/math.sqrt(npList.shape[0])
+    pcntZeros = ((numBoxes-len(list))/numBoxes)*100
+    return(mean, median, std, sem, pcntZeros)
 
 def saveSubStackValues(measurementList, subStackSavePath, valueName, columnNames):
     df = pd.DataFrame(measurementList, columns = columnNames)                                   #converts the list of lists containing all of the ccf statistics into a pandas dataframe
@@ -292,6 +300,15 @@ for i in range(len(fileNames)):                                 #iterates throug
             subStackPlotsAndShifts(meanAcfArray, subStackSavePath, subStackIndex, tempParamDict["period"])
 
         print(str(round((y+1)/numberSubMovies*100, 1)) + "%" + " Finished with " + fileNames[i])
+    
+    for key, lol in paramDict.items():
+        for lis in lol:
+            mean, median, std, sem, pcntZeros = calcListStats(lis[2:], numBoxes)
+            for index, item in {2:mean, 3:median, 4:std, 5:sem, 6:pcntZeros}.items():
+                lis.insert(index, item)
+
+    for index, item in {2:"mean", 3:"median", 4:"std", 5:"sem", 6:"pcntZeros"}.items():
+        columnNames.insert(index, item)
 
     for key, permList in paramDict.items():
         saveSubStackValues(permList, subStackSavePath, key, columnNames)
