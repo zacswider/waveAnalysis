@@ -10,6 +10,7 @@ import os
 import sys                                      
 import math         
 import fnmatch  #filename matching 
+import datetime
 
 import tkinter as tk
 from tkinter.filedialog import askdirectory 
@@ -102,6 +103,17 @@ groupNames = groupNamesVar.get()
 groupNames = [x.strip() for x in groupNames.split(',')] #list of group names. splits string input by commans and removes spaces
 targetWorkspace = folderPath.get() 
 compareFiles = compareFilesVar.get()
+
+#make dictionary of parameters for log file use
+logParams = {
+    "Box Size(px)" : boxSizeInPx,
+    "ACF Peak Prominence" : acfPeakProm,
+    "Group Names" : groupNames,
+    "Smooth My Signal" : smoothMySignal,
+    "Plot Individual ACFs" : plotIndividualACFs,
+    "Plot Individual CCFs" : plotIndividualCCFs,
+    "Plot group-wise comparisons" : compareFiles
+    }
 
 '''processing functions'''
 
@@ -478,10 +490,19 @@ def setGroups(groupNames, nameWithoutExtension):
         if fnmatch.fnmatch(nameWithoutExtension, "*"+group+"*"):
             return(group)
 
+def makeLog(directory, logParams): #makes a text log with script parameters
+    logPath = os.path.join(directory, "log.txt") #path to log file
+    now = datetime.datetime.now() #get current date and time
+    logFile = open(logPath, "w") #initiate text file
+    logFile.write("\n" + now.strftime("%Y-%m-%d %H:%M") + "\n") #write current date and time
+    for key, value in logParams.items(): #for each key:value pair in the parameter dictionary, write pair to new line
+        logFile.write('%s: %s\n' % (key, value))
+    logFile.close()
 
 ### MAIN ####
 directory, fileNames = findWorkspace(targetWorkspace)  #string object describing the file path, list object containing all file names ending with .tif
 masterStatsDf = pd.DataFrame()  #empty dataframe for final stats output of all movies
+makeLog(directory, logParams) #make log text file
 
 for i in range(len(fileNames)):  #iterates through the .tif files in the specified directory
     
