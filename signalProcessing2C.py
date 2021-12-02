@@ -5,6 +5,7 @@ import pathlib
 import numpy as np
 import pandas as pd  
 import seaborn as sns
+from tkinter import Tk
 import skimage.io as skio  
 import scipy.signal as sig                        
 import matplotlib.pyplot as plt    
@@ -19,8 +20,9 @@ fileNameIndex = -1              #Necessary for "compareFiles = True", identifies
 acfPeakProm = 0.1               #Minimum peak prominence to choose in an ACF, set 0-1. Larger values are more stringent. 
 baseDirectory = "/Users/bementmbp/Desktop/"      #Base directory for the GUI. Can hard code file path by commenting line 23 and uncommenting line 24. 
 
-def findWorkspace(directory, prompt):                                                       #accepts a starting directory and a prompt for the GUI
-    targetWorkspace = askdirectory(initialdir=directory, message=prompt)                    #opens prompt asking for folder, keep commented to default to baseDirectory
+def findWorkspace(directory):                                                       #accepts a starting directory and a prompt for the GUI
+    Tk().withdraw()
+    targetWorkspace = askdirectory()                    #opens prompt asking for folder, keep commented to default to baseDirectory
     #targetWorkspace = directory                                                            #comment this out later if you want a GUI
     filelist = [fname for fname in os.listdir(targetWorkspace) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
     return(targetWorkspace, filelist)                                                       #returns the folder path and list of file names
@@ -299,7 +301,7 @@ def plotComparisons(dataFrame, variable, savePath):
 
 
 
-directory, fileNames = findWorkspace(baseDirectory, "PLEASE SELECT YOUR SOURCE WORKSPACE")  #string object describing the file path, list object containing all file names ending with .tif
+directory, fileNames = findWorkspace(baseDirectory)  #string object describing the file path, list object containing all file names ending with .tif
 masterStatsList = []
 columnHeaders = []
 
