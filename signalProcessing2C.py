@@ -1,15 +1,22 @@
 import os                                       
 import sys                                      
 import math
-import pathlib                                  
+import pathlib   
+import fnmatch
+import datetime                               
 import numpy as np
 import pandas as pd  
 import seaborn as sns
+import tkinter as tk
 from tkinter import Tk
+from tkinter import ttk
 import skimage.io as skio  
-import scipy.signal as sig                        
+import scipy.signal as sig
+from genericpath import exists            
 import matplotlib.pyplot as plt    
-from tkinter.filedialog import askdirectory              
+from tkinter.filedialog import askdirectory      
+
+np.seterr(divide='ignore', invalid='ignore')
 
 boxSizeInPx = 20                #Desired box size for analysis
 plotIndividualACFs = False      #True = plots signal trace and ACF curve for every box; False = only plots pop means. 
@@ -18,12 +25,121 @@ plotIndividualPeaks = False     #True = plots signal trace and peak picking for 
 compareFiles = True            #True = generates plots comparing the different groups in your dataset; False = only writes wave stats
 fileNameIndex = -1              #Necessary for "compareFiles = True", identifies the group index in the filename.
 acfPeakProm = 0.1               #Minimum peak prominence to choose in an ACF, set 0-1. Larger values are more stringent. 
-baseDirectory = "/Users/bementmbp/Desktop/"      #Base directory for the GUI. Can hard code file path by commenting line 23 and uncommenting line 24. 
+baseDirectory = "/Users/bementmbp/Desktop/testDatasets"      #Base directory for the GUI. Can hard code file path by commenting line 23 and uncommenting line 24. 
+graphicUserInterface = False
+       
+'''*** Start GUI Window ***'''
+if graphicUserInterface == True:
+    #initiates Tk window
+    root = tk.Tk()
+    root.title('Select your options')
+    root.geometry('500x250')
 
+    #sets number of columns in the main window
+    root.columnconfigure(0, weight=1)
+    root.columnconfigure(1, weight=1)
+    root.columnconfigure(2, weight=1)
+
+    #defining variable types for the different widget fields
+    boxSizeVar = tk.IntVar()            #variable for box grid size
+    boxSizeVar.set(20)                  #set default value 
+    smoothMySignalVar = tk.BooleanVar() #variable for smooth my signal option
+    smoothMySignalVar.set(True)         #set default value
+    plotIndividualACFsVar = tk.BooleanVar()     #variable for plotting individual ACFs
+    plotIndividualCCFsVar = tk.BooleanVar()     #variable for plotting individual CCFs
+    plotIndividualPeaksVar = tk.BooleanVar()    #variable for plotting individual peaks
+    acfPeakPromVar = tk.DoubleVar()             #variable for peak prominance threshold   
+    acfPeakPromVar.set(0.1)                     #set default value
+    groupNamesVar = tk.StringVar()   #variable for group names list
+    folderPath = tk.StringVar()      #variable for path to images
+    compareFilesVar = tk.BooleanVar() #variable for plotting group-wise comparisons
+
+    #function for getting path to user's directory
+    def getFolderPath():
+        folderSelected = askdirectory()
+        folderPath.set(folderSelected)
+
+    '''widget creation'''
+    #file path selection widget
+    fileEntry = ttk.Entry(root, textvariable=folderPath)
+    fileEntry.grid(column=0, row=0, padx=10, sticky='E')
+    browseButton = ttk.Button(root, text= 'Select source directory', command=getFolderPath)
+    browseButton.grid(column=1, row=0, sticky='W')
+
+    #boxSize entry widget
+    boxSizeBox = ttk.Entry(root, width = 3, textvariable=boxSizeVar) #creates box widget
+    boxSizeBox.grid(column=0, row=1, padx=10, sticky='E') #places widget in frame
+    boxSizeBox.focus()      #focuses cursor in box
+    boxSizeBox.icursor(2)   #positions cursor after default input characters
+    ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=1, columnspan=2, padx=10, sticky='W') #create label text
+
+    #create acfpeakprom entry widget
+    ttk.Entry(root, width = 3, textvariable=acfPeakPromVar).grid(column=0, row=2, padx=10, sticky='E') #create the widget
+    ttk.Label(root, text='Enter ACF peak prominence threshold').grid(column=1, row=2, padx=10, sticky='W') #create label text
+
+    #create groupNames entry widget
+    ttk.Entry(root,textvariable=groupNamesVar).grid(column=0, row=3, padx=10, sticky='E') #create the widget
+    ttk.Label(root, text='Enter group names separated by commas').grid(column=1, row=3, padx=10, sticky='W') #create label text
+
+    #create checkbox widgets and labels
+    ttk.Checkbutton(root, variable=smoothMySignalVar).grid(column=0, row=4, sticky='E', padx=15) #smooth my signal
+    ttk.Label(root, text='Smooth my signal').grid(column=1, row=4, columnspan=2, padx=10, sticky='W')
+
+    ttk.Checkbutton(root, variable=plotIndividualACFsVar).grid(column=0, row=5, sticky='E', padx=15)
+    ttk.Label(root, text='Plot individual ACFs').grid(column=1, row=5, columnspan=2, padx=10, sticky='W') #plot individual ACFs
+
+    ttk.Checkbutton(root, variable=plotIndividualCCFsVar).grid(column=0, row=6, sticky='E', padx=15) #plot individual CCFs
+    ttk.Label(root, text='Plot individual CCFs').grid(column=1, row=6, columnspan=2, padx=10, sticky='W')
+
+    ttk.Checkbutton(root, variable=plotIndividualPeaksVar).grid(column=0, row=7, sticky='E', padx=15) #plot individual peaks
+    ttk.Label(root, text='Plot individual peaks').grid(column=1, row=7, columnspan=2, padx=10, sticky='W')
+
+    ttk.Checkbutton(root, variable=compareFilesVar).grid(column=0, row=8, sticky='E', padx=15) #plot group-wise comparisons
+    ttk.Label(root, text='Plot group-wise comparisons').grid(column=1, row=8, columnspan=2, padx=10, sticky='W')
+    
+    #Creates the 'Start Analysis' button
+    startButton = ttk.Button(root, text='Start Analysis', command=root.destroy) #creates the button and bind it to close the window when clicked
+    startButton.grid(column=1, row=9, pady=10, sticky='W') #place it in the tk window
+
+    root.mainloop() #run the script
+
+    #get the values stored in the widget
+    boxSizeInPx = boxSizeVar.get()
+    smoothMySignal = smoothMySignalVar.get() 
+    plotIndividualACFs= plotIndividualACFsVar.get()
+    plotIndividualCCFs = plotIndividualCCFsVar.get()
+    plotIndividualPeaks = plotIndividualPeaksVar.get()
+    acfPeakProm = acfPeakPromVar.get()
+    groupNames = groupNamesVar.get()
+    groupNames = [x.strip() for x in groupNames.split(',')] #list of group names. splits string input by commans and removes spaces
+    targetWorkspace = folderPath.get() 
+    compareFiles = compareFilesVar.get()
+
+    #make dictionary of parameters for log file use
+    logParams = {
+        "Box Size(px)" : boxSizeInPx,
+        "ACF Peak Prominence" : acfPeakProm,
+        "Group Names" : groupNames,
+        "Smooth My Signal" : smoothMySignal,
+        "Plot Individual ACFs" : plotIndividualACFs,
+        "Plot Individual CCFs" : plotIndividualCCFs,
+        "Plot group-wise comparisons" : compareFiles
+        }
+else:
+        logParams = {
+        "Box Size(px)" : boxSizeInPx,
+        "ACF Peak Prominence" : acfPeakProm,
+        "Plot Individual ACFs" : plotIndividualACFs,
+        "Plot Individual CCFs" : plotIndividualCCFs,
+        "Plot group-wise comparisons" : compareFiles
+        }
+'''*** End GUI Window ***'''
+
+'''*** Start Processing Functions ***'''
 def findWorkspace(directory):                                                       #accepts a starting directory and a prompt for the GUI
     Tk().withdraw()
-    targetWorkspace = askdirectory()                    #opens prompt asking for folder, keep commented to default to baseDirectory
-    #targetWorkspace = directory                                                            #comment this out later if you want a GUI
+    #targetWorkspace = askdirectory()                    #opens prompt asking for folder, keep commented to default to baseDirectory
+    targetWorkspace = directory                                                            #comment this out later if you want a GUI
     filelist = [fname for fname in os.listdir(targetWorkspace) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
     return(targetWorkspace, filelist)                                                       #returns the folder path and list of file names
 
@@ -37,14 +153,14 @@ def findBoxMeans(imageArray, boxSize):              #accepts an image array as a
     xDims = imageArray.shape[2]                     #number of pixels on x-axis
     yBoxes = yDims // boxSize                       #returns int result of floor division; number of boxes on the y axis
     xBoxes = xDims // boxSize                       #returns int result of floor division; number of boxes on the x axis
-    growingArray = np.zeros((1, depth))             #makes a starting array of 64 bit zeros that can be added onto later. shape = (1, depth of imageStack)
+    growingArray = np.zeros((xBoxes, yBoxes, depth))#makes a starting array of 64 bit zeros that can be modified later. shape = (num x boxes, num y boxes, depth of imageStack)
 
     for x in range(xBoxes):                         #iterates through the number of boxes on the x-axis
         for y in range (yBoxes):                    #iterates through the number of boxes on the y-axis
             boxMean = np.array([np.mean(imageArray[:,(y*boxSize):(y*boxSize+boxSize),(x*boxSize):(x*boxSize+boxSize)], (1,2))])  
             #creates a 2d array of shape (depth, 1) containing the mean values of the px within the box for each slices
-            growingArray = np.append(growingArray, boxMean, axis = 0)      #appends the 2d array onto the growing array
-    growingArray = np.delete(growingArray, 0, axis=0)           #deletes the zero array used to initialize
+            growingArray[x][y] = boxMean            #reassigns zero values at this position to the box mean values
+    growingArray = np.reshape(growingArray, (growingArray.shape[0]*growingArray.shape[1], growingArray.shape[2])) #reshapes to a 2d instead of 3d array
     return(growingArray)                            #returns ndarray of shape (number of boxes, number of frames)
 
 def printBoxACF(signal, acor, boxNum, directory, channel="", delay=None):   #Accepts a signal and an autocorrelation to plot
@@ -80,7 +196,6 @@ def printBoxACF(signal, acor, boxNum, directory, channel="", delay=None):   #Acc
         plt.close(fig)                                                      #clears the figure
 
 def printBoxCCF(signal1, signal2, ccor, boxNum, directory, shift):   #Accepts two signals and a crosscorrelation to plot
-    #subFolder =                                                  #Specifies subfolder name
     ccfSavePath = directory / ("boxGraphs") / ("CCF_Plots")                 #Specifies subfolder path
     ccfSavePath.mkdir(exist_ok=True, parents=True)                          #Makes the subfolder
     assert len(signal1) == len(signal2), "signals must be the same size"    #user feedback
@@ -197,205 +312,248 @@ def analyzePeaks(signal, savePath, boxNumber, channel):     #accepts a signal, s
     else:                                               #if no peaks are detected...
         return(np.NaN, np.NaN, np.NaN, np.NaN, np.NaN)  #returns NaNs. 
 
-def plotCF(corArray, savePath, shifts, channel, cfType = "ACF"):              #accepts a tuple containing acfs and shifts, which will be plotted and saved
-    plotSavePath = savePath / (channel + "mean" + cfType + ".png")
-    mean = np.nanmean(corArray, axis=0)
-    std = np.nanstd(corArray, axis=0)
-    lags = np.arange(-(mean.shape[0]+1)/2+1, (mean.shape[0]+1)/2)
+def plotCF(corArray, savePath, shifts, channel, cfType = "ACF"):        # accepts array of cross or autocorrelation curves (1 for each box), 
+                                                                        # a save path, a list of shifts (periods or signal shifts), a channel 
+                                                                        # (if applicable), and the type of correlation fxn (cross or auto)
+    plotSavePath = savePath / (channel + "mean" + cfType + ".png")      # save path for plot   
+    mean = np.nanmean(corArray, axis=0)                                 # mean correlation curve (ignoring nans, i.e. the curves that didn't report a shift)
+    std = np.nanstd(corArray, axis=0)                                   # y-axis standard deviation of the curve (i.e., shape of the curve, not stdev of shift values)
+    lags = np.arange(-(mean.shape[0]+1)/2+1, (mean.shape[0]+1)/2)       # x axis for correlation plots
 
-    shifts = shifts[2:]
-    if np.isnan(np.max(shifts)) == True:                       #filters out nans if they exit
+    shifts = shifts[2:]                                                 # shift values (just the numbers, not the text)
+    if np.isnan(np.max(shifts)) == True:                                # filters out nans if they exit
         shifts = [x for x in shifts if np.isnan(x) != True] 
     
-    boxesAndLags = np.vstack((lags, mean, std)).T      #Makes an ndarray zipping each of the box names (listOfBoxes) and lags for each box (ccfAnswers[1])
-    #np.savetxt(txtPath, boxesAndLags, fmt='%10.5f', delimiter=',')                                  #saves the ndarray as a text file
+    boxesAndLags = np.vstack((lags, mean, std)).T                       # Makes an ndarray zipping each of the box names (listOfBoxes) and lags for each box (ccfAnswers[1])
 
-    plt.subplot(2,1,1)                                                      #top subplot
-    plt.subplots_adjust(wspace=0.4)                                         #adjust horizontal white space
-    plt.subplots_adjust(hspace=0.4)                                         #adjust vertical white space
-    plt.plot(lags, mean)                                             #plots of the mean CCF
-    plt.fill_between(lags, mean-std, mean+std, alpha = 0.5) #plots the ±Std Dev
-    plt.xlabel("Average " + cfType + " curve ± Std Dev")             #x-axis label
+    plt.subplot(2,1,1)                                                  # top subplot
+    plt.subplots_adjust(wspace=0.4)                                     # adjust horizontal white space
+    plt.subplots_adjust(hspace=0.4)                                     # adjust vertical white space
+    plt.plot(lags, mean)                                                # plots of the mean correlation function
+    plt.fill_between(lags, mean-std, mean+std, alpha = 0.5)             # plots the ±Std Dev as a semi-opaque fill
+    plt.xlabel("Average " + cfType + " curve ± Std Dev")                # x-axis label
 
-    plt.subplot(2,2,3)                                                      #bottom left subplot
-    plt.hist(shifts)                                                  #histogram of shift values
-    if cfType == "ACF":
-        plt.xlabel("Histogram of Period values")                                 #x-axis label
-    if cfType == "CCF":
-        plt.xlabel("Histogram of Shift values")
-    plt.ylabel("Occurrences")                                               #y-axis label
+    plt.subplot(2,2,3)                                                  # bottom left subplot
+    plt.hist(shifts)                                                    # histogram of shift values
+    if cfType == "ACF":                                                 # for autocorrelations:
+        plt.xlabel("Histogram of Period values")                        # x-axis label
+    if cfType == "CCF":                                                 # for cross correlation
+        plt.xlabel("Histogram of Shift values")                         # x-axis label
+    plt.ylabel("Occurrences")                                           # y-axis label
     
-    plt.subplot(2,2,4)                                                      #bottom right subplot
-    plt.boxplot(shifts)                                               #boxplot of shift values
-    if cfType == "ACF":
-        plt.xlabel("Boxplot of Period values")                                 #x-axis label
-        plt.ylabel("Measured Period (frames)")
-    if cfType == "CCF":
-        plt.xlabel("Boxplot of Shift values")
-        plt.ylabel("Measured Shift (frames)")                                            #y-axis label
-    plt.xticks(ticks=[])                                                    #empty list for x-axis tick labels (i.e. no labels)
+    plt.subplot(2,2,4)                                                  # bottom right subplot
+    plt.boxplot(shifts)                                                 # boxplot of shift values
+    if cfType == "ACF":                                                 # for autocorrelations:
+        plt.xlabel("Boxplot of Period values")                          # x-axis label
+        plt.ylabel("Measured Period (frames)")                          # y-axis label
+    if cfType == "CCF":                                                 # for cross correlation
+        plt.xlabel("Boxplot of Shift values")                           # x-axis label
+        plt.ylabel("Measured Shift (frames)")                           # y-axis label
+    plt.xticks(ticks=[])                                                # empty list for x-axis tick labels (i.e. no labels)
 
-    plt.savefig(plotSavePath, dpi=80)                                                  #saves the figure
-    plt.close()                                                               #clears the figure
-    return(boxesAndLags)
+    plt.savefig(plotSavePath, dpi=80)                                   # saves the figure
+    plt.close()                                                         # clears the figure
+    return(boxesAndLags)                                                # returns an array containing the x axis values, mean autoccorelation values, and the std dev values
 
-def plotPeaks(widthList, minList, maxList, ampList, savePath, channel):
-    savePath = savePath / (channel + "MeanPeakMeasurements.png")
+def plotPeaks(widthList, minList, maxList, ampList, savePath, channel):             # accepts lists of peak measurements, a save path, and the channel measured
+    savePath = savePath / (channel + "MeanPeakMeasurements.png")                    # save path
 
-    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
-    fig.subplots_adjust(wspace=0.4)
-    fig.subplots_adjust(wspace=0.4)
-    ax1.hist(ampList, bins=20, color="tab:purple", label = "amp", alpha = 0.75)
-    ax1.hist(minList, bins=20, color="tab:orange", label = "min", alpha = 0.75)
-    ax1.hist(maxList, bins=20, color="tab:blue", label = "max", alpha = 0.75)
-    ax1.legend(loc='upper right', fontsize='small', ncol=1) 
-    ax1.set_xlabel("Histogram of peak values")
-    ax1.set_ylabel("Occurrences")
+    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))          # figure object w/ three subplots
+    fig.subplots_adjust(wspace=0.4)                                                 # adjust subplot horizontal spacing
+    ax1.hist(ampList, bins=20, color="tab:purple", label = "amp", alpha = 0.75)     # adds histogram of amplitudes to subplot 1
+    ax1.hist(minList, bins=20, color="tab:orange", label = "min", alpha = 0.75)     # adds histogram of min peak values to subplot 1
+    ax1.hist(maxList, bins=20, color="tab:blue", label = "max", alpha = 0.75)       # adds histogram of max peak values to subplot 1
+    ax1.legend(loc='upper right', fontsize='small', ncol=1)                         # legend
+    ax1.set_xlabel("Histogram of peak values")                                      # x axis label
+    ax1.set_ylabel("Occurrences")                                                   # y axis label
     
-    labels = ["amp", "min", "max"]
-    colors = ['tab:purple', 'tab:orange', 'tab:blue']
-    plotThis = [ampList, minList, maxList]
-    bplot = ax2.boxplot(plotThis, vert=True, patch_artist=True, labels=labels)
-    for patch, color in zip(bplot['boxes'], colors):
-        patch.set_facecolor(color)
-    ax2.set_xlabel("Boxplot of peak values")
-    ax2.set_ylabel("Pixel value (AU)")
+    labels = ["amp", "min", "max"]                                                  # labels to use
+    colors = ['tab:purple', 'tab:orange', 'tab:blue']                               # colors to use
+    plotThis = [ampList, minList, maxList]                                          # data to plot
+    bplot = ax2.boxplot(plotThis, vert=True, patch_artist=True, labels=labels)      # boxplot object
+    for patch, color in zip(bplot['boxes'], colors):                                
+        patch.set_facecolor(color)                                                  # sets the face color of each box 
+    ax2.set_xlabel("Boxplot of peak values")                                        # x axis label
+    ax2.set_ylabel("Pixel value (AU)")                                              # y axis label
 
-    ax3.hist(widthList, bins=20, color="tab:blue", label = "max", alpha = 0.75)
-    ax3.set_xlabel("Histogram of temporal width values")
-    ax3.set_ylabel("Occurrences")
+    ax3.hist(widthList, bins=20, color="tab:blue", label = "max", alpha = 0.75)     # histogram of width values
+    ax3.set_xlabel("Histogram of temporal width values")                            # x axis label
+    ax3.set_ylabel("Occurrences")                                                   # y axis label
 
-    plt.savefig(savePath, dpi=80)                                                  #saves the figure
-    plt.close()
+    plt.savefig(savePath, dpi=80)                                                   # saves the figure
+    plt.close()                                                                     # closes the figure
 
 def saveBoxValues(measurementList, savePath, columnNames):
-    df = pd.DataFrame(measurementList, columns = columnNames)                                   #converts the list of lists containing all of the ccf statistics into a pandas dataframe
-    fileName = "0_summaryStats.csv"
-    df.to_csv(savePath / fileName, float_format = '%.2f')                              #saves the dataframe to a .csv file
+    df = pd.DataFrame(measurementList, columns = columnNames)                       # converts the list of lists containing all of the ccf statistics into a pandas dataframe
+    fileName = "0_summaryStats.csv"                                                 # file name to save as
+    df.to_csv(savePath / fileName, float_format = '%.2f')                           # saves the dataframe to a .csv file
 
-def calcListStats(list):
-    npList = np.array(list)
-    mean = np.nanmean(npList)
-    median = np.nanmedian(npList)
-    std = np.nanstd(npList)
-    sem = std/math.sqrt(npList.shape[0])
-    return(mean, median, std, sem)
+def calcListStats(lis):                                                             # given a list or array
+    arr = np.array(lis)                                                             # list to array
+    arr = arr[np.logical_not(np.isnan(arr))]                                        # duplicate array, excluding nans
+    mean = np.mean(arr)                                                             # mean excluding nans
+    median = np.median(arr)                                                         # median excluding nans
+    std = np.std(arr)                                                               # standard deviation excluding nans
+    sem = std/math.sqrt(arr.shape[0])                                               # standard error of the mean excluding nans
+    return(mean, median, std, sem)                                                  # return statistics
 
 def plotComparisons(dataFrame, variable, savePath):
-    ax = sns.boxplot(x="Group Name", y=variable, data=dataFrame, palette = "Set2", showfliers = False)		#Makes a boxplot
-    ax = sns.swarmplot(x="Group Name", y=variable, data=dataFrame, color=".25")							#Makes a scatterplot
-    ax.set_xticklabels(ax.get_xticklabels(),rotation=45)
-    fig = ax.get_figure()																			#Makes figure object
-    fig.savefig((savePath / variable), dpi=300, bbox_inches='tight')						#saves the plot to the specified file destination	
-    plt.close()
+    ax = sns.boxplot(x="Group Name", y=variable, data=dataFrame, palette = "Set2", showfliers = False)		# Makes a boxplot
+    ax = sns.swarmplot(x="Group Name", y=variable, data=dataFrame, color=".25")							    # Makes a scatterplot
+    ax.set_xticklabels(ax.get_xticklabels(),rotation=45)                                                    # x axis labels
+    fig = ax.get_figure()																			        # Makes figure object
+    fig.savefig((savePath / variable), dpi=300, bbox_inches='tight')						                # saves the plot to the specified file destination	
+    plt.close()                                                                                             # close the figure
 
-############# FUNCTIONS ABOVE, WORKFLOW BELOW #############
-
-
-
-
-
-
-
-
-
-
-
-directory, fileNames = findWorkspace(baseDirectory)  #string object describing the file path, list object containing all file names ending with .tif
-masterStatsList = []
-columnHeaders = []
-
-for i in range(len(fileNames)):                                 #iterates through the .tif files in the specified directory
-
-    print("Starting to work on " + fileNames[i] + "!")
-    imageStack=skio.imread(directory + "/" + fileNames[i])      #reads image as ndArray
-    nameWithoutExtension = fileNames[i].rsplit(".",1)[0]
-    boxSavePath = pathlib.Path(directory + "/0_signalProcessing/" + nameWithoutExtension) #sets save path for output
-    boxSavePath.mkdir(exist_ok=True, parents=True)  #makes save path for output, if it doesn't already exist
-    if compareFiles == True:
-        groupName = nameWithoutExtension.split("_")[fileNameIndex]
+def makeLog(directory, logParams):                                  # makes a text log with script parameters
+    logPath = os.path.join(directory, "log.txt")                    # path to log file
+    now = datetime.datetime.now()                                   # get current date and time
+    logFile = open(logPath, "w")                                    # initiate text file
+    logFile.write("\n" + now.strftime("%Y-%m-%d %H:%M") + "\n")     # write current date and time
+    for key, value in logParams.items():                            # for each key:value pair in the parameter dictionary...
+        logFile.write('%s: %s\n' % (key, value))                    # write pair to new line
+    logFile.close()                                                 # close the file
     
-    """Attempt the verify the number of channels in the image"""
-    if imageStack.shape[1] == 2:    #imageStack.shape[1] will either be the number of channels, or the number of pixels on the y-axis
-        imageChannels = 2          
-    elif imageStack.ndim == 3:  #imageStack.ndim == 3 = the number of dimensions. a 1-channel stack won't have the 4th channel dimension
-        imageChannels = 1
-    else:
+#################################################################
+#################################################################
+#############                                       #############
+#############    FUNCTIONS ABOVE, WORKFLOW BELOW    #############
+#############                                       #############
+#################################################################
+#################################################################
+
+directory, fileNames = findWorkspace(baseDirectory)             # string object describing the file path, list object containing all file names ending with .tif
+masterStatsList = []                                            # empty list to fill with file stats
+columnHeaders = []                                              # emtpy list to fill with column headers
+makeLog(directory, logParams)                                   # make log text file
+
+for i in range(len(fileNames)):                                 # iterates through the .tif files in the specified directory
+
+    print("Starting to work on " + fileNames[i] + "!")          # user feedback
+    imageStack=skio.imread(directory + "/" + fileNames[i])      # reads image as np ndArray
+    nameWithoutExtension = fileNames[i].rsplit(".",1)[0]        # gets the file name without the file extension
+    boxSavePath = pathlib.Path(directory + "/0_signalProcessing/" + nameWithoutExtension) # sets save path for output for each image file
+    boxSavePath.mkdir(exist_ok=True, parents=True)              # makes save path for output, if it doesn't already exist
+    if compareFiles == True:
+        groupName = nameWithoutExtension.split("_")[fileNameIndex]  # !!!!! PROBABLY PHASING THIS OUT WITH ANI'S GUI
+    ''' ^^ above ^^'''
+
+    if imageStack.shape[1] == 2:    # Attempt the verify the number of channels in the image
+        imageChannels = 2           # imageStack.shape[1] will either be the number of channels, or the number of pixels on the y-axis
+    elif imageStack.ndim == 3:      
+        imageChannels = 1           # imageStack.ndim == 3 = the number of dimensions. a 1-channel stack won't have the 4th channel dimension
+    else:                           # This should cover most use cases...
         sys.exit("Are you sure you have a standard sized image with one or two channels?")
 
+#################################################################
+#################################################################
+#############                                       #############
+#############         ONE CHANNEL WORKFLOW          #############
+#############                                       #############
+#################################################################
+#################################################################
 
-
-
-
-
-
-
-    
-    '''                     ************************ ONE CHANNEL WORKFLOW ************************                  '''
     if imageChannels == 1:   
-        print("Starting 1-channel workflow")
-        boxMeans = findBoxMeans(imageStack, boxSizeInPx) #returns array of mean px value in each box
-        numBoxes = boxMeans.shape[0]                        #returns number of boxes in array
-        columnNames = ["Parameter", "Mean", "Median", "StdDev", "SEM"]                         #column names, will be expanded in for loop below
-        acfPlots=np.empty((imageStack.shape[0]*2-1))        #
+        print("Starting 1-channel workflow")                            # user feedback
+        boxMeans = findBoxMeans(imageStack, boxSizeInPx)                # returns array of mean px value in each box; mean box value for every frame in dataset
+        numBoxes = boxMeans.shape[0]                                    # returns number of boxes in array (fxn of image dimensions and box size)
+        columnNames = ["Parameter", "Mean", "Median", "StdDev", "SEM"]  # initial column names, will be expanded in for loop below
+        acfPlots=np.empty((imageStack.shape[0]*2-1))                    # empty array with otherwise the correct shape for an autocorrelation fxn, will be appended to below
         
-        paramDict = {"Ch1 Period":[], "Ch1 Width":[], "Ch1 Max":[], "Ch1 Min":[], "Ch1 Amp":[], "Ch1 Rel Amp":[]} #dictionary object with a string description and empty list to append measurements to
-        for key, tempList in paramDict.items():
-            tempList.append(key)                    #every list now has the string description of the measurement in index 0
+        paramDict = {"Ch1 Period":["Ch1 Period"],                       # dict with a string description of each parameter and empty list to append measurements to
+                     "Ch1 Width":["Ch1 Width"],                         # every list has the string description of the measurement in index 0
+                     "Ch1 Max":["Ch1 Max"], 
+                     "Ch1 Min":["Ch1 Min"],                             #  !!!!! DO I WANT TO KEEP CH1 IN THERE FOR 1-CHANNEL WORKFLOW?
+                     "Ch1 Amp":["Ch1 Amp"], 
+                     "Ch1 Rel Amp":["Ch1 Rel Amp"]} 
         
-        for boxNumber in range(numBoxes):                         #iterates through ndarray of box means
-            columnNames.append("Box#" + str(boxNumber))
-            acfPlot, period = findACF(boxMeans[boxNumber], boxSavePath, boxNumber, channel = "")
-            width, max, min, amp, relAmp = analyzePeaks(boxMeans[boxNumber], boxSavePath, boxNumber, channel="") #calls analyze peaks function, returns width, max, min, amp, relAmp as numpy.float64 objects
-            acfPlots = np.vstack((acfPlots, acfPlot))                                                   #ADDS ONTO THE GROWING LIST OF BOX ACFS
-            varDict = {"Ch1 Period":period, "Ch1 Width":width, "Ch1 Max":max, "Ch1 Min":min, "Ch1 Amp":amp, "Ch1 Rel Amp":relAmp} #dictionary with string descriptors matching paramDict above
-            for key, var in varDict.items():        #iterates through the dictionary...
-                paramDict[key].append(float(var))   #...and appends the appropriate variable into the growing lists in paramdict
-        
-        acfPlots = np.delete(acfPlots, obj=0, axis=0)
-        cfArray = plotCF(acfPlots, boxSavePath, paramDict["Ch1 Period"], channel="")
-        df = pd.DataFrame(cfArray, columns=["X Axis", "ACF Mean", "ACF Std Dev"])
-        df.to_csv(boxSavePath / ("cfPlots.csv"))
-        
-        plotPeaks(paramDict["Ch1 Width"][1:], paramDict["Ch1 Min"][1:], paramDict["Ch1 Max"][1:], paramDict["Ch1 Amp"][1:], boxSavePath, channel = "")
-        
-        summaryDict={"Filename":nameWithoutExtension}
-        summaryDict["# of Boxes"] = numBoxes
-        periods = [x for x in paramDict["Ch1 Period"][1:] if np.isnan(x) != True]
-        pcntZeros = ((numBoxes-len(periods))/numBoxes)*100
-        summaryDict["Ch1 Pcnt Zero Boxes"] = pcntZeros
-        if compareFiles == True:
-            summaryDict["Group Name"] = groupName
+        for boxNumber in range(numBoxes):                               # iterates through ndarray of box means
+            columnNames.append("Box#" + str(boxNumber))                 # appends the box number to the column names
+            acfPlot, period = findACF(boxMeans[boxNumber],              # calculates the acf curve and signal period for every box. 
+                                      boxSavePath, 
+                                      boxNumber, 
+                                      channel = "")                     # channels is empty b/c there's only one channel.
+ 
+            width, max, min, amp, relAmp = analyzePeaks(boxMeans[boxNumber], 
+                                                        boxSavePath,    # finds the peak width, max, min, amp, and relAmp for each box
+                                                        boxNumber, 
+                                                        channel="")     # channels is empty b/c there's only one channel.
 
-        for meas in ["Period", "Width", "Max", "Min", "Amp", "Rel Amp"]:
-            mean, median, std, sem =  calcListStats(paramDict["Ch1 " + meas][1:])
-            for index, item in {1:mean, 2:median, 3:std, 4:sem}.items():
-                paramDict["Ch1 " + meas].insert(index, item)
-            for stat, val in {"Mean":mean, "Median":median, "StDev":std, "SEM":sem}.items():
-                summaryDict["Ch1 " + stat + " " + meas] = val
+            acfPlots = np.vstack((acfPlots, acfPlot))                   # stacks the acf plot for the current box onto the growing array of acf plots
+                                                                        # could make this more memory efficient by making the correct sized array first, and redefining for each box
+            varDict = {"Ch1 Period":period,                             # dict with string descriptors matching paramDict above
+                       "Ch1 Width":width, 
+                       "Ch1 Max":max, 
+                       "Ch1 Min":min, 
+                       "Ch1 Amp":amp, 
+                       "Ch1 Rel Amp":relAmp} 
+            for key, var in varDict.items():                            # iterates through the dictionary...
+                paramDict[key].append(float(var))                       # ...and appends the appropriate variable into the growing lists in paramdict
         
-        for key in summaryDict.keys():
-            if key not in columnHeaders:
-                columnHeaders.append(key)
+        acfPlots = np.delete(acfPlots, obj=0, axis=0)                   # deletes the empty first obj in the acf plots array (won't need this if I include memory saving step suggested above)
+        cfArray = plotCF(acfPlots, boxSavePath, paramDict["Ch1 Period"], channel="")    # plots the mean ± std dev autocorrelation functions and returns an array of the x axis values, mean autoccorelation values, and the std dev values
+        df = pd.DataFrame(cfArray, columns=["X Axis", "ACF Mean", "ACF Std Dev"])       # moves the mean±std into a dataframe...
+        df.to_csv(boxSavePath / ("cfPlots.csv"))                                        # ... and saves it as a .csv
+        
+        plotPeaks(paramDict["Ch1 Width"][1:],                           # sends data to the plot peaks fxn to plot peak population histograms etc
+                  paramDict["Ch1 Min"][1:],                             # excludes the first index in the list, which is the string description of the measurement
+                  paramDict["Ch1 Max"][1:],                         
+                  paramDict["Ch1 Amp"][1:],                         
+                  boxSavePath,                      
+                  channel = "")                                         # channels is empty b/c there's only one channel.
+        
+        summaryDict = {"Filename":nameWithoutExtension}                 # create dict to fill with summary stats; start with the file name
+        summaryDict["# of Boxes"] = numBoxes                            # add number of boxes in the file
+        periods = [x for x in paramDict["Ch1 Period"][1:] if np.isnan(x) != True]
+                                                                        # removes nans from list of period measurements
+                                                                        # find ACF function returns a nan if no suitable peaks are detected
+        pcntZeros = ((numBoxes-len(periods))/numBoxes)*100              # calculates what percent of the period measurments were nan (bad measurements)
+        summaryDict["Ch1 Pcnt Zero Boxes"] = pcntZeros                  # and appends to dict. This can be used as a metric for analysis quality.
+        if compareFiles == True:                                        
+            summaryDict["Group Name"] = groupName               # !!!!! MAY NEED TO MODIFY THIS TO PLAY NICE WITH ANI'S GUI
+
+        for meas in ["Period",                                          # for each major peak measurement...
+                     "Width", 
+                     "Max", 
+                     "Min", 
+                     "Amp", 
+                     "Rel Amp"]:
+            mean, 
+            median,                                                     # pass that corresponding list to the calc list stats fxn
+            std, 
+            sem =  calcListStats(paramDict["Ch1 " + meas][1:])          
+            for index, item in {1:mean,                                 
+                                2:median, 
+                                3:std,                                  # temp dict that defines which index to insert which measurement into the parameter dict
+                                4:sem}.items():
+                paramDict["Ch1 " + meas].insert(index, item)            # inserts each measurement at the appropriate location
+            for stat, val in {"Mean":mean, 
+                              "Median":median,                          # temp dict that defines string description for each variable...
+                              "StDev":std, 
+                              "SEM":sem}.items():
+                summaryDict["Ch1 " + stat + " " + meas] = val           # ...and appends it to the summary dict
+        
+        for key in summaryDict.keys(): 
+            if key not in columnHeaders:                                # if string description of some variable is not already in the column headers list...
+                columnHeaders.append(key)                               # ...append it
 
         listOfMeasurements = []
         for finishedList in paramDict.values():
             listOfMeasurements.append(finishedList)
-        saveBoxValues(listOfMeasurements, boxSavePath, columnNames)  #SINGLE FUNCTION THAT PRINTS SUMMARY AND BOX SIZE FOR EVERYTHING
+        saveBoxValues(listOfMeasurements, boxSavePath, columnNames)     # single function that prints summary and box size for everything
 
-        masterStatsList.append(summaryDict)
+        masterStatsList.append(summaryDict)                             # summary of stats for this file is finished, append it to the growing list and move on to the next
 
-        print(str(round((i+1)/len(fileNames)*100, 1)) + "%" + " Finished with Analysis")
+        print(str(round((i+1)/len(fileNames)*100, 1)) + "%" + " Finished with Analysis") # user feedback
 
+#################################################################
+#################################################################
+#############                                       #############
+#############         TWO CHANNEL WORKFLOW          #############
+#############                                       #############
+#################################################################
+#################################################################
 
-
-
-
-
-
-
-
-    '''                     ************************  TWO CHANNEL WORKFLOW ************************                  '''
     if imageChannels == 2:   
         print("Starting 2-channel workflow")
         subs = np.split(imageStack, 2, 1) #List object containing two arrays corresponding to the two channels of the imageStack
