@@ -555,16 +555,15 @@ for i in range(len(fileNames)):                                 # iterates throu
 #################################################################
 
     if imageChannels == 2:   
-        print("Starting 2-channel workflow")
-        subs = np.split(imageStack, 2, 1) #List object containing two arrays corresponding to the two channels of the imageStack
-        ch1 = np.squeeze(subs[0],axis=1)  #array object corresponding to channel one of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
-        ch2 = np.squeeze(subs[1],axis=1)  #array object corresponding to channel two of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
+        print("Starting 2-channel workflow")                            # user feedback
+        subs = np.split(imageStack, 2, 1)                               # list object containing two arrays corresponding to the two channels of the imageStack
+        ch1 = np.squeeze(subs[0],axis=1)                                # array object corresponding to channel one of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
+        ch2 = np.squeeze(subs[1],axis=1)                                # array object corresponding to channel two of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
         
-        ch1BoxMeans = findBoxMeans(ch1, boxSizeInPx) #ndarray of shape (# boxes, # frames)
-        ch2BoxMeans = findBoxMeans(ch2, boxSizeInPx) #ndarray of shape (# boxes, # frames)
+        ch1BoxMeans = findBoxMeans(ch1, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
+        ch2BoxMeans = findBoxMeans(ch2, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
 
-        assert ch2BoxMeans.size == ch1BoxMeans.size, "ch1BoxMeans and ch2BoxMeans are not the same size, something went horribly wrong"
-        numBoxes = ch1BoxMeans.shape[0]
+        numBoxes = ch1BoxMeans.shape[0]                                 # # returns number of boxes in array (fxn of image dimensions and box size); same as ch2BoxMeans.shape[0]
         Ch1AcfPlots = np.zeros((imageStack.shape[0]*2-1))
         Ch2AcfPlots = np.zeros((imageStack.shape[0]*2-1))
         ccfPlots = np.zeros((imageStack.shape[0]*2-1))
