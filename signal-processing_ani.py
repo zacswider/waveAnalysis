@@ -43,7 +43,8 @@ groupNamesVar = tk.StringVar()   #variable for group names list
 folderPath = tk.StringVar()      #variable for path to images
 compareFilesVar = tk.BooleanVar() #variable for plotting group-wise comparisons
 exitButtonVar = False #variable for cancel button. set to false automatically
-startButtonVar = False #variable for start button state. 
+startButtonVar = False #variable for start button. set to false automatically
+
 
 #function for getting path to user's directory
 def getFolderPath():
@@ -56,7 +57,7 @@ def on_start():
     startButtonVar = True #sets it to true
     root.destroy() #destroys window
 
-#function for hitting start button
+#function for hitting cancel button
 def on_quit(): 
     global exitButtonVar #references the global variable
     exitButtonVar = True #sets it to true
@@ -99,7 +100,7 @@ ttk.Label(root, text='Plot individual peaks').grid(column=1, row=7, columnspan=2
 
 ttk.Checkbutton(root, variable=compareFilesVar).grid(column=0, row=8, sticky='E', padx=15) #plot group-wise comparisons
 ttk.Label(root, text='Plot group-wise comparisons').grid(column=1, row=8, columnspan=2, padx=10, sticky='W')
- 
+
 #Creates the 'Start Analysis' button
 startButton = ttk.Button(root, text='Start Analysis', command=on_start) #creates the button and bind it to close the window when clicked
 startButton.grid(column=1, row=9, pady=10, sticky='W') #place it in the tk window
@@ -522,19 +523,20 @@ def makeLog(directory, logParams): #makes a text log with script parameters
         logFile.write('%s: %s\n' % (key, value))
     logFile.close()
 
+    
 ### MAIN ####
 directory, fileNames = findWorkspace(targetWorkspace)  #string object describing the file path, list object containing all file names ending with .tif
 masterStatsDf = pd.DataFrame()  #empty dataframe for final stats output of all movies
 makeLog(directory, logParams) #make log text file
 
 for i in range(len(fileNames)):  #iterates through the .tif files in the specified directory
-    
+
     print("Starting to work on " + fileNames[i] + "!")
     imageStack=skio.imread(directory + "/" + fileNames[i])                                #reads image as ndArray
     nameWithoutExtension = fileNames[i].rsplit(".",1)[0]                                  #gets the filename without the .tif extension
     boxSavePath = pathlib.Path(directory + "/0_signalProcessing/" + nameWithoutExtension) #sets save path for output
     boxSavePath.mkdir(exist_ok=True, parents=True)                                        #makes save path for output, if it doesn't already exist
-    
+
     group = setGroups(groupNames, nameWithoutExtension)
     print("group is: ", group )
     
@@ -545,12 +547,12 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
         imageChannels = 1
     else:
         sys.exit("Are you sure you have a standard sized image with one or two channels?")
-
+    
     if imageChannels ==1:
         print("starting 1-channel workflow")
         ch1BoxMeans = findBoxMeans(imageStack, boxSizeInPx)        #ndarray of shape (# boxes, # frames)
         ch2BoxMeans=np.zeros_like((ch1BoxMeans))                  #dummy array simulating a second channel
-
+    
     elif imageChannels == 2:
         print("starting 2-channel workflow")
         subs = np.split(imageStack, 2, 1) #List object containing two arrays corresponding to the two channels of the imag
@@ -558,21 +560,21 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
         ch2 = np.squeeze(subs[1],axis=1)  #array object corresponding to channel two of imageStack. Also deletes axis 1, t
         ch1BoxMeans = findBoxMeans(ch1, boxSizeInPx) #ndarray of shape (# boxes, # frames)
         ch2BoxMeans = findBoxMeans(ch2, boxSizeInPx) #ndarray of shape (# boxes, # frames)
-
+    
     else: print("I can only handle up to 2 channels!")
-
+    
     assert ch2BoxMeans.size == ch1BoxMeans.size, "ch1BoxMeans and ch2BoxMeans are not the same size, something went horribly wrong"
     chBoxMeans = np.array([ch1BoxMeans, ch2BoxMeans])   #3D array of channel means (2ch, nBoxes, npts)
     
     npts = chBoxMeans.shape[2]     #number of frames in a slice
     nBoxes = chBoxMeans.shape[1]   #number of boxes in a slice
-
+    
     if imageChannels ==2:
         ccfArray, shifts= findCCF(ch1BoxMeans, ch2BoxMeans, npts, nBoxes) #get ccf and shifts for each box. Each row in ccfArray is the ccf for a box over time   
         meanCCFDf = plotCF(ccfArray, npts, shifts, "CCF.png")             #plot the CCF function
         if plotIndividualCCFs == True:
             plotCCFs(chBoxMeans, ccfArray, shifts, nBoxes, npts, boxSavePath, "CCF_Plots")
-
+    
     '''Find the ACFs for each box, for all channels'''
     acorArrays, periods= findACF(chBoxMeans, npts, nBoxes) #acorArrays = ndarray where each row is the ACF for a box over time. Periods = ndarray of periods for all boxes  
     finalArray = analyzePeaks(chBoxMeans, nBoxes, boxSavePath, npts) #ch1PeakValues = ndarray of peak metrics (width, min, max, amp, relAmp) for each box
@@ -587,12 +589,13 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
             chperiods = periods[channel]                             #select the periods from each channel
             subFolderName = "Ch"+str(channel+1)+"ACF_Plots"          #create a subfolder for the output
             plotACFs(inputMeans, chacorArray, chperiods, npts, nBoxes, boxSavePath, subFolderName)  #plot the ACFs for each box, for each channel
-
+    
 
     '''Plot the average ACF for Ch1'''
     meanCh1ACFDf = plotCF(acorArrays[0, :,:], npts, periods[0], 'Ch1ACF.png')       #plot the mean Ch1 ACF
+    meanCh1ACFDf.to_csv(os.path.join(boxSavePath,"correlations.csv"), index=False)  #save the mean Ch1 ACF as a csv
     plotPeaks(ch1PeakValues, boxSavePath, "Ch1MeanPeakMeasurements.png")      #plot the ch1PeakValues and save the graphs
-    
+ 
     '''Save the Ch1ACF and CCF (if applicable) values to a csv'''
     if imageChannels == 2:
         correlationValues = pd.merge(meanCh1ACFDf, meanCCFDf) #if CCF exists, combine it with ACF into one dataframe
@@ -601,11 +604,12 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
     
     correlationValues.to_csv(os.path.join(boxSavePath,"correlations.csv"), index=False)  #save the correlation values to csv
 
+    
     '''Plot Ch2 ACF (if applicable) and set up BoxMeasurements.csv'''
     if imageChannels == 2:
         meanCh2ACFDf = plotCF(acorArrays[1, :,:], npts, periods[1], 'Ch2ACF.png')     #plot the Ch2 ACF function
         plotPeaks(ch2PeakValues, boxSavePath, "Ch2MeanPeakMeasurements.png")          #plot Ch2 peak values
-
+        
         boxMeasurements = pd.DataFrame({    #create a dataframe for measurements from individual boxes
         'Box#': np.arange(0,nBoxes),
         'Signal Shift' : shifts,
@@ -613,17 +617,19 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
         'Ch2 Periods': periods[1]
         })
         peakValues = pd.merge(ch1PeakValues, ch2PeakValues, left_index=True, right_index=True)  #merge all peak values together 
-        
     
+
     else: #create the dataframe entry for 1-channel data (no CCF or Ch2 values)
         boxMeasurements = pd.DataFrame({  #create a dataframe for measurements from individual boxes
         'Box#': np.arange(0,nBoxes),      #include box#
         'Ch1 Periods': periods[0],        #include periods
         })
-        
+       
+    peakValues = ch1PeakValues #if 1-channel, just renames this df 
         peakValues = ch1PeakValues #if 1-channel, just renames this df 
-        
-    
+    peakValues = ch1PeakValues #if 1-channel, just renames this df 
+
+
     '''Adding stats values to BoxMeasurements.csv'''
     pcntZeros = calculatePcntZeros(periods)  #calculate %0's in the periods
     boxMeasurements = pd.merge(boxMeasurements, peakValues, left_index=True, right_index=True)           #add the widths, mins, maxs, amps and relAmps from each box to the dataframe
@@ -631,14 +637,14 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
     boxMeasurements[''] = np.NaN                                                                         #adds extra column of space        
     boxMeasurementsMerged = pd.merge(boxMeasurements, statsDf, how='outer', left_index=True, right_index=True) #merge the stats calculations into the boxMeasurements dataframe
     boxMeasurementsMerged.to_csv(os.path.join(boxSavePath, "BoxMeasurements.csv"), index=False)                #save the dataframe
-
+    
     '''Create entry for 0_filestats.csv (master file)'''
     masterStatsEntry = pd.DataFrame({      #dataframe entry to be added to the master stats csv file containing all movies (at end of script)
         'Filename' : nameWithoutExtension,              
         'Group' : group,
         'Num Boxes' : nBoxes,
         'Ch1 Pcnt Zeros': pcntZeros[0]}, index=[0],)
-
+    
     if imageChannels ==2:
         masterStatsEntry['Ch2 Pcnt Zeros'] = pcntZeros[1] #if 2-channel, add column for ch2 percent 0's 
     
@@ -647,7 +653,7 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
     print(str(round((i+1)/len(fileNames)*100, 1)) + "%" + " Finished with Analysis") #updates progress to terminal window
     
     masterStatsDf.to_csv(os.path.join(directory, '0_filestats.csv'), index=False)    #saves master stats file at the end of the analysis 
-
+    
     if compareFiles == True:
         comparisonsToMake = [columnName + " Mean" for columnName in boxMeasurements.columns] #get a list of the column names to plot
         comparisonsToMake = comparisonsToMake[1:-1] #removes first and last elements from the list ("Box#, and "NaN")
