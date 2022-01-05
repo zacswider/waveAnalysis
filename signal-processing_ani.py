@@ -42,11 +42,25 @@ acfPeakPromVar.set(0.1)                     #set default value
 groupNamesVar = tk.StringVar()   #variable for group names list
 folderPath = tk.StringVar()      #variable for path to images
 compareFilesVar = tk.BooleanVar() #variable for plotting group-wise comparisons
+exitButtonVar = False #variable for cancel button. set to false automatically
+startButtonVar = False #variable for start button state. 
 
 #function for getting path to user's directory
 def getFolderPath():
     folderSelected = askdirectory()
     folderPath.set(folderSelected)
+
+#function for hitting start button
+def on_start(): 
+    global startButtonVar #references the global variable
+    startButtonVar = True #sets it to true
+    root.destroy() #destroys window
+
+#function for hitting start button
+def on_quit(): 
+    global exitButtonVar #references the global variable
+    exitButtonVar = True #sets it to true
+    root.destroy() #destroys window
 
 '''widget creation'''
 #file path selection widget
@@ -87,10 +101,19 @@ ttk.Checkbutton(root, variable=compareFilesVar).grid(column=0, row=8, sticky='E'
 ttk.Label(root, text='Plot group-wise comparisons').grid(column=1, row=8, columnspan=2, padx=10, sticky='W')
  
 #Creates the 'Start Analysis' button
-startButton = ttk.Button(root, text='Start Analysis', command=root.destroy) #creates the button and bind it to close the window when clicked
+startButton = ttk.Button(root, text='Start Analysis', command=on_start) #creates the button and bind it to close the window when clicked
 startButton.grid(column=1, row=9, pady=10, sticky='W') #place it in the tk window
 
+#Creates the 'Cancel' button
+cancelButton = ttk.Button(root, text='Cancel', command=on_quit) #creates the button and bind it to on_quit function
+cancelButton.grid(column=0, row=9, pady=10, sticky='E') #place it in the tk window
+
 root.mainloop() #run the script
+
+if exitButtonVar == True: #if user hits cancel, print error
+    sys.exit('You opted to cancel the script before running')
+elif exitButtonVar == False and startButtonVar == False: #if user x's out of window, print error
+    sys.exit('You opted to cancel the script before running')
 
 #get the values stored in the widget
 boxSizeInPx = boxSizeVar.get()
@@ -568,9 +591,15 @@ for i in range(len(fileNames)):  #iterates through the .tif files in the specifi
 
     '''Plot the average ACF for Ch1'''
     meanCh1ACFDf = plotCF(acorArrays[0, :,:], npts, periods[0], 'Ch1ACF.png')       #plot the mean Ch1 ACF
-    meanCh1ACFDf.to_csv(os.path.join(boxSavePath,"correlations.csv"), index=False)  #save the mean Ch1 ACF as a csv
     plotPeaks(ch1PeakValues, boxSavePath, "Ch1MeanPeakMeasurements.png")      #plot the ch1PeakValues and save the graphs
     
+    '''Save the Ch1ACF and CCF (if applicable) values to a csv'''
+    if imageChannels == 2:
+        correlationValues = pd.merge(meanCh1ACFDf, meanCCFDf) #if CCF exists, combine it with ACF into one dataframe
+    else:
+        correlationValues = meanCh1ACFDf
+    
+    correlationValues.to_csv(os.path.join(boxSavePath,"correlations.csv"), index=False)  #save the correlation values to csv
 
     '''Plot Ch2 ACF (if applicable) and set up BoxMeasurements.csv'''
     if imageChannels == 2:
