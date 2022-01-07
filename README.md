@@ -49,7 +49,7 @@ In this section I will assume that you have no idea what Python is, or how to us
 
 1) Click the big green "Code" button in the upper right corner of this repository. Select "Download ZIP", and then unzip it to your desktop.
 2) Go to https://www.anaconda.com/products/individual and download/install Anaconda
-3) Once installed, 
+3) Once installed, (check back soon, I'm in the process of updating this page)
 
 
 ### On a PC:
