@@ -41,20 +41,48 @@ Finally, if we choose to compare different groups, we will get file full of plot
 ![GitHub-Mark-Light](https://github.com/zacswider/signalProcessing/blob/main/README_Images/comparisons_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/signalProcessing/blob/main/README_Images/comparisons_light.jpg#gh-light-mode-only)
 
 
-## Downloading and running the scripts
+## Downloading the scripts and setting up Python on your computer
 
 In this section I will assume that you have no idea what Python is, or how to use it. If you already know how to use Python and Conda, you can probably skip this section.
 
 ### On a Mac:
 
 1) Click the big green "Code" button in the upper right corner of this repository. Select "Download ZIP", and then unzip it to your desktop.
-2) Go to https://www.anaconda.com/products/individual and download/install Anaconda
-3) Once installed, (check back soon, I'm in the process of updating this page)
-
+2) Go to https://www.anaconda.com/products/individual and download/install Anaconda (a distribution of Python and a package manager). 
+3) Once installed, open the terminal by pushing `Command–Space bar`, typing "terminal", and hitting enter.
+4) Type `cd Desktop/signalProcessing-main` into the terminal and hit enter to navigate to the unzipped flder.
+5) Type `conda env create --file environment.yml` into the terminal and hit enter. This will install a bunch of scientific computing/analysis packages into an environment call "waves". The script will need the packages in this environment to run correctly.
+6) When complete, the final lines in your terminal should say 
+```
+Executing transaction: done
+#
+# To activate this environment, use
+#
+#     $ conda activate waves
+#
+# To deactivate an active environment, use
+#
+#     $ conda deactivate
+```
 
 ### On a PC:
 
-1) Click the big green "Code" button in the upper right corner of this repository. Select "Download ZIP", and then unzip it to your desktop.
-2) Go to https://www.anaconda.com/products/individual and download/install Anaconda
+1) Please check back shortly, I am in the process of updating this readme
+
+## Running the scripts
+
+1) If it's not already open, open the terminal by pushing `Command–Space bar`, typing "terminal", and hitting enter.
+2) If you haven't restarted the terminal since installing your environment, you're already in the correct directory. If you aren't sure, type `cd` into the terminal and hit enter. Next, type `cd Desktop/signalProcessing-main` into the terminal and hit enter to navigate to the unzipped flder.
+3) Activate the newly installed environment by typing `conda activate waves` into the terminal and hitting enter. 
+4) Type `python3 signalprocessing2c.py` into the terminal and hit enter to run the script.
+5) It may take a second to connect to the correct environment the first time you run, but next a window will appear asking you for some variable to enter:
+![alt text](https://github.com/zacswider/signalProcessing/blob/main/README_Images/GUI_small.jpg)
+
+
+
+
+
+
+
 
 
