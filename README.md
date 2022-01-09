@@ -69,15 +69,24 @@ Executing transaction: done
 
 1) Please check back shortly, I am in the process of updating this readme
 
+## Preparing data for analysis
+Before running any analysis on your 1 or 2-channel time lapse datasets, be sure to complete all necessary pre-processing steps. Some thing to consider:
+- Any significant two-dimensional drift in your data will alter the detected wave dynamics. If drift is detectable, register your data ahead of time.
+- Black spaces (e.g. from drift correction, or true background) should be cropped out. The period detection functions will not return a value if no period is detected in a dark spaces, but the amplitude functions won't know the difference.
+- Bleaching or z-drift will both affect amplitude and width measurements. The best approach is to not have bleaching/drift to begin with as bleach correction algorithms can introduce their own artifacts. However, if desired, correct your data for bleaching before analyzing.
+
 ## Running the scripts
 
 1) If it's not already open, open the terminal by pushing `Command–Space bar`, typing "terminal", and hitting enter.
 2) If you haven't restarted the terminal since installing your environment, you're already in the correct directory. If you aren't sure, type `cd` into the terminal and hit enter. Next, type `cd Desktop/signalProcessing-main` into the terminal and hit enter to navigate to the unzipped flder.
 3) Activate the newly installed environment by typing `conda activate waves` into the terminal and hitting enter. 
 4) Type `python3 signalprocessing2c.py` into the terminal and hit enter to run the script.
-5) It may take a second to connect to the correct environment the first time you run, but next a window will appear asking you for some variable to enter:
-![alt text](https://github.com/zacswider/signalProcessing/blob/main/README_Images/GUI_small.jpg)
-
+5) It may take a second to connect to the correct environment the first time you run, but next a window will appear asking you for some parameters to adjust:
+![alt text](https://github.com/zacswider/signalProcessing/blob/main/README_Images/GUI.jpg)
+### Setting parameters:
+1) This is the source directory for you analysis. Navigate to it using the "Select source directory button". This directory should have one or more 1 or 2-channel time lapse datasets saved in standard standard `tzcyx` order. 
+2) This is the box size used for analysis. Boxes should be large enough to filter out noise, but small enough that they don't over-fill the structures being analyzed. A good way to empirically find the apppropriate box size is to open your data in [FIJI](https://imagej.net/software/fiji/), draw a box with the rectangle selection tool, open up the z-axis profile plotter `Image > Stacks > Plot Z-axis Profile`, click the "Live" button, and adjust the box dimensions to find a size that you feel like accurately captures the temporal dynamics.
+3) The is the minimum prominence in the autocorrelation curve to be considered a genuine period. Using the default parameter `0.1`, 
 
 
 
