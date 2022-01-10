@@ -87,7 +87,11 @@ Before running any analysis on your 1 or 2-channel time lapse datasets, be sure 
 1) This is the source directory for you analysis. Navigate to it using the "Select source directory button". This directory should have one or more 1 or 2-channel time lapse datasets saved in standard standard `tzcyx` order. 
 2) This is the box size used for analysis. Boxes should be large enough to filter out noise, but small enough that they don't over-fill the structures being analyzed. A good way to empirically find the apppropriate box size is to open your data in [FIJI](https://imagej.net/software/fiji/), draw a box with the rectangle selection tool, open up the z-axis profile plotter `Image > Stacks > Plot Z-axis Profile`, click the "Live" button, and adjust the box dimensions to find a size that you feel like accurately captures the temporal dynamics.
 3) The is the minimum prominence in the autocorrelation curve to be considered a genuine period. Using the default parameter `0.1`, 
-
+4) If you want to compare the population measurements between different groups, enter the groups names in this space. These names *must* be present within the names of the file being processed. Box #8 must also be checked if group names are entered in this space.
+5) If you check this box, a graphical output of the autocorrelation for every box analyzed will be saved to the analysis folder.
+6) If you check this box, a graphical output of the crosscorrelation for every box analyzed will be saved to the analysis folder.
+7) If you check this box, a graphical output of the wave peak analalysis for every box analyzed will be saved to the analysis folder.
+8) Check this box if you want to export a comparison of the groups to the analysis folder. 
 
 
 
