@@ -1,4 +1,6 @@
 # signalProcessing2C.py
+These tools were developed with much inspiration by Marcin Leda in the Goryachev group at the University of Edinburgh
+
 ## Expected Output:
 
 signalProcessing2C.py is written to batch analyze oscillatory dynamics in both 1-channel and 2-channel time lapse datasets. The primary dependencies are numpy, pandas, seaborn, scikit-image, scipy, and matplotlib. See the environment.yml or requirements.txt file to create your own environment. 
