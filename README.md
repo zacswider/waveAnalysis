@@ -54,7 +54,7 @@ Executing transaction: done
 7) If you check this box, a graphical output of the wave peak analalysis for every box analyzed will be saved to the analysis folder.
 8) Check this box if you want to export a comparison of the groups to the analysis folder. 
 
-
+That's it! Just click start analysis, and the script will process and save the output to your analysis folder. 
 
 
 
