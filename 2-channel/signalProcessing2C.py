@@ -104,9 +104,6 @@ if graphicUserInterface == True:
     ttk.Checkbutton(root, variable=plotIndividualPeaksVar).grid(column=0, row=7, sticky='E', padx=15) #plot individual peaks
     ttk.Label(root, text='Plot individual peaks').grid(column=1, row=7, columnspan=2, padx=10, sticky='W')
 
-    ttk.Checkbutton(root, variable=compareFilesVar).grid(column=0, row=8, sticky='E', padx=15) #plot group-wise comparisons
-    ttk.Label(root, text='Plot group-wise comparisons').grid(column=1, row=8, columnspan=2, padx=10, sticky='W')
-
     #Creates the 'Start Analysis' button
     startButton = ttk.Button(root, text='Start Analysis', command=on_start) #creates the button and bind it to close the window when clicked
     startButton.grid(column=1, row=9, pady=10, sticky='W') #place it in the tk window
