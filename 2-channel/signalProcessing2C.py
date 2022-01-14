@@ -128,23 +128,16 @@ logParams = {
     }
 
 errors = []
-errorMessage = False
 if acfPeakProm > 1 :
-    errorMessage = True
     errors.append("The ACF peak prominence can not be greater than 1, set 'ACF peak prominence threshold' to a value between 0 and 1. More realistically, a value between 0 and 0.5")
 if len(baseDirectory) < 1 :
-    errorMessage = True
     errors.append("You didn't enter a directory to analyze")
 
-
-if errorMessage == True:
-    if len(errors) == 1 :
-        print(errors[0])
-        sys.exit("It's okay! Just fix that error and try again")
-    else:
-        for error in enumerate(errors):
-            print(str(error[0]+1) + ') ' + error[1])
-        sys.exit("It's okay! Just fix those errors and try again")
+if len(errors) >= 1 :
+    print("Error Log:")
+    for count, error in enumerate(errors):
+        print(count,":", error)
+    sys.exit("Please fix errors and try again.") 
 
 '''*** End GUI Window ***'''
 
