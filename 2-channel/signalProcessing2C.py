@@ -24,7 +24,6 @@ plotIndividualCCFs = False      #True = plots signal trace and CCF curve for eve
 plotIndividualPeaks = False     #True = plots signal trace and peak picking for every box; False = only plots pop statistics.
 fileNameIndex = -1              #Necessary for "compareFiles = True", identifies the group index in the filename.
 acfPeakProm = 0.1               #Minimum peak prominence to choose in an ACF, set 0-1. Larger values are more stringent. 
-baseDirectory = "/Users/bementmbp/Desktop/smallTest"      #Base directory for the GUI. Can hard code file path by commenting line 23 and uncommenting line 24. 
 
        
 '''*** Start GUI Window ***'''
@@ -152,7 +151,6 @@ if errorMessage == True:
 '''*** Start Processing Functions ***'''
 def findWorkspace(directory):                                                       #accepts a starting directory and a prompt for the GUI
     Tk().withdraw()
-    #targetWorkspace = askdirectory()                    #opens prompt asking for folder, keep commented to default to baseDirectory
     targetWorkspace = directory                                                            #comment this out later if you want a GUI
     filelist = [fname for fname in os.listdir(targetWorkspace) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
     return(targetWorkspace, filelist)                                                       #returns the folder path and list of file names
