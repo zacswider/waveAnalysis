@@ -22,7 +22,6 @@ boxSizeInPx = 20                #Desired box size for analysis
 plotIndividualACFs = False      #True = plots signal trace and ACF curve for every box; False = only plots pop means. 
 plotIndividualCCFs = False      #True = plots signal trace and CCF curve for every box; False = only plots pop means. 
 plotIndividualPeaks = False     #True = plots signal trace and peak picking for every box; False = only plots pop statistics.
-fileNameIndex = -1              #Necessary for "compareFiles = True", identifies the group index in the filename.
 acfPeakProm = 0.1               #Minimum peak prominence to choose in an ACF, set 0-1. Larger values are more stringent. 
 
        
@@ -54,13 +53,13 @@ folderPath = tk.StringVar()      #variable for path to images
 def getFolderPath():
     folderSelected = askdirectory()
     folderPath.set(folderSelected)
-    #function for hitting cancel button
 
+#function for hitting cancel button or quitting
 def on_quit(): 
     root.destroy() #destroys window
     sys.exit("You opted to cancel the script!")
 
-
+#function for hitting start button
 def on_start(): 
         root.destroy() #destroys window
     
