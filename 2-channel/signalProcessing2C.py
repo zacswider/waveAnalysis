@@ -22,7 +22,6 @@ boxSizeInPx = 20                #Desired box size for analysis
 plotIndividualACFs = False      #True = plots signal trace and ACF curve for every box; False = only plots pop means. 
 plotIndividualCCFs = False      #True = plots signal trace and CCF curve for every box; False = only plots pop means. 
 plotIndividualPeaks = False     #True = plots signal trace and peak picking for every box; False = only plots pop statistics.
-compareFiles = True            #True = generates plots comparing the different groups in your dataset; False = only writes wave stats
 fileNameIndex = -1              #Necessary for "compareFiles = True", identifies the group index in the filename.
 acfPeakProm = 0.1               #Minimum peak prominence to choose in an ACF, set 0-1. Larger values are more stringent. 
 baseDirectory = "/Users/bementmbp/Desktop/smallTest"      #Base directory for the GUI. Can hard code file path by commenting line 23 and uncommenting line 24. 
@@ -53,7 +52,6 @@ if graphicUserInterface == True:
     acfPeakPromVar.set(0.1)                     #set default value
     groupNamesVar = tk.StringVar()   #variable for group names list
     folderPath = tk.StringVar()      #variable for path to images
-    compareFilesVar = tk.BooleanVar() #variable for plotting group-wise comparisons
 
     #function for getting path to user's directory
     def getFolderPath():
@@ -121,7 +119,6 @@ if graphicUserInterface == True:
     groupNames = groupNamesVar.get()
     groupNames = [x.strip() for x in groupNames.split(',')] #list of group names. splits string input by commans and removes spaces
     baseDirectory = folderPath.get() 
-    compareFiles = compareFilesVar.get()
 
     #make dictionary of parameters for log file use
     logParams = {
@@ -131,20 +128,13 @@ if graphicUserInterface == True:
         "Group Names" : groupNames,
         "Plot Individual ACFs" : plotIndividualACFs,
         "Plot Individual CCFs" : plotIndividualCCFs,
-        "Plot group-wise comparisons" : compareFiles
         }
 
     errors = []
     errorMessage = False
-    if compareFiles == True and len(groupNames) < 2:
-        errorMessage = True
-        errors.append('If you want to compare multiple groups, you must enter more than one group name')
     if acfPeakProm > 1 :
         errorMessage = True
         errors.append("The ACF peak prominence can not be greater than 1, set 'ACF peak prominence threshold' to a value between 0 and 1. More realistically, a value between 0 and 0.5")
-    if len(groupNames) > 1 and compareFiles == False:
-        errorMessage = True
-        errors.append("You entered group names, but didn't click the 'Plot group-wise comparisons' checklist")
     if len(baseDirectory) < 1 :
         errorMessage = True
         errors.append("You didn't enter a directory to analyze")
@@ -168,7 +158,6 @@ elif graphicUserInterface != True:
     "Plot Individual Peaks": plotIndividualPeaks,
     "Plot Individual ACFs" : plotIndividualACFs,
     "Plot Individual CCFs" : plotIndividualCCFs,
-    "Plot group-wise comparisons" : compareFiles
     }
     fileNames = [fname for fname in os.listdir(baseDirectory) if fname.endswith('.tif')]
     groupNames = []
@@ -485,7 +474,7 @@ for i in range(len(fileNames)):                                 # iterates throu
     nameWithoutExtension = fileNames[i].rsplit(".",1)[0]        # gets the file name without the file extension
     boxSavePath = pathlib.Path(directory + "/0_signalProcessing/" + nameWithoutExtension) # sets save path for output for each image file
     boxSavePath.mkdir(exist_ok=True, parents=True)              # makes save path for output, if it doesn't already exist
-    if compareFiles == True:
+    if groupNames != '':
         groupName = setGroups(groupNames, nameWithoutExtension) 
 
                 # !!!!!!!!!!!!!!!!
@@ -562,7 +551,7 @@ for i in range(len(fileNames)):                                 # iterates throu
                                                                         # find ACF function returns a nan if no suitable peaks are detected
         pcntZeros = ((numBoxes-len(periods))/numBoxes)*100              # calculates what percent of the period measurments were nan (bad measurements)
         summaryDict["Ch1 Pcnt Zero Boxes"] = pcntZeros                  # and appends to dict. This can be used as a metric for analysis quality.
-        if compareFiles == True:                                        
+        if groupNames != '':                                        
             summaryDict["Group Name"] = groupName               # !!!!! MAY NEED TO MODIFY THIS TO PLAY NICE WITH ANI'S GUI
 
         for meas in ["Period",                                          # for each major peak measurement...
@@ -733,7 +722,7 @@ for i in range(len(fileNames)):                                 # iterates throu
         summaryDict["Ch1 Pcnt Zero Boxes"] = pcntZerosCh1               # This can be used as a metric for analysis quality.
         summaryDict["Ch2 Pcnt Zero Boxes"] = pcntZerosCh2               # This can be used as a metric for analysis quality.
 
-        if compareFiles == True:                        
+        if groupNames != '':                        
             summaryDict["Group Name"] = groupName       # !!!!! MAY NEED TO MODIFY THIS TO PLAY NICE WITH ANI'S GUI
 
         mean, median, std, sem =  calcListStats(paramDict["Signal Shift"][1:]) 
@@ -800,7 +789,7 @@ for ch in ["Ch1", "Ch2"]:                                               #
                  "Rel Amp"]:
         comparisonsToMake.append(ch + " Mean " + meas)                  #
 
-if compareFiles == True:                                          # !!!! GUI
+if groupNames != '':                                          # !!!! GUI
     for comparison in comparisonsToMake:
         try:
             plotComparisons(df, comparison, compareSavePath)
