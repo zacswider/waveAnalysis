@@ -62,14 +62,12 @@ if graphicUserInterface == True:
 
     #function for hitting cancel button
     def on_quit(): 
-        global exitButtonVar #references the global variable
-        exitButtonVar = True #sets it to true
         root.destroy() #destroys window
+        sys.exit("You opted to cancel the script!")
 
     def on_start(): 
-        global startButtonVar #references the global variable
-        startButtonVar = True #sets it to true
         root.destroy() #destroys window
+    
 
     '''widget creation'''
     #file path selection widget
@@ -110,6 +108,8 @@ if graphicUserInterface == True:
     #Creates the 'Cancel' button
     cancelButton = ttk.Button(root, text='Cancel', command=on_quit) #creates the button and bind it to on_quit function
     cancelButton.grid(column=0, row=9, pady=10, sticky='E') #place it in the tk window
+    
+    root.protocol("WM_DELETE_WINDOW", on_quit) #calls on_quit if the root window is x'd out.
     root.mainloop() #run the script
 
     #get the values stored in the widget
@@ -136,10 +136,6 @@ if graphicUserInterface == True:
 
     errors = []
     errorMessage = False
-    if exitButtonVar == True:
-        sys.exit('You opted to cancel the script before running')
-    elif exitButtonVar == False and startButtonVar == False:
-        sys.exit('You opted to cancel the script before running')
     if compareFiles == True and len(groupNames) < 2:
         errorMessage = True
         errors.append('If you want to compare multiple groups, you must enter more than one group name')
