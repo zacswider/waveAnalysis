@@ -474,7 +474,7 @@ for i in range(len(fileNames)):                                 # iterates throu
     nameWithoutExtension = fileNames[i].rsplit(".",1)[0]        # gets the file name without the file extension
     boxSavePath = pathlib.Path(directory + "/0_signalProcessing/" + nameWithoutExtension) # sets save path for output for each image file
     boxSavePath.mkdir(exist_ok=True, parents=True)              # makes save path for output, if it doesn't already exist
-    if groupNames != '':
+    if groupNames != ['']:
         groupName = setGroups(groupNames, nameWithoutExtension) 
 
                 # !!!!!!!!!!!!!!!!
@@ -551,7 +551,7 @@ for i in range(len(fileNames)):                                 # iterates throu
                                                                         # find ACF function returns a nan if no suitable peaks are detected
         pcntZeros = ((numBoxes-len(periods))/numBoxes)*100              # calculates what percent of the period measurments were nan (bad measurements)
         summaryDict["Ch1 Pcnt Zero Boxes"] = pcntZeros                  # and appends to dict. This can be used as a metric for analysis quality.
-        if groupNames != '':                                        
+        if groupNames != ['']:                                        
             summaryDict["Group Name"] = groupName               # !!!!! MAY NEED TO MODIFY THIS TO PLAY NICE WITH ANI'S GUI
 
         for meas in ["Period",                                          # for each major peak measurement...
@@ -722,7 +722,7 @@ for i in range(len(fileNames)):                                 # iterates throu
         summaryDict["Ch1 Pcnt Zero Boxes"] = pcntZerosCh1               # This can be used as a metric for analysis quality.
         summaryDict["Ch2 Pcnt Zero Boxes"] = pcntZerosCh2               # This can be used as a metric for analysis quality.
 
-        if groupNames != '':                        
+        if groupNames != ['']:                        
             summaryDict["Group Name"] = groupName       # !!!!! MAY NEED TO MODIFY THIS TO PLAY NICE WITH ANI'S GUI
 
         mean, median, std, sem =  calcListStats(paramDict["Signal Shift"][1:]) 
@@ -789,7 +789,7 @@ for ch in ["Ch1", "Ch2"]:                                               #
                  "Rel Amp"]:
         comparisonsToMake.append(ch + " Mean " + meas)                  #
 
-if groupNames != '':                                          # !!!! GUI
+if groupNames != ['']:                                          # !!!! GUI
     for comparison in comparisonsToMake:
         try:
             plotComparisons(df, comparison, compareSavePath)
