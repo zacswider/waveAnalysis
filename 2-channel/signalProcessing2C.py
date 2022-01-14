@@ -14,7 +14,10 @@ import skimage.io as skio
 import scipy.signal as sig
 from genericpath import exists            
 import matplotlib.pyplot as plt    
-from tkinter.filedialog import askdirectory      
+from tkinter.filedialog import askdirectory   
+
+import timeit
+start = timeit.default_timer()
 
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -765,5 +768,8 @@ if groupNames != ['']:                                          # !!!! GUI
         except ValueError:
             pass
 
+stop = timeit.default_timer()
+execution_time = stop - start
 
+print("Program Executed in "+str(execution_time)) # It returns time in seconds
 
