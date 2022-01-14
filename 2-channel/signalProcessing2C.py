@@ -27,8 +27,7 @@ fileNameIndex = -1              #Necessary for "compareFiles = True", identifies
 acfPeakProm = 0.1               #Minimum peak prominence to choose in an ACF, set 0-1. Larger values are more stringent. 
 baseDirectory = "/Users/bementmbp/Desktop/smallTest"      #Base directory for the GUI. Can hard code file path by commenting line 23 and uncommenting line 24. 
 graphicUserInterface = True
-#exitButtonVar = False #variable for cancel button. set to false automatically
-#startButtonVar = False
+
        
 '''*** Start GUI Window ***'''
 if graphicUserInterface == True:
