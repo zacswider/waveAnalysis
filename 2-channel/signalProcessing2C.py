@@ -749,19 +749,19 @@ for i in range(len(fileNames)):                                 # iterates throu
 df = pd.DataFrame(masterStatsList, columns=columnHeaders)               # 
 df.to_csv(directory + "/0_fileStats.csv")                               #
 
-compareSavePath = pathlib.Path(directory + "/0_comparisons")    #sets save path for output
-compareSavePath.mkdir(exist_ok=True, parents=True)          #makes save path for output, if it doesn't already exist
-comparisonsToMake = ["Mean Signal Shift"]                               # 
-for ch in ["Ch1", "Ch2"]:                                               # 
-    for meas in ["Period", 
-                 "Width", 
-                 "Min",                                                 #
-                 "Max", 
-                 "Amp", 
-                 "Rel Amp"]:
-        comparisonsToMake.append(ch + " Mean " + meas)                  #
 
 if groupNames != ['']:                                          # !!!! GUI
+    compareSavePath = pathlib.Path(directory + "/0_comparisons")    #sets save path for output
+    compareSavePath.mkdir(exist_ok=True, parents=True)          #makes save path for output, if it doesn't already exist
+    comparisonsToMake = ["Mean Signal Shift"]                               # 
+    for ch in ["Ch1", "Ch2"]:                                               # 
+        for meas in ["Period", 
+                     "Width", 
+                     "Min",                                                 #
+                     "Max", 
+                     "Amp", 
+                     "Rel Amp"]:
+            comparisonsToMake.append(ch + " Mean " + meas)                  #
     for comparison in comparisonsToMake:
         try:
             plotComparisons(df, comparison, compareSavePath)
