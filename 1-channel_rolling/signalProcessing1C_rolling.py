@@ -22,8 +22,8 @@ rollBy = 10                                                          #defines th
 baseDirectory = "/Users/bementmbp/Desktop/testing"         #BASE DIRECTORY FOR THE GUI
 
 def findWorkspace(directory, prompt):                                                       #accepts a starting directory and a prompt for the GUI
-    #targetWorkspace = askdirectory(initialdir=directory, message=prompt)                   #opens prompt asking for folder, keep commented to default to baseDirectory
-    targetWorkspace = directory                                                             #comment this out later if you want a GUI
+    targetWorkspace = askdirectory(initialdir=directory, message=prompt)                   #opens prompt asking for folder, keep commented to default to baseDirectory
+    #targetWorkspace = directory                                                             #comment this out later if you want a GUI
     filelist = [fname for fname in os.listdir(targetWorkspace) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
     return(targetWorkspace, filelist)                                                       #returns the folder path and list of file names
 
