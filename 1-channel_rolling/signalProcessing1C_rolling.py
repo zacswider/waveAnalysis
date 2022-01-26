@@ -1,14 +1,14 @@
-from tkinter.filedialog import askdirectory 	#Imports the ability of open a GUI asking for the base folder to start working from
-import pathlib                                  #Object-oriented filesystem paths
-import numpy as np                              #Numpy
-import pandas as pd                             #Pandas
-import skimage.io as skio                       #Scikit-image
-import matplotlib.pyplot as plt                 #Pyplot
-import scipy.signal as sig                      #
-import scipy.fftpack as fft                     #
-import os                                       #Operating system
-import sys                                      #
+import os                                    
+import sys                                   
 import math
+import pathlib                               
+import numpy as np                           
+import pandas as pd 
+import skimage.io as skio 
+import scipy.signal as sig                   
+import scipy.fftpack as fft                  
+import matplotlib.pyplot as plt  
+from tkinter.filedialog import askdirectory
 
 boxSizeInPx = 20                #ENTER DESIRED BOXED SIZE HERE
 plotIndividualACFs = False      #TRUE = PLOTS BOXES; FALSE = ONLY PLOTS POP MEANS
@@ -22,8 +22,8 @@ rollBy = 10                                                          #defines th
 baseDirectory = "/Users/bementmbp/Desktop/testing"         #BASE DIRECTORY FOR THE GUI
 
 def findWorkspace(directory, prompt):                                                       #accepts a starting directory and a prompt for the GUI
-    targetWorkspace = askdirectory(initialdir=directory, message=prompt)                   #opens prompt asking for folder, keep commented to default to baseDirectory
-    #targetWorkspace = directory                                                             #comment this out later if you want a GUI
+    targetWorkspace = askdirectory(initialdir=directory, message=prompt)                    #opens prompt asking for folder, keep commented to default to baseDirectory
+    #targetWorkspace = directory                                                            #comment this out later if you want a GUI
     filelist = [fname for fname in os.listdir(targetWorkspace) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
     return(targetWorkspace, filelist)                                                       #returns the folder path and list of file names
 
