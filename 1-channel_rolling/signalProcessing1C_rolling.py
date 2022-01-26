@@ -1,28 +1,125 @@
 import os                                    
 import sys                                   
 import math
-import pathlib                               
+import pathlib  
+import datetime                             
 import numpy as np                           
 import pandas as pd 
+import tkinter as tk
+from tkinter import Tk
+from tkinter import ttk
 import skimage.io as skio 
 import scipy.signal as sig                   
 import scipy.fftpack as fft                  
 import matplotlib.pyplot as plt  
 from tkinter.filedialog import askdirectory
 
-boxSizeInPx = 20                #ENTER DESIRED BOXED SIZE HERE
-plotIndividualACFs = False      #TRUE = PLOTS BOXES; FALSE = ONLY PLOTS POP MEANS
-plotIndividualPeaks = False
-plotSubStackACFs = False
 analyzeFrames = 50                                                  #defines the length of submovies
 rollBy = 10                                                          #defines the shift (ie roll) between submovies
-baseDirectory = "/Users/bementmbp/Desktop/Scripts/waveAnalysis/1-channel_rolling/testDatasets"         #BASE DIRECTORY FOR THE GUI
 
-def findWorkspace(directory, prompt):                                                       #accepts a starting directory and a prompt for the GUI
-    #targetWorkspace = askdirectory(initialdir=directory, message=prompt)                    #opens prompt asking for folder, keep commented to default to baseDirectory
-    targetWorkspace = directory                                                            #comment this out later if you want a GUI
-    filelist = [fname for fname in os.listdir(targetWorkspace) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
-    return(targetWorkspace, filelist)                                                       #returns the folder path and list of file names
+'''*** Start GUI Window ***'''
+#initiates Tk window
+root = tk.Tk()
+root.title('Select your options')
+root.geometry('500x250')
+
+#sets number of columns in the main window
+root.columnconfigure(0, weight=1)
+root.columnconfigure(1, weight=1)
+root.columnconfigure(2, weight=1)
+
+#defining variable types for the different widget fields
+boxSizeVar = tk.IntVar()            #variable for box grid size
+boxSizeVar.set(20)                  #set default value 
+plotIndividualACFsVar = tk.BooleanVar()     #variable for plotting individual ACFs
+plotSubStackACFs = tk.BooleanVar()          #variable for plotting individual SUBSTACKS
+plotIndividualPeaksVar = tk.BooleanVar()    #variable for plotting individual peaks
+acfPeakPromVar = tk.DoubleVar()             #variable for peak prominance threshold   
+acfPeakPromVar.set(0.1)                     #set default value
+folderPath = tk.StringVar()      #variable for path to images
+
+#function for getting path to user's directory
+def getFolderPath():
+    folderSelected = askdirectory()
+    folderPath.set(folderSelected)
+
+#function for hitting cancel button or quitting
+def on_quit(): 
+    root.destroy() #destroys window
+    sys.exit("You opted to cancel the script!")
+
+#function for hitting start button
+def on_start(): 
+        root.destroy() #destroys window
+    
+'''widget creation'''
+#file path selection widget
+fileEntry = ttk.Entry(root, textvariable=folderPath)
+fileEntry.grid(column=0, row=0, padx=10, sticky='E')
+browseButton = ttk.Button(root, text= 'Select source directory', command=getFolderPath)
+browseButton.grid(column=1, row=0, sticky='W')
+
+#boxSize entry widget
+boxSizeBox = ttk.Entry(root, width = 3, textvariable=boxSizeVar) #creates box widget
+boxSizeBox.grid(column=0, row=1, padx=10, sticky='E') #places widget in frame
+boxSizeBox.focus()      #focuses cursor in box
+boxSizeBox.icursor(2)   #positions cursor after default input characters
+ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=1, columnspan=2, padx=10, sticky='W') #create label text
+
+#create acfpeakprom entry widget
+ttk.Entry(root, width = 3, textvariable=acfPeakPromVar).grid(column=0, row=2, padx=10, sticky='E') #create the widget
+ttk.Label(root, text='Enter ACF peak prominence threshold').grid(column=1, row=2, padx=10, sticky='W') #create label text
+
+#create checkbox widgets and labels
+ttk.Checkbutton(root, variable=plotIndividualACFsVar).grid(column=0, row=5, sticky='E', padx=15)
+ttk.Label(root, text='Plot individual ACFs').grid(column=1, row=5, columnspan=2, padx=10, sticky='W') #plot individual ACFs
+ttk.Checkbutton(root, variable=plotSubStackACFs).grid(column=0, row=6, sticky='E', padx=15) #plot individual CCFs
+ttk.Label(root, text='Plot substack ACFs').grid(column=1, row=6, columnspan=2, padx=10, sticky='W')
+
+ttk.Checkbutton(root, variable=plotIndividualPeaksVar).grid(column=0, row=7, sticky='E', padx=15) #plot individual peaks
+ttk.Label(root, text='Plot individual peaks').grid(column=1, row=7, columnspan=2, padx=10, sticky='W')
+
+#Creates the 'Start Analysis' button
+startButton = ttk.Button(root, text='Start Analysis', command=on_start) #creates the button and bind it to close the window when clicked
+startButton.grid(column=1, row=9, pady=10, sticky='W') #place it in the tk window
+
+#Creates the 'Cancel' button
+cancelButton = ttk.Button(root, text='Cancel', command=on_quit) #creates the button and bind it to on_quit function
+cancelButton.grid(column=0, row=9, pady=10, sticky='E') #place it in the tk window
+
+root.protocol("WM_DELETE_WINDOW", on_quit) #calls on_quit if the root window is x'd out.
+root.mainloop() #run the script
+
+#get the values stored in the widget
+boxSizeInPx = boxSizeVar.get()
+plotIndividualACFs= plotIndividualACFsVar.get()
+plotIndividualCCFs = plotSubStackACFs.get()
+plotIndividualPeaks = plotIndividualPeaksVar.get()
+acfPeakProm = acfPeakPromVar.get()
+directory = folderPath.get() 
+
+#make dictionary of parameters for log file use
+logParams = {
+    "Box Size(px)" : boxSizeInPx,
+    "Base Directory" : directory,
+    "ACF Peak Prominence" : acfPeakProm,
+    "Plot Individual ACFs" : plotIndividualACFs,
+    "Plot substack ACFs" : plotSubStackACFs,
+    }
+
+errors = []
+if acfPeakProm > 1 :
+    errors.append("The ACF peak prominence can not be greater than 1, set 'ACF peak prominence threshold' to a value between 0 and 1. More realistically, a value between 0 and 0.5")
+if len(directory) < 1 :
+    errors.append("You didn't enter a directory to analyze")
+
+if len(errors) >= 1 :
+    print("Error Log:")
+    for count, error in enumerate(errors):
+        print(count,":", error)
+    sys.exit("Please fix errors and try again.") 
+
+'''*** End GUI Window ***'''
 
 def smoothWithSavgol(signal, windowSize, polynomial):               # accepts an array, window size, and polynomial to fit
     return(sig.savgol_filter(signal, windowSize, polynomial))       # returns the smoothed signal
@@ -122,7 +219,7 @@ def printPeaks(raw, smoothed, smoothPeaks, heights, leftIndex, rightIndex, proms
     ax.legend(loc='upper right', fontsize='small', ncol=1)  
     graphName = "boxNo" + str(boxNumber) + ".png"
     boxName = peaksSavePath / graphName
-    plt.savefig(boxName, dpi=75, )                                                  #saves the figure                                                 #saves the figure
+    plt.savefig(boxName, dpi=75, )                                        #saves the figure
     plt.clf()
     plt.close(fig)
 
@@ -220,6 +317,15 @@ def printTemporalVars(listOfVars, variable, subStackSavePath):
     plt.savefig(graphName)                                                  #saves the figure
     plt.close() 
 
+def makeLog(directory, logParams):                                  # makes a text log with script parameters
+    logPath = os.path.join(directory, "log.txt")                    # path to log file
+    now = datetime.datetime.now()                                   # get current date and time
+    logFile = open(logPath, "w")                                    # initiate text file
+    logFile.write("\n" + now.strftime("%Y-%m-%d %H:%M") + "\n")     # write current date and time
+    for key, value in logParams.items():                            # for each key:value pair in the parameter dictionary...
+        logFile.write('%s: %s\n' % (key, value))                    # write pair to new line
+    logFile.close()                                                 # close the file
+
 #################################################################
 #################################################################
 #############                                       #############
@@ -228,7 +334,8 @@ def printTemporalVars(listOfVars, variable, subStackSavePath):
 #################################################################
 #################################################################
 
-directory, fileNames = findWorkspace(baseDirectory, "PLEASE SELECT YOUR SOURCE WORKSPACE")  #string object describing the file path, list object containing all file names ending with .tif
+fileNames = [fname for fname in os.listdir(directory) if fname.endswith('.tif')]    # list object containing all file names ending with .tif
+makeLog(directory, logParams)                                                       # make log text file
 
 for i in range(len(fileNames)):                                 #iterates through the .tif files in the specified directory
     print("Starting to work on " + fileNames[i] + "!")
