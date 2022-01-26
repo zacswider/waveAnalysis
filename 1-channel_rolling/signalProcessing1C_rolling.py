@@ -14,8 +14,8 @@ import scipy.fftpack as fft
 import matplotlib.pyplot as plt  
 from tkinter.filedialog import askdirectory
 
-analyzeFrames = 50                                                  #defines the length of submovies
-rollBy = 10                                                          #defines the shift (ie roll) between submovies
+analyzeFrames = 50                                                  #defines the length of submovies #JUPYTER
+rollBy = 10                                                          #defines the shift (ie roll) between submovies #SATURN
 
 '''*** Start GUI Window ***'''
 #initiates Tk window
@@ -36,6 +36,10 @@ plotSubStackACFs = tk.BooleanVar()          #variable for plotting individual SU
 plotIndividualPeaksVar = tk.BooleanVar()    #variable for plotting individual peaks
 acfPeakPromVar = tk.DoubleVar()             #variable for peak prominance threshold   
 acfPeakPromVar.set(0.1)                     #set default value
+jupyter = tk.IntVar()             # analyze frames
+jupyter.set(50)   
+saturn = tk.IntVar()             # shift frames
+saturn.set(5)                      
 folderPath = tk.StringVar()      #variable for path to images
 
 #function for getting path to user's directory
@@ -65,6 +69,24 @@ boxSizeBox.grid(column=0, row=1, padx=10, sticky='E') #places widget in frame
 boxSizeBox.focus()      #focuses cursor in box
 boxSizeBox.icursor(2)   #positions cursor after default input characters
 ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=1, columnspan=2, padx=10, sticky='W') #create label text
+
+''' !!! '''
+''' working here on adding the analyze frames and roll by boxes '''
+#boxSize entry widget
+boxSizeBox = ttk.Entry(root, width = 3, textvariable=boxSizeVar) #creates box widget
+boxSizeBox.grid(column=0, row=1, padx=10, sticky='E') #places widget in frame
+boxSizeBox.focus()      #focuses cursor in box
+boxSizeBox.icursor(2)   #positions cursor after default input characters
+ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=1, columnspan=2, padx=10, sticky='W') #create label text
+
+#boxSize entry widget
+boxSizeBox = ttk.Entry(root, width = 3, textvariable=boxSizeVar) #creates box widget
+boxSizeBox.grid(column=0, row=1, padx=10, sticky='E') #places widget in frame
+boxSizeBox.focus()      #focuses cursor in box
+boxSizeBox.icursor(2)   #positions cursor after default input characters
+ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=1, columnspan=2, padx=10, sticky='W') #create label text
+
+''' !!! '''
 
 #create acfpeakprom entry widget
 ttk.Entry(root, width = 3, textvariable=acfPeakPromVar).grid(column=0, row=2, padx=10, sticky='E') #create the widget
