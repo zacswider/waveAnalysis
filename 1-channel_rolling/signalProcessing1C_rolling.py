@@ -27,14 +27,6 @@ def findWorkspace(directory, prompt):                                           
     filelist = [fname for fname in os.listdir(targetWorkspace) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
     return(targetWorkspace, filelist)                                                       #returns the folder path and list of file names
 
-def smoothWithFFT(signal, factor):  # the scaling of "span" is open to suggestions
-    w = fft.rfft(signal)
-    spectrum = w ** 2
-    cutoff_idx = spectrum < (spectrum.max() * (1 - np.exp(-factor / 100000)))
-    w[cutoff_idx] = 0
-    smoothedSignal = fft.irfft(w)
-    return smoothedSignal
-
 def smoothWithSavgol(signal, windowSize, polynomial):  
     smoothedSignal = sig.savgol_filter(signal, windowSize, polynomial)
     return smoothedSignal
