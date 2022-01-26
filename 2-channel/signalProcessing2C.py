@@ -15,22 +15,13 @@ import scipy.signal as sig
 from genericpath import exists            
 import matplotlib.pyplot as plt    
 from tkinter.filedialog import askdirectory   
-
 import timeit
-start = timeit.default_timer()
+
 
 np.seterr(divide='ignore', invalid='ignore')
 
-boxSizeInPx = 20                #Desired box size for analysis
-plotIndividualACFs = False      #True = plots signal trace and ACF curve for every box; False = only plots pop means. 
-plotIndividualCCFs = False      #True = plots signal trace and CCF curve for every box; False = only plots pop means. 
-plotIndividualPeaks = False     #True = plots signal trace and peak picking for every box; False = only plots pop statistics.
-acfPeakProm = 0.1               #Minimum peak prominence to choose in an ACF, set 0-1. Larger values are more stringent. 
-
-       
 '''*** Start GUI Window ***'''
 
-'''GUI Window '''
 #initiates Tk window
 root = tk.Tk()
 root.title('Select your options')
@@ -146,13 +137,12 @@ if len(errors) >= 1 :
 '''*** Start Processing Functions ***'''
 def findWorkspace(directory):                                                       #accepts a starting directory and a prompt for the GUI
     Tk().withdraw()
-    targetWorkspace = directory                                                            #comment this out later if you want a GUI
-    filelist = [fname for fname in os.listdir(targetWorkspace) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
-    return(targetWorkspace, filelist)                                                       #returns the folder path and list of file names
+    filelist = [fname for fname in os.listdir(directory) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
+    return(filelist)                                                       #returns the folder path and list of file names
 
 def setGroups(groupNames, nameWithoutExtension):
     for group in groupNames:
-        if fnmatch.fnmatch(nameWithoutExtension, "*"+group+"*"):
+        if group in nameWithoutExtension:
             return(group)
 
 def smoothWithSavgol(signal, windowSize, polynomial):                       #accepts a signal array (or list), number of values to match, and polynomial number.
@@ -434,9 +424,36 @@ def makeLog(directory, logParams):                                  # makes a te
 #################################################################
 #################################################################
 
-directory, fileNames = findWorkspace(baseDirectory)             # string object describing the file path, list object containing all file names ending with .tif
+start = timeit.default_timer()
+directory = baseDirectory                                       # redundant line...
+fileNames = findWorkspace(baseDirectory)             # string object describing the file path, list object containing all file names ending with .tif
 masterStatsList = []                                            # empty list to fill with file stats
 columnHeaders = []                                              # emtpy list to fill with column headers
+
+''' ** error catching for group names ** '''
+groupsFound = []                            # empty list to fill with group names that have been matched
+for group in groupNames:                    # check each group
+    for file in fileNames:                  # against each file name
+        if group in file:                   # and check for a match
+            if group not in groupsFound:    # if it's not already in the list of matched groups
+                groupsFound.append(group)   # append it
+
+uniqueDic = {}                              # dict of file names and their matches
+for file in fileNames:                      # check each file
+    uniqueDic[file] = []                    # assign it an empty string
+    for group in groupNames:                # check each group
+        if group in file:                   # if there's a match...
+            uniqueDic[file].append(group)   # ... add it to the list
+
+for val in uniqueDic.values():              # check each file
+    if len(val) > 1:                        # each file name should only have ONE matching group name
+        print('Error: make sure your group names are unique to each group')
+        sys.exit()
+
+if len(groupsFound) != len(groupNames):     # the number of groups should match the number of groups that were matched 
+    print('Error: One or more groups not matched. Make sure your group names are present in the file names')
+    sys.exit()
+
 makeLog(directory, logParams)                                   # make log text file
 
 for i in range(len(fileNames)):                                 # iterates through the .tif files in the specified directory
@@ -446,10 +463,8 @@ for i in range(len(fileNames)):                                 # iterates throu
     nameWithoutExtension = fileNames[i].rsplit(".",1)[0]        # gets the file name without the file extension
     boxSavePath = pathlib.Path(directory + "/0_signalProcessing/" + nameWithoutExtension) # sets save path for output for each image file
     boxSavePath.mkdir(exist_ok=True, parents=True)              # makes save path for output, if it doesn't already exist
-    if groupNames != ['']:
-        groupName = setGroups(groupNames, nameWithoutExtension) 
-
-                # !!!!!!!!!!!!!!!!
+    if groupNames != ['']:                                      # if user entered group names to compare...
+        groupName = setGroups(groupNames, nameWithoutExtension) # return which group this file belongs to
 
     if imageStack.shape[1] == 2:    # Attempt the verify the number of channels in the image
         imageChannels = 2           # imageStack.shape[1] will either be the number of channels, or the number of pixels on the y-axis
@@ -746,30 +761,30 @@ for i in range(len(fileNames)):                                 # iterates throu
 #################################################################
 #################################################################
 
-df = pd.DataFrame(masterStatsList, columns=columnHeaders)               # 
-df.to_csv(directory + "/0_fileStats.csv")                               #
+df = pd.DataFrame(masterStatsList, columns=columnHeaders)               # convert all the stats to a df
+df.to_csv(directory + "/0_fileStats.csv")                               # and export as a .csv
 
 
-if groupNames != ['']:                                          # !!!! GUI
-    compareSavePath = pathlib.Path(directory + "/0_comparisons")    #sets save path for output
-    compareSavePath.mkdir(exist_ok=True, parents=True)          #makes save path for output, if it doesn't already exist
-    comparisonsToMake = ["Mean Signal Shift"]                               # 
-    for ch in ["Ch1", "Ch2"]:                                               # 
+if groupNames != ['']:                                                  # if the user added group names to compare
+    compareSavePath = pathlib.Path(directory + "/0_comparisons")        # sets save path for output
+    compareSavePath.mkdir(exist_ok=True, parents=True)                  # makes save path for output, if it doesn't already exist
+    comparisonsToMake = ["Mean Signal Shift"]                           # manually adding in the mean signal shift, all other comparisons are present in the dicts
+    for ch in ["Ch1", "Ch2"]:                                           # for each channel
         for meas in ["Period", 
                      "Width", 
-                     "Min",                                                 #
+                     "Min",                                             # for each measurement
                      "Max", 
                      "Amp", 
                      "Rel Amp"]:
-            comparisonsToMake.append(ch + " Mean " + meas)                  #
-    for comparison in comparisonsToMake:
+            comparisonsToMake.append(ch + " Mean " + meas)              # create the measurement
+    for comparison in comparisonsToMake:                                # for each comparison
         try:
-            plotComparisons(df, comparison, compareSavePath)
+            plotComparisons(df, comparison, compareSavePath)            # try plotting each comparison
         except ValueError:
-            pass
+            pass                                                        # and skip the ones you don't have
 
 stop = timeit.default_timer()
 execution_time = stop - start
 
-print("Program Executed in "+str(execution_time)) # It returns time in seconds
+print("Program Executed in " + str(round(execution_time, 2)) + " seconds") # It returns time in seconds
 
