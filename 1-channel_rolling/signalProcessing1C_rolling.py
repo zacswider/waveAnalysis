@@ -14,22 +14,18 @@ boxSizeInPx = 20                #ENTER DESIRED BOXED SIZE HERE
 plotIndividualACFs = False      #TRUE = PLOTS BOXES; FALSE = ONLY PLOTS POP MEANS
 plotIndividualPeaks = False
 plotSubStackACFs = False
-smoothACF = True                #smooths the ACF to better eliminate noisy peaks
-smoothMySignal = True        #TRUE = SMOOTHS THE BOX MEANS PRIOR TO CALCULATING THE WAVE AMPLITUDE AND WIDTHS
-smoothingMethod = "savgol"  #"savgol" calls the smoothWithSavgol (polynomial fit); "fft" calls smoothWithFFT (low pass filter)
 analyzeFrames = 50                                                  #defines the length of submovies
 rollBy = 10                                                          #defines the shift (ie roll) between submovies
-baseDirectory = "/Users/bementmbp/Desktop/testing"         #BASE DIRECTORY FOR THE GUI
+baseDirectory = "/Users/bementmbp/Desktop/Scripts/waveAnalysis/1-channel_rolling/testDatasets"         #BASE DIRECTORY FOR THE GUI
 
 def findWorkspace(directory, prompt):                                                       #accepts a starting directory and a prompt for the GUI
-    targetWorkspace = askdirectory(initialdir=directory, message=prompt)                    #opens prompt asking for folder, keep commented to default to baseDirectory
-    #targetWorkspace = directory                                                            #comment this out later if you want a GUI
+    #targetWorkspace = askdirectory(initialdir=directory, message=prompt)                    #opens prompt asking for folder, keep commented to default to baseDirectory
+    targetWorkspace = directory                                                            #comment this out later if you want a GUI
     filelist = [fname for fname in os.listdir(targetWorkspace) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
     return(targetWorkspace, filelist)                                                       #returns the folder path and list of file names
 
-def smoothWithSavgol(signal, windowSize, polynomial):  
-    smoothedSignal = sig.savgol_filter(signal, windowSize, polynomial)
-    return smoothedSignal
+def smoothWithSavgol(signal, windowSize, polynomial):               # accepts an array, window size, and polynomial to fit
+    return(sig.savgol_filter(signal, windowSize, polynomial))       # returns the smoothed signal
 
 def findBoxMeans(imageArray, boxSize):              #accepts an image array as a parameter, as well as the desired box size
     depth = imageArray.shape[0]                     #number of frames
@@ -70,7 +66,7 @@ def printBoxACF(signal, acor, boxNum, directory, boxNumber, delay=None, subStack
         ax.set_xlabel("Periodic signal not detected")
         graphName = "boxNo" + str(boxNum) + ".png"
         boxName = acfSavePath / graphName
-        plt.savefig(boxName, dpi=75, )                                                  #saves the figure                                                 #saves the figure
+        plt.savefig(boxName, dpi=75, )            #saves the figure
         plt.clf()
         plt.close(fig)
     else:
@@ -82,7 +78,7 @@ def printBoxACF(signal, acor, boxNum, directory, boxNumber, delay=None, subStack
         plt.axvline(x=-delay, alpha = 0.5, c = 'red', linestyle = '--')
         graphName = "boxNo" + str(boxNum) + ".png"
         boxName = acfSavePath / graphName
-        plt.savefig(boxName, dpi=75, )                                                  #saves the figure                                                 #saves the figure
+        plt.savefig(boxName, dpi=75, )                            #saves the figure
         plt.clf()
         plt.close(fig)
 
@@ -90,8 +86,6 @@ def findACF(signal, directory, imageName, boxNumber, subStackIndex=None):  #acce
     npts = signal.shape[0]                      #number of points is the depth of the 0 axis, which is the number of frames in the image
     acov = np.correlate(signal - signal.mean(), signal - signal.mean(), mode='full')    #compute full autocorrelation
     acor = acov / (npts * signal.std() ** 2)                                #normalizes the crosscorr from -1 to +1      
-    if smoothACF == True:
-        acor = smoothWithSavgol(acor, windowSize=3, polynomial=1)
     peaks, dict = sig.find_peaks(acor)#, prominence=0.075)             #ndarray with location of local maxima using scipy.signal.find_peaks
     peaksDiff = abs(peaks - acor.shape[0]//2)                   #ndarray with the absolute difference between each peak and the middle value of the ccor array
 
@@ -133,33 +127,23 @@ def printPeaks(raw, smoothed, smoothPeaks, heights, leftIndex, rightIndex, proms
     plt.close(fig)
 
 def analyzePeaks(signal, subStackSavePath, boxNumber, subStackIndex = None):
-    if smoothMySignal == True:
-        if smoothingMethod == "savgol":
-            smoothed = smoothWithSavgol(signal, 11, 2)
-        elif smoothingMethod == "fft":
-            smoothed = smoothWithFFT(signal, 0.4)
-        else:
-            sys.exit("Choose either 'savgol' or 'fft' as a signal smoothing method")
-        minVal = np.min(signal)
-        maxVal = np.max(signal)
-        xAxis = np.arange(len(signal))
-        smoothPeaks, smoothedDicts = sig.find_peaks(smoothed, prominence=(maxVal-minVal)*0.1)
-        if len(smoothPeaks) > 0:
-            proms, leftBase, rightBase = sig.peak_prominences(smoothed, smoothPeaks)                  
-            widths, heights, leftIndex, rightIndex = sig.peak_widths(smoothed, smoothPeaks, rel_height=0.5) #returns [0]=widths, [1]=heights, [2]=left ips, [3]=right ips (all ndarrays)
-            if plotIndividualPeaks == True:
-                printPeaks(signal, smoothed, smoothPeaks, heights, leftIndex, rightIndex, proms, subStackSavePath, boxNumber, subStackIndex)
-            width = np.mean(widths, axis=0)
-            max = np.mean(smoothed[smoothPeaks], axis=0)
-            min = np.mean(smoothed[smoothPeaks]-proms, axis=0)
-            amp = max-min
-            relAmp = amp/min
-            return(width, max, min, amp, relAmp)
-        else:
-           return(np.NaN, np.NaN, np.NaN, np.NaN, np.NaN)  #returns NaNs. 
-        
+    smoothed = smoothWithSavgol(signal, 11, 2)
+    minVal = np.min(signal)
+    maxVal = np.max(signal)
+    smoothPeaks, smoothedDicts = sig.find_peaks(smoothed, prominence=(maxVal-minVal)*0.1)
+    if len(smoothPeaks) > 0:
+        proms, leftBase, rightBase = sig.peak_prominences(smoothed, smoothPeaks)                  
+        widths, heights, leftIndex, rightIndex = sig.peak_widths(smoothed, smoothPeaks, rel_height=0.5) #returns [0]=widths, [1]=heights, [2]=left ips, [3]=right ips (all ndarrays)
+        if plotIndividualPeaks == True:
+            printPeaks(signal, smoothed, smoothPeaks, heights, leftIndex, rightIndex, proms, subStackSavePath, boxNumber, subStackIndex)
+        width = np.mean(widths, axis=0)
+        max = np.mean(smoothed[smoothPeaks], axis=0)
+        min = np.mean(smoothed[smoothPeaks]-proms, axis=0)
+        amp = max-min
+        relAmp = amp/min
+        return(width, max, min, amp, relAmp)
     else:
-        sys.exit("Keep 'smoothMySignal =True' for now")
+        return(np.NaN, np.NaN, np.NaN, np.NaN, np.NaN)  #returns NaNs. 
 
 def subStackPlotsAndShifts(acorArray, subStackSavePath, subStackIndex, periods):              #accepts a tuple containing acfs and shifts, which will be plotted and saved
     plotSavePath = subStackSavePath / ("Frames_" + str(subStackIndex) + "_meanAcf.png")
@@ -236,7 +220,13 @@ def printTemporalVars(listOfVars, variable, subStackSavePath):
     plt.savefig(graphName)                                                  #saves the figure
     plt.close() 
 
-############# FUNCTIONS ABOVE, WORKFLOW BELOW #############
+#################################################################
+#################################################################
+#############                                       #############
+#############    FUNCTIONS ABOVE, WORKFLOW BELOW    #############
+#############                                       #############
+#################################################################
+#################################################################
 
 directory, fileNames = findWorkspace(baseDirectory, "PLEASE SELECT YOUR SOURCE WORKSPACE")  #string object describing the file path, list object containing all file names ending with .tif
 
