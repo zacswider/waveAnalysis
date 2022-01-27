@@ -176,9 +176,9 @@ def findBoxMeans(imageArray, boxSize):              #accepts an image array as a
     return(growingArray)                            #returns ndarray of shape (number of boxes, number of frames)
 
 def printBoxACF(signal, acor, boxNum, directory, boxNumber, delay=None, subStackIndex=None):
-    subStackName = "Frames_" + subStackIndex
-    subFolder = "ACF_Plots"
-    acfSavePath = directory / subStackName / subFolder
+
+    subStackName = "Frames_" + subStackIndex + "_boxACFs"
+    acfSavePath = directory / 'subStackPlots/boxACFs' / subStackName
     acfSavePath.mkdir(exist_ok=True, parents=True) 
 
     xAxis = np.arange(signal.shape[0])                 #np array containing ascending integers up to the value of npts
@@ -236,9 +236,8 @@ def findACF(signal, directory, imageName, boxNumber, subStackIndex=None):  #acce
     return(acor, delay)
 
 def printPeaks(raw, smoothed, smoothPeaks, heights, leftIndex, rightIndex, proms, directory, boxNumber, subStackIndex):
-    subStackName = "Frames_" + subStackIndex
-    subFolder = "Peak_Plots"
-    peaksSavePath = directory / subStackName / subFolder
+    subStackName = "Frames_" + subStackIndex + "_boxPeaks"
+    peaksSavePath = directory / 'subStackPlots/boxPeaks' / subStackName
     peaksSavePath.mkdir(exist_ok=True, parents=True) 
 
     x = np.arange(raw.shape[0])
@@ -376,7 +375,7 @@ for i in range(len(fileNames)):                                 #iterates throug
     assert imageStack.ndim == 3, "Make sure that you dataset has no more than one channel, no more than one z plane, and no less than two time points"
 
     print("Starting rolling analysis")                                                                 #empty list that will later be populated with shift ACF statistics
-    subStackSavePath = pathlib.Path(directory + "/" + nameWithoutExtension + "_subStackAnalysis")                                #path object for a subdirectory to save the ccf data to
+    subStackSavePath = pathlib.Path(directory + "/" + nameWithoutExtension + "_Analysis")                                #path object for a subdirectory to save the ccf data to
     subStackSavePath.mkdir(exist_ok=True, parents=True)                                                   #makes path, ignores error if path already exists
     numberSubMovies = (imageStack.shape[0]-analyzeFrames)//rollBy+1     #calculates the number of times a sub-movie can be evenly created
     paramDict = {"period":[], "width":[], "max":[], "min":[], "amp":[], "relAmp":[]}
@@ -418,7 +417,7 @@ for i in range(len(fileNames)):                                 #iterates throug
         
         meanAcfArray = np.delete(tempMeanAcf, obj=0, axis=0)
         if plotSubStackACFs == True:
-            subStackACFs = subStackSavePath / "substackACFs"
+            subStackACFs = subStackSavePath / "subStackPlots/substackACFs"
             subStackACFs.mkdir(exist_ok=True, parents=True)
             subStackPlotsAndShifts(meanAcfArray, subStackACFs, subStackIndex, tempParamDict["period"])
 
