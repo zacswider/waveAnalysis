@@ -14,10 +14,15 @@ import scipy.fftpack as fft
 import matplotlib.pyplot as plt  
 from tkinter.filedialog import askdirectory
 
-analyzeFrames = 50                                                  #defines the length of submovies #JUPYTER
-rollBy = 10                                                          #defines the shift (ie roll) between submovies #SATURN
 
-'''*** Start GUI Window ***'''
+#################################################################
+#################################################################
+#############                                       #############
+#############                  GUI                  #############
+#############                                       #############
+#################################################################
+#################################################################
+
 #initiates Tk window
 root = tk.Tk()
 root.title('Select your options')
@@ -32,14 +37,14 @@ root.columnconfigure(2, weight=1)
 boxSizeVar = tk.IntVar()            #variable for box grid size
 boxSizeVar.set(20)                  #set default value 
 plotIndividualACFsVar = tk.BooleanVar()     #variable for plotting individual ACFs
-plotSubStackACFs = tk.BooleanVar()          #variable for plotting individual SUBSTACKS
+plotSubStackACFsVar = tk.BooleanVar()          #variable for plotting individual SUBSTACKS
 plotIndividualPeaksVar = tk.BooleanVar()    #variable for plotting individual peaks
 acfPeakPromVar = tk.DoubleVar()             #variable for peak prominance threshold   
 acfPeakPromVar.set(0.1)                     #set default value
-jupyter = tk.IntVar()             # analyze frames
-jupyter.set(50)   
-saturn = tk.IntVar()             # shift frames
-saturn.set(5)                      
+analyzeFramesVar = tk.IntVar()             # analyze frames
+analyzeFramesVar.set(50)   
+rollByVar = tk.IntVar()             # shift frames
+rollByVar.set(5)                      
 folderPath = tk.StringVar()      #variable for path to images
 
 #function for getting path to user's directory
@@ -70,32 +75,28 @@ boxSizeBox.focus()      #focuses cursor in box
 boxSizeBox.icursor(2)   #positions cursor after default input characters
 ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=1, columnspan=2, padx=10, sticky='W') #create label text
 
-''' !!! '''
-''' working here on adding the analyze frames and roll by boxes '''
 #boxSize entry widget
-boxSizeBox = ttk.Entry(root, width = 3, textvariable=boxSizeVar) #creates box widget
-boxSizeBox.grid(column=0, row=1, padx=10, sticky='E') #places widget in frame
-boxSizeBox.focus()      #focuses cursor in box
-boxSizeBox.icursor(2)   #positions cursor after default input characters
-ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=1, columnspan=2, padx=10, sticky='W') #create label text
+analyzeFramesVarBox = ttk.Entry(root, width = 3, textvariable=analyzeFramesVar) #creates box widget
+analyzeFramesVarBox.grid(column=0, row=2, padx=10, sticky='E') #places widget in frame
+analyzeFramesVarBox.focus()      #focuses cursor in box
+analyzeFramesVarBox.icursor(2)   #positions cursor after default input characters
+ttk.Label(root, text='Enter the number of frames to analyze').grid(column=1, row=2, columnspan=2, padx=10, sticky='W') #create label text
 
 #boxSize entry widget
-boxSizeBox = ttk.Entry(root, width = 3, textvariable=boxSizeVar) #creates box widget
-boxSizeBox.grid(column=0, row=1, padx=10, sticky='E') #places widget in frame
-boxSizeBox.focus()      #focuses cursor in box
-boxSizeBox.icursor(2)   #positions cursor after default input characters
-ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=1, columnspan=2, padx=10, sticky='W') #create label text
-
-''' !!! '''
+rollFramesBox = ttk.Entry(root, width = 3, textvariable=rollByVar) #creates box widget
+rollFramesBox.grid(column=0, row=3, padx=10, sticky='E') #places widget in frame
+rollFramesBox.focus()      #focuses cursor in box
+rollFramesBox.icursor(2)   #positions cursor after default input characters
+ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=3, columnspan=2, padx=10, sticky='W') #create label text
 
 #create acfpeakprom entry widget
-ttk.Entry(root, width = 3, textvariable=acfPeakPromVar).grid(column=0, row=2, padx=10, sticky='E') #create the widget
-ttk.Label(root, text='Enter ACF peak prominence threshold').grid(column=1, row=2, padx=10, sticky='W') #create label text
+ttk.Entry(root, width = 3, textvariable=acfPeakPromVar).grid(column=0, row=4, padx=10, sticky='E') #create the widget
+ttk.Label(root, text='Enter ACF peak prominence threshold').grid(column=1, row=4, padx=10, sticky='W') #create label text
 
 #create checkbox widgets and labels
 ttk.Checkbutton(root, variable=plotIndividualACFsVar).grid(column=0, row=5, sticky='E', padx=15)
 ttk.Label(root, text='Plot individual ACFs').grid(column=1, row=5, columnspan=2, padx=10, sticky='W') #plot individual ACFs
-ttk.Checkbutton(root, variable=plotSubStackACFs).grid(column=0, row=6, sticky='E', padx=15) #plot individual CCFs
+ttk.Checkbutton(root, variable=plotSubStackACFsVar).grid(column=0, row=6, sticky='E', padx=15) #plot individual CCFs
 ttk.Label(root, text='Plot substack ACFs').grid(column=1, row=6, columnspan=2, padx=10, sticky='W')
 
 ttk.Checkbutton(root, variable=plotIndividualPeaksVar).grid(column=0, row=7, sticky='E', padx=15) #plot individual peaks
@@ -113,20 +114,26 @@ root.protocol("WM_DELETE_WINDOW", on_quit) #calls on_quit if the root window is 
 root.mainloop() #run the script
 
 #get the values stored in the widget
+directory = folderPath.get() 
 boxSizeInPx = boxSizeVar.get()
+analyzeFrames = analyzeFramesVar.get()
+rollBy = rollByVar.get()
 plotIndividualACFs= plotIndividualACFsVar.get()
-plotIndividualCCFs = plotSubStackACFs.get()
+plotSubStackACFs = plotSubStackACFsVar.get()
 plotIndividualPeaks = plotIndividualPeaksVar.get()
 acfPeakProm = acfPeakPromVar.get()
-directory = folderPath.get() 
+
 
 #make dictionary of parameters for log file use
 logParams = {
-    "Box Size(px)" : boxSizeInPx,
     "Base Directory" : directory,
+    "Box Size(px)" : boxSizeInPx,
+    "Frames to analyze" : analyzeFrames,
+    "Frames to roll by" : rollBy,
     "ACF Peak Prominence" : acfPeakProm,
     "Plot Individual ACFs" : plotIndividualACFs,
     "Plot substack ACFs" : plotSubStackACFs,
+    "Plot Individual peaks" : plotIndividualPeaks
     }
 
 errors = []
@@ -141,7 +148,13 @@ if len(errors) >= 1 :
         print(count,":", error)
     sys.exit("Please fix errors and try again.") 
 
-'''*** End GUI Window ***'''
+#################################################################
+#################################################################
+#############                                       #############
+#############         Processing Functions          #############
+#############                                       #############
+#################################################################
+#################################################################
 
 def smoothWithSavgol(signal, windowSize, polynomial):               # accepts an array, window size, and polynomial to fit
     return(sig.savgol_filter(signal, windowSize, polynomial))       # returns the smoothed signal
@@ -272,7 +285,7 @@ def subStackPlotsAndShifts(acorArray, subStackSavePath, subStackIndex, periods):
     lags = np.arange(-(meanAcf.shape[0]+1)/2+1, (meanAcf.shape[0]+1)/2)
 
     periods = periods[2:]
-    if np.isnan(np.max(periods)) == True:                       #filters out nans if they exit
+    if np.isnan(np.max(periods)) == True:                       #filters out nans if they exist
         periods = [x for x in periods if np.isnan(x) != True] 
     
     boxesAndLags = np.vstack((lags, meanAcf, stdAcf))      #Makes an ndarray zipping each of the box names (listOfBoxes) and lags for each box (ccfAnswers[1])
@@ -290,9 +303,6 @@ def subStackPlotsAndShifts(acorArray, subStackSavePath, subStackIndex, periods):
     plt.xlabel("Histogram of shift values")                                 #x-axis label
     plt.ylabel("Occurrences")                                               #y-axis label
     
-    print(subStackSavePath)
-    print(subStackIndex)
-    print(periods)
     plt.subplot(2,2,4)                                                      #bottom right subplot
     plt.boxplot(periods)                                               #boxplot of shift values
     plt.xlabel("Boxplot of shift values")                                   #x-axis label
@@ -351,7 +361,7 @@ def makeLog(directory, logParams):                                  # makes a te
 #################################################################
 #################################################################
 #############                                       #############
-#############    FUNCTIONS ABOVE, WORKFLOW BELOW    #############
+#############            WORKFLOW BELOW             #############
 #############                                       #############
 #################################################################
 #################################################################
@@ -408,7 +418,9 @@ for i in range(len(fileNames)):                                 #iterates throug
         
         meanAcfArray = np.delete(tempMeanAcf, obj=0, axis=0)
         if plotSubStackACFs == True:
-            subStackPlotsAndShifts(meanAcfArray, subStackSavePath, subStackIndex, tempParamDict["period"])
+            subStackACFs = subStackSavePath / "substackACFs"
+            subStackACFs.mkdir(exist_ok=True, parents=True)
+            subStackPlotsAndShifts(meanAcfArray, subStackACFs, subStackIndex, tempParamDict["period"])
 
         print(str(round((y+1)/numberSubMovies*100, 1)) + "%" + " Finished with " + fileNames[i])
     
