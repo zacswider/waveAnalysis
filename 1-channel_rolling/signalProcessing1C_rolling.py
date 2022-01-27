@@ -1,43 +1,163 @@
-from tkinter.filedialog import askdirectory 	#Imports the ability of open a GUI asking for the base folder to start working from
-import pathlib                                  #Object-oriented filesystem paths
-import numpy as np                              #Numpy
-import pandas as pd                             #Pandas
-import skimage.io as skio                       #Scikit-image
-import matplotlib.pyplot as plt                 #Pyplot
-import scipy.signal as sig                      #
-import scipy.fftpack as fft                     #
-import os                                       #Operating system
-import sys                                      #
+import os                                    
+import sys                                   
 import math
+import pathlib  
+import datetime                             
+import numpy as np                           
+import pandas as pd 
+import tkinter as tk
+from tkinter import Tk
+from tkinter import ttk
+import skimage.io as skio 
+import scipy.signal as sig                   
+import scipy.fftpack as fft                  
+import matplotlib.pyplot as plt  
+from tkinter.filedialog import askdirectory
 
-boxSizeInPx = 20                #ENTER DESIRED BOXED SIZE HERE
-plotIndividualACFs = False      #TRUE = PLOTS BOXES; FALSE = ONLY PLOTS POP MEANS
-plotIndividualPeaks = False
-plotSubStackACFs = False
-smoothACF = True                #smooths the ACF to better eliminate noisy peaks
-smoothMySignal = True        #TRUE = SMOOTHS THE BOX MEANS PRIOR TO CALCULATING THE WAVE AMPLITUDE AND WIDTHS
-smoothingMethod = "savgol"  #"savgol" calls the smoothWithSavgol (polynomial fit); "fft" calls smoothWithFFT (low pass filter)
-analyzeFrames = 50                                                  #defines the length of submovies
-rollBy = 10                                                          #defines the shift (ie roll) between submovies
-baseDirectory = "/Users/bementmbp/Desktop/testing"         #BASE DIRECTORY FOR THE GUI
 
-def findWorkspace(directory, prompt):                                                       #accepts a starting directory and a prompt for the GUI
-    targetWorkspace = askdirectory(initialdir=directory, message=prompt)                   #opens prompt asking for folder, keep commented to default to baseDirectory
-    #targetWorkspace = directory                                                             #comment this out later if you want a GUI
-    filelist = [fname for fname in os.listdir(targetWorkspace) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
-    return(targetWorkspace, filelist)                                                       #returns the folder path and list of file names
+#################################################################
+#################################################################
+#############                                       #############
+#############                  GUI                  #############
+#############                                       #############
+#################################################################
+#################################################################
 
-def smoothWithFFT(signal, factor):  # the scaling of "span" is open to suggestions
-    w = fft.rfft(signal)
-    spectrum = w ** 2
-    cutoff_idx = spectrum < (spectrum.max() * (1 - np.exp(-factor / 100000)))
-    w[cutoff_idx] = 0
-    smoothedSignal = fft.irfft(w)
-    return smoothedSignal
+#initiates Tk window
+root = tk.Tk()
+root.title('Select your options')
+root.geometry('500x250')
 
-def smoothWithSavgol(signal, windowSize, polynomial):  
-    smoothedSignal = sig.savgol_filter(signal, windowSize, polynomial)
-    return smoothedSignal
+#sets number of columns in the main window
+root.columnconfigure(0, weight=1)
+root.columnconfigure(1, weight=1)
+root.columnconfigure(2, weight=1)
+
+#defining variable types for the different widget fields
+boxSizeVar = tk.IntVar()            #variable for box grid size
+boxSizeVar.set(20)                  #set default value 
+plotIndividualACFsVar = tk.BooleanVar()     #variable for plotting individual ACFs
+plotSubStackACFsVar = tk.BooleanVar()          #variable for plotting individual SUBSTACKS
+plotIndividualPeaksVar = tk.BooleanVar()    #variable for plotting individual peaks
+acfPeakPromVar = tk.DoubleVar()             #variable for peak prominance threshold   
+acfPeakPromVar.set(0.1)                     #set default value
+analyzeFramesVar = tk.IntVar()             # analyze frames
+analyzeFramesVar.set(50)   
+rollByVar = tk.IntVar()             # shift frames
+rollByVar.set(5)                      
+folderPath = tk.StringVar()      #variable for path to images
+
+#function for getting path to user's directory
+def getFolderPath():
+    folderSelected = askdirectory()
+    folderPath.set(folderSelected)
+
+#function for hitting cancel button or quitting
+def on_quit(): 
+    root.destroy() #destroys window
+    sys.exit("You opted to cancel the script!")
+
+#function for hitting start button
+def on_start(): 
+        root.destroy() #destroys window
+    
+'''widget creation'''
+#file path selection widget
+fileEntry = ttk.Entry(root, textvariable=folderPath)
+fileEntry.grid(column=0, row=0, padx=10, sticky='E')
+browseButton = ttk.Button(root, text= 'Select source directory', command=getFolderPath)
+browseButton.grid(column=1, row=0, sticky='W')
+
+#boxSize entry widget
+boxSizeBox = ttk.Entry(root, width = 3, textvariable=boxSizeVar) #creates box widget
+boxSizeBox.grid(column=0, row=1, padx=10, sticky='E') #places widget in frame
+boxSizeBox.focus()      #focuses cursor in box
+boxSizeBox.icursor(2)   #positions cursor after default input characters
+ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=1, columnspan=2, padx=10, sticky='W') #create label text
+
+#boxSize entry widget
+analyzeFramesVarBox = ttk.Entry(root, width = 3, textvariable=analyzeFramesVar) #creates box widget
+analyzeFramesVarBox.grid(column=0, row=2, padx=10, sticky='E') #places widget in frame
+analyzeFramesVarBox.focus()      #focuses cursor in box
+analyzeFramesVarBox.icursor(2)   #positions cursor after default input characters
+ttk.Label(root, text='Enter the number of frames to analyze').grid(column=1, row=2, columnspan=2, padx=10, sticky='W') #create label text
+
+#boxSize entry widget
+rollFramesBox = ttk.Entry(root, width = 3, textvariable=rollByVar) #creates box widget
+rollFramesBox.grid(column=0, row=3, padx=10, sticky='E') #places widget in frame
+rollFramesBox.focus()      #focuses cursor in box
+rollFramesBox.icursor(2)   #positions cursor after default input characters
+ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=3, columnspan=2, padx=10, sticky='W') #create label text
+
+#create acfpeakprom entry widget
+ttk.Entry(root, width = 3, textvariable=acfPeakPromVar).grid(column=0, row=4, padx=10, sticky='E') #create the widget
+ttk.Label(root, text='Enter ACF peak prominence threshold').grid(column=1, row=4, padx=10, sticky='W') #create label text
+
+#create checkbox widgets and labels
+ttk.Checkbutton(root, variable=plotIndividualACFsVar).grid(column=0, row=5, sticky='E', padx=15)
+ttk.Label(root, text='Plot individual ACFs').grid(column=1, row=5, columnspan=2, padx=10, sticky='W') #plot individual ACFs
+ttk.Checkbutton(root, variable=plotSubStackACFsVar).grid(column=0, row=6, sticky='E', padx=15) #plot individual CCFs
+ttk.Label(root, text='Plot substack ACFs').grid(column=1, row=6, columnspan=2, padx=10, sticky='W')
+
+ttk.Checkbutton(root, variable=plotIndividualPeaksVar).grid(column=0, row=7, sticky='E', padx=15) #plot individual peaks
+ttk.Label(root, text='Plot individual peaks').grid(column=1, row=7, columnspan=2, padx=10, sticky='W')
+
+#Creates the 'Start Analysis' button
+startButton = ttk.Button(root, text='Start Analysis', command=on_start) #creates the button and bind it to close the window when clicked
+startButton.grid(column=1, row=9, pady=10, sticky='W') #place it in the tk window
+
+#Creates the 'Cancel' button
+cancelButton = ttk.Button(root, text='Cancel', command=on_quit) #creates the button and bind it to on_quit function
+cancelButton.grid(column=0, row=9, pady=10, sticky='E') #place it in the tk window
+
+root.protocol("WM_DELETE_WINDOW", on_quit) #calls on_quit if the root window is x'd out.
+root.mainloop() #run the script
+
+#get the values stored in the widget
+directory = folderPath.get() 
+boxSizeInPx = boxSizeVar.get()
+analyzeFrames = analyzeFramesVar.get()
+rollBy = rollByVar.get()
+plotIndividualACFs= plotIndividualACFsVar.get()
+plotSubStackACFs = plotSubStackACFsVar.get()
+plotIndividualPeaks = plotIndividualPeaksVar.get()
+acfPeakProm = acfPeakPromVar.get()
+
+
+#make dictionary of parameters for log file use
+logParams = {
+    "Base Directory" : directory,
+    "Box Size(px)" : boxSizeInPx,
+    "Frames to analyze" : analyzeFrames,
+    "Frames to roll by" : rollBy,
+    "ACF Peak Prominence" : acfPeakProm,
+    "Plot Individual ACFs" : plotIndividualACFs,
+    "Plot substack ACFs" : plotSubStackACFs,
+    "Plot Individual peaks" : plotIndividualPeaks
+    }
+
+errors = []
+if acfPeakProm > 1 :
+    errors.append("The ACF peak prominence can not be greater than 1, set 'ACF peak prominence threshold' to a value between 0 and 1. More realistically, a value between 0 and 0.5")
+if len(directory) < 1 :
+    errors.append("You didn't enter a directory to analyze")
+
+if len(errors) >= 1 :
+    print("Error Log:")
+    for count, error in enumerate(errors):
+        print(count,":", error)
+    sys.exit("Please fix errors and try again.") 
+
+#################################################################
+#################################################################
+#############                                       #############
+#############         Processing Functions          #############
+#############                                       #############
+#################################################################
+#################################################################
+
+def smoothWithSavgol(signal, windowSize, polynomial):               # accepts an array, window size, and polynomial to fit
+    return(sig.savgol_filter(signal, windowSize, polynomial))       # returns the smoothed signal
 
 def findBoxMeans(imageArray, boxSize):              #accepts an image array as a parameter, as well as the desired box size
     depth = imageArray.shape[0]                     #number of frames
@@ -56,9 +176,9 @@ def findBoxMeans(imageArray, boxSize):              #accepts an image array as a
     return(growingArray)                            #returns ndarray of shape (number of boxes, number of frames)
 
 def printBoxACF(signal, acor, boxNum, directory, boxNumber, delay=None, subStackIndex=None):
-    subStackName = "Frames_" + subStackIndex
-    subFolder = "ACF_Plots"
-    acfSavePath = directory / subStackName / subFolder
+
+    subStackName = "Frames_" + subStackIndex + "_boxACFs"
+    acfSavePath = directory / 'subStackPlots/boxACFs' / subStackName
     acfSavePath.mkdir(exist_ok=True, parents=True) 
 
     xAxis = np.arange(signal.shape[0])                 #np array containing ascending integers up to the value of npts
@@ -78,7 +198,7 @@ def printBoxACF(signal, acor, boxNum, directory, boxNumber, delay=None, subStack
         ax.set_xlabel("Periodic signal not detected")
         graphName = "boxNo" + str(boxNum) + ".png"
         boxName = acfSavePath / graphName
-        plt.savefig(boxName, dpi=75, )                                                  #saves the figure                                                 #saves the figure
+        plt.savefig(boxName, dpi=75, )            #saves the figure
         plt.clf()
         plt.close(fig)
     else:
@@ -90,7 +210,7 @@ def printBoxACF(signal, acor, boxNum, directory, boxNumber, delay=None, subStack
         plt.axvline(x=-delay, alpha = 0.5, c = 'red', linestyle = '--')
         graphName = "boxNo" + str(boxNum) + ".png"
         boxName = acfSavePath / graphName
-        plt.savefig(boxName, dpi=75, )                                                  #saves the figure                                                 #saves the figure
+        plt.savefig(boxName, dpi=75, )                            #saves the figure
         plt.clf()
         plt.close(fig)
 
@@ -98,8 +218,6 @@ def findACF(signal, directory, imageName, boxNumber, subStackIndex=None):  #acce
     npts = signal.shape[0]                      #number of points is the depth of the 0 axis, which is the number of frames in the image
     acov = np.correlate(signal - signal.mean(), signal - signal.mean(), mode='full')    #compute full autocorrelation
     acor = acov / (npts * signal.std() ** 2)                                #normalizes the crosscorr from -1 to +1      
-    if smoothACF == True:
-        acor = smoothWithSavgol(acor, windowSize=3, polynomial=1)
     peaks, dict = sig.find_peaks(acor)#, prominence=0.075)             #ndarray with location of local maxima using scipy.signal.find_peaks
     peaksDiff = abs(peaks - acor.shape[0]//2)                   #ndarray with the absolute difference between each peak and the middle value of the ccor array
 
@@ -118,9 +236,8 @@ def findACF(signal, directory, imageName, boxNumber, subStackIndex=None):  #acce
     return(acor, delay)
 
 def printPeaks(raw, smoothed, smoothPeaks, heights, leftIndex, rightIndex, proms, directory, boxNumber, subStackIndex):
-    subStackName = "Frames_" + subStackIndex
-    subFolder = "Peak_Plots"
-    peaksSavePath = directory / subStackName / subFolder
+    subStackName = "Frames_" + subStackIndex + "_boxPeaks"
+    peaksSavePath = directory / 'subStackPlots/boxPeaks' / subStackName
     peaksSavePath.mkdir(exist_ok=True, parents=True) 
 
     x = np.arange(raw.shape[0])
@@ -136,38 +253,28 @@ def printPeaks(raw, smoothed, smoothPeaks, heights, leftIndex, rightIndex, proms
     ax.legend(loc='upper right', fontsize='small', ncol=1)  
     graphName = "boxNo" + str(boxNumber) + ".png"
     boxName = peaksSavePath / graphName
-    plt.savefig(boxName, dpi=75, )                                                  #saves the figure                                                 #saves the figure
+    plt.savefig(boxName, dpi=75, )                                        #saves the figure
     plt.clf()
     plt.close(fig)
 
 def analyzePeaks(signal, subStackSavePath, boxNumber, subStackIndex = None):
-    if smoothMySignal == True:
-        if smoothingMethod == "savgol":
-            smoothed = smoothWithSavgol(signal, 11, 2)
-        elif smoothingMethod == "fft":
-            smoothed = smoothWithFFT(signal, 0.4)
-        else:
-            sys.exit("Choose either 'savgol' or 'fft' as a signal smoothing method")
-        minVal = np.min(signal)
-        maxVal = np.max(signal)
-        xAxis = np.arange(len(signal))
-        smoothPeaks, smoothedDicts = sig.find_peaks(smoothed, prominence=(maxVal-minVal)*0.1)
-        if len(smoothPeaks) > 0:
-            proms, leftBase, rightBase = sig.peak_prominences(smoothed, smoothPeaks)                  
-            widths, heights, leftIndex, rightIndex = sig.peak_widths(smoothed, smoothPeaks, rel_height=0.5) #returns [0]=widths, [1]=heights, [2]=left ips, [3]=right ips (all ndarrays)
-            if plotIndividualPeaks == True:
-                printPeaks(signal, smoothed, smoothPeaks, heights, leftIndex, rightIndex, proms, subStackSavePath, boxNumber, subStackIndex)
-            width = np.mean(widths, axis=0)
-            max = np.mean(smoothed[smoothPeaks], axis=0)
-            min = np.mean(smoothed[smoothPeaks]-proms, axis=0)
-            amp = max-min
-            relAmp = amp/min
-            return(width, max, min, amp, relAmp)
-        else:
-           return(np.NaN, np.NaN, np.NaN, np.NaN, np.NaN)  #returns NaNs. 
-        
+    smoothed = smoothWithSavgol(signal, 11, 2)
+    minVal = np.min(signal)
+    maxVal = np.max(signal)
+    smoothPeaks, smoothedDicts = sig.find_peaks(smoothed, prominence=(maxVal-minVal)*0.1)
+    if len(smoothPeaks) > 0:
+        proms, leftBase, rightBase = sig.peak_prominences(smoothed, smoothPeaks)                  
+        widths, heights, leftIndex, rightIndex = sig.peak_widths(smoothed, smoothPeaks, rel_height=0.5) #returns [0]=widths, [1]=heights, [2]=left ips, [3]=right ips (all ndarrays)
+        if plotIndividualPeaks == True:
+            printPeaks(signal, smoothed, smoothPeaks, heights, leftIndex, rightIndex, proms, subStackSavePath, boxNumber, subStackIndex)
+        width = np.mean(widths, axis=0)
+        max = np.mean(smoothed[smoothPeaks], axis=0)
+        min = np.mean(smoothed[smoothPeaks]-proms, axis=0)
+        amp = max-min
+        relAmp = amp/min
+        return(width, max, min, amp, relAmp)
     else:
-        sys.exit("Keep 'smoothMySignal =True' for now")
+        return(np.NaN, np.NaN, np.NaN, np.NaN, np.NaN)  #returns NaNs. 
 
 def subStackPlotsAndShifts(acorArray, subStackSavePath, subStackIndex, periods):              #accepts a tuple containing acfs and shifts, which will be plotted and saved
     plotSavePath = subStackSavePath / ("Frames_" + str(subStackIndex) + "_meanAcf.png")
@@ -177,7 +284,7 @@ def subStackPlotsAndShifts(acorArray, subStackSavePath, subStackIndex, periods):
     lags = np.arange(-(meanAcf.shape[0]+1)/2+1, (meanAcf.shape[0]+1)/2)
 
     periods = periods[2:]
-    if np.isnan(np.max(periods)) == True:                       #filters out nans if they exit
+    if np.isnan(np.max(periods)) == True:                       #filters out nans if they exist
         periods = [x for x in periods if np.isnan(x) != True] 
     
     boxesAndLags = np.vstack((lags, meanAcf, stdAcf))      #Makes an ndarray zipping each of the box names (listOfBoxes) and lags for each box (ccfAnswers[1])
@@ -195,9 +302,6 @@ def subStackPlotsAndShifts(acorArray, subStackSavePath, subStackIndex, periods):
     plt.xlabel("Histogram of shift values")                                 #x-axis label
     plt.ylabel("Occurrences")                                               #y-axis label
     
-    print(subStackSavePath)
-    print(subStackIndex)
-    print(periods)
     plt.subplot(2,2,4)                                                      #bottom right subplot
     plt.boxplot(periods)                                               #boxplot of shift values
     plt.xlabel("Boxplot of shift values")                                   #x-axis label
@@ -244,9 +348,25 @@ def printTemporalVars(listOfVars, variable, subStackSavePath):
     plt.savefig(graphName)                                                  #saves the figure
     plt.close() 
 
-############# FUNCTIONS ABOVE, WORKFLOW BELOW #############
+def makeLog(directory, logParams):                                  # makes a text log with script parameters
+    logPath = os.path.join(directory, "log.txt")                    # path to log file
+    now = datetime.datetime.now()                                   # get current date and time
+    logFile = open(logPath, "w")                                    # initiate text file
+    logFile.write("\n" + now.strftime("%Y-%m-%d %H:%M") + "\n")     # write current date and time
+    for key, value in logParams.items():                            # for each key:value pair in the parameter dictionary...
+        logFile.write('%s: %s\n' % (key, value))                    # write pair to new line
+    logFile.close()                                                 # close the file
 
-directory, fileNames = findWorkspace(baseDirectory, "PLEASE SELECT YOUR SOURCE WORKSPACE")  #string object describing the file path, list object containing all file names ending with .tif
+#################################################################
+#################################################################
+#############                                       #############
+#############            WORKFLOW BELOW             #############
+#############                                       #############
+#################################################################
+#################################################################
+
+fileNames = [fname for fname in os.listdir(directory) if fname.endswith('.tif')]    # list object containing all file names ending with .tif
+makeLog(directory, logParams)                                                       # make log text file
 
 for i in range(len(fileNames)):                                 #iterates through the .tif files in the specified directory
     print("Starting to work on " + fileNames[i] + "!")
@@ -255,7 +375,7 @@ for i in range(len(fileNames)):                                 #iterates throug
     assert imageStack.ndim == 3, "Make sure that you dataset has no more than one channel, no more than one z plane, and no less than two time points"
 
     print("Starting rolling analysis")                                                                 #empty list that will later be populated with shift ACF statistics
-    subStackSavePath = pathlib.Path(directory + "/" + nameWithoutExtension + "_subStackAnalysis")                                #path object for a subdirectory to save the ccf data to
+    subStackSavePath = pathlib.Path(directory + "/" + nameWithoutExtension + "_Analysis")                                #path object for a subdirectory to save the ccf data to
     subStackSavePath.mkdir(exist_ok=True, parents=True)                                                   #makes path, ignores error if path already exists
     numberSubMovies = (imageStack.shape[0]-analyzeFrames)//rollBy+1     #calculates the number of times a sub-movie can be evenly created
     paramDict = {"period":[], "width":[], "max":[], "min":[], "amp":[], "relAmp":[]}
@@ -297,7 +417,9 @@ for i in range(len(fileNames)):                                 #iterates throug
         
         meanAcfArray = np.delete(tempMeanAcf, obj=0, axis=0)
         if plotSubStackACFs == True:
-            subStackPlotsAndShifts(meanAcfArray, subStackSavePath, subStackIndex, tempParamDict["period"])
+            subStackACFs = subStackSavePath / "subStackPlots/substackACFs"
+            subStackACFs.mkdir(exist_ok=True, parents=True)
+            subStackPlotsAndShifts(meanAcfArray, subStackACFs, subStackIndex, tempParamDict["period"])
 
         print(str(round((y+1)/numberSubMovies*100, 1)) + "%" + " Finished with " + fileNames[i])
     
