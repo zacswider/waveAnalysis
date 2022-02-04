@@ -87,7 +87,7 @@ rollFramesBox = ttk.Entry(root, width = 3, textvariable=rollByVar) #creates box 
 rollFramesBox.grid(column=0, row=3, padx=10, sticky='E') #places widget in frame
 rollFramesBox.focus()      #focuses cursor in box
 rollFramesBox.icursor(2)   #positions cursor after default input characters
-ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=3, columnspan=2, padx=10, sticky='W') #create label text
+ttk.Label(root, text='Enter the number of frames to roll by').grid(column=1, row=3, columnspan=2, padx=10, sticky='W') #create label text
 
 #create acfpeakprom entry widget
 ttk.Entry(root, width = 3, textvariable=acfPeakPromVar).grid(column=0, row=4, padx=10, sticky='E') #create the widget
