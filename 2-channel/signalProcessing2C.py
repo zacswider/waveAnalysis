@@ -17,8 +17,6 @@ import matplotlib.pyplot as plt
 from tkinter.filedialog import askdirectory   
 import timeit
 
-#test
-
 np.seterr(divide='ignore', invalid='ignore')
 
 '''*** Start GUI Window ***'''
@@ -467,10 +465,8 @@ for i in range(len(fileNames)):                                 # iterates throu
     if groupNames != ['']:                                      # if user entered group names to compare...
         groupName = setGroups(groupNames, nameWithoutExtension) # return which group this file belongs to
 
-    if imageStack.shape[1] == 2:    # Attempt the verify the number of channels in the image
+    if imageStack.shape[1] == 3:    # Attempt the verify the number of channels in the image
         imageChannels = 2           # imageStack.shape[1] will either be the number of channels, or the number of pixels on the y-axis
-    elif imageStack.ndim == 3:      
-        imageChannels = 1           # imageStack.ndim == 3 = the number of dimensions. a 1-channel stack won't have the 4th channel dimension
     else:                           # This should cover most use cases...
         print(nameWithoutExtension + "was NOT processed. Are you sure you have a standard sized image with one or two channels saved in standard `tzcyx` order?")
         continue
@@ -478,119 +474,25 @@ for i in range(len(fileNames)):                                 # iterates throu
 #################################################################
 #################################################################
 #############                                       #############
-#############         ONE CHANNEL WORKFLOW          #############
+#############        THREE CHANNEL WORKFLOW         #############
 #############                                       #############
 #################################################################
 #################################################################
 
-    if imageChannels == 1:   
-        print("Starting 1-channel workflow")                            # user feedback
-        boxMeans = findBoxMeans(imageStack, boxSizeInPx)                # returns array of mean px value in each box; mean box value for every frame in dataset
-        numBoxes = boxMeans.shape[0]                                    # returns number of boxes in array (fxn of image dimensions and box size)
-        columnNames = ["Parameter", "Mean", "Median", "StdDev", "SEM"]  # initial column names, will be expanded in for loop below
-        acfPlots=np.empty((imageStack.shape[0]*2-1))                    # empty array with otherwise the correct shape for an autocorrelation plot, will be appended to below
-        
-        paramDict = {"Ch1 Period":["Ch1 Period"],                       # dict with a string description of each parameter and empty list to append measurements to
-                     "Ch1 Width":["Ch1 Width"],                         # every list has the string description of the measurement in index 0
-                     "Ch1 Max":["Ch1 Max"], 
-                     "Ch1 Min":["Ch1 Min"],                             #  !!!!! DO I WANT TO KEEP CH1 IN THERE FOR 1-CHANNEL WORKFLOW?
-                     "Ch1 Amp":["Ch1 Amp"], 
-                     "Ch1 Rel Amp":["Ch1 Rel Amp"]} 
-        
-        for boxNumber in range(numBoxes):                               # iterates through ndarray of box means
-            columnNames.append("Box#" + str(boxNumber))                 # appends the box number to the column names
-            acfPlot, period = findACF(boxMeans[boxNumber],              # calculates the acf curve and signal period for every box. 
-                                      boxSavePath, 
-                                      boxNumber, 
-                                      channel = "")                     # channels is empty b/c there's only one channel.
- 
-            width, max, min, amp, relAmp = analyzePeaks(boxMeans[boxNumber], 
-                                                        boxSavePath,    # finds the peak width, max, min, amp, and relAmp for each box
-                                                        boxNumber, 
-                                                        channel="")     # channels is empty b/c there's only one channel.
-
-            acfPlots = np.vstack((acfPlots, acfPlot))                   # stacks the acf plot for the current box onto the growing array of acf plots
-                                                                        # could make this more memory efficient by making the correct sized array first, and redefining for each box
-            varDict = {"Ch1 Period":period,                             # dict with string descriptors matching paramDict above
-                       "Ch1 Width":width, 
-                       "Ch1 Max":max, 
-                       "Ch1 Min":min, 
-                       "Ch1 Amp":amp, 
-                       "Ch1 Rel Amp":relAmp} 
-            for key, var in varDict.items():                            # iterates through the dictionary...
-                paramDict[key].append(float(var))                       # ...and appends the appropriate variable into the growing lists in paramdict
-        
-        acfPlots = np.delete(acfPlots, obj=0, axis=0)                   # deletes the empty first obj in the acf plots array (won't need this if I include memory saving step suggested above)
-        cfArray = plotCF(acfPlots, boxSavePath, paramDict["Ch1 Period"], channel="")    # plots the mean ± std dev autocorrelation functions and returns an array of the x axis values, mean autoccorelation values, and the std dev values
-        df = pd.DataFrame(cfArray, columns=["X Axis", "ACF Mean", "ACF Std Dev"])       # moves the mean±std into a dataframe...
-        df.to_csv(boxSavePath / ("cfPlots.csv"))                                        # ... and saves it as a .csv
-        
-        plotPeaks(paramDict["Ch1 Width"][1:],                           # sends data to the plot peaks fxn to plot peak population histograms etc
-                  paramDict["Ch1 Min"][1:],                             # excludes the first index in the list, which is the string description of the measurement
-                  paramDict["Ch1 Max"][1:],                         
-                  paramDict["Ch1 Amp"][1:],                         
-                  boxSavePath,                      
-                  channel = "")                                         # channels is empty b/c there's only one channel.
-        
-        summaryDict = {"Filename":nameWithoutExtension}                 # create dict to fill with summary stats; start with the file name
-        summaryDict["# of Boxes"] = numBoxes                            # add number of boxes in the file
-        periods = [x for x in paramDict["Ch1 Period"][1:] if np.isnan(x) != True]
-                                                                        # removes nans from list of period measurements
-                                                                        # find ACF function returns a nan if no suitable peaks are detected
-        pcntZeros = ((numBoxes-len(periods))/numBoxes)*100              # calculates what percent of the period measurments were nan (bad measurements)
-        summaryDict["Ch1 Pcnt Zero Boxes"] = pcntZeros                  # and appends to dict. This can be used as a metric for analysis quality.
-        if groupNames != ['']:                                        
-            summaryDict["Group Name"] = groupName               # !!!!! MAY NEED TO MODIFY THIS TO PLAY NICE WITH ANI'S GUI
-
-        for meas in ["Period",                                          # for each major peak measurement...
-                     "Width", 
-                     "Max", 
-                     "Min", 
-                     "Amp", 
-                     "Rel Amp"]:
-            mean, median, std, sem =  calcListStats(paramDict["Ch1 " + meas][1:]) 
-                                                                        # pass that corresponding list to the calc list stats fxn
-            for index, item in {1:mean,                                 
-                                2:median, 
-                                3:std,                                  # temp dict that defines which index to insert which measurement into the parameter dict
-                                4:sem}.items():
-                paramDict["Ch1 " + meas].insert(index, item)            # inserts each measurement at the appropriate location
-            for stat, val in {"Mean":mean, 
-                              "Median":median,                          # temp dict that defines string description for each variable...
-                              "StDev":std, 
-                              "SEM":sem}.items():
-                summaryDict["Ch1 " + stat + " " + meas] = val           # ...and appends it to the summary dict
-        
-        for key in summaryDict.keys(): 
-            if key not in columnHeaders:                                # if string description of some variable is not already in the column headers list...
-                columnHeaders.append(key)                               # ...append it
-
-        listOfMeasurements = []
-        for finishedList in paramDict.values():
-            listOfMeasurements.append(finishedList)
-        saveBoxValues(listOfMeasurements, boxSavePath, columnNames)     # single function that prints summary and box size for everything
-
-        masterStatsList.append(summaryDict)                             # summary of stats for this file is finished, append it to the growing list and move on to the next
-
-        print(str(round((i+1)/len(fileNames)*100, 1)) + 
-                  "%" + " Finished with Analysis")                      # user feedback
-
-#################################################################
-#################################################################
-#############                                       #############
-#############         TWO CHANNEL WORKFLOW          #############
-#############                                       #############
-#################################################################
-#################################################################
-
-    if imageChannels == 2:   
-        print("Starting 2-channel workflow")                            # user feedback
-        subs = np.split(imageStack, 2, 1)                               # list object containing two arrays corresponding to the two channels of the imageStack
+    if imageChannels == 3:   
+        print("Starting 3-channel workflow")                            # user feedback
+        subs = np.split(imageStack, 3, 1)                               # list object containing two arrays corresponding to the two channels of the imageStack
         ch1 = np.squeeze(subs[0],axis=1)                                # array object corresponding to channel one of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
         ch2 = np.squeeze(subs[1],axis=1)                                # array object corresponding to channel two of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
+        ch2 = np.squeeze(subs[2],axis=1)                                # array object corresponding to channel three of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
         
         ch1BoxMeans = findBoxMeans(ch1, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
         ch2BoxMeans = findBoxMeans(ch2, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
+        ch3BoxMeans = findBoxMeans(ch2, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
+
+        '''
+        !!! left off here. Write a fxn to normalize 0-1 within each box and then return the ratio
+        '''
 
         numBoxes = ch1BoxMeans.shape[0]                                 # returns number of boxes in array (fxn of image dimensions and box size); same as ch2BoxMeans.shape[0]
         columnNames = ["Parameter", "Mean", "Median", "StdDev", "SEM"]  # initial column names, will be expanded in for loop below
