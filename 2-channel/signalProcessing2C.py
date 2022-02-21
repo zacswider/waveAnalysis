@@ -414,7 +414,15 @@ def makeLog(directory, logParams):                                  # makes a te
     for key, value in logParams.items():                            # for each key:value pair in the parameter dictionary...
         logFile.write('%s: %s\n' % (key, value))                    # write pair to new line
     logFile.close()                                                 # close the file
-    
+
+def normalize(arr):
+    return((arr-np.min(arr))/(np.max(arr)-np.min(arr)))
+
+def ratio(signal, volume):
+    signal = normalize(signal)
+    volume = normalize(volume)
+    return((signal + 1)/(volume + 1))
+
 #################################################################
 #################################################################
 #############                                       #############
@@ -465,12 +473,6 @@ for i in range(len(fileNames)):                                 # iterates throu
     if groupNames != ['']:                                      # if user entered group names to compare...
         groupName = setGroups(groupNames, nameWithoutExtension) # return which group this file belongs to
 
-    if imageStack.shape[1] == 3:    # Attempt the verify the number of channels in the image
-        imageChannels = 2           # imageStack.shape[1] will either be the number of channels, or the number of pixels on the y-axis
-    else:                           # This should cover most use cases...
-        print(nameWithoutExtension + "was NOT processed. Are you sure you have a standard sized image with one or two channels saved in standard `tzcyx` order?")
-        continue
-
 #################################################################
 #################################################################
 #############                                       #############
@@ -479,182 +481,185 @@ for i in range(len(fileNames)):                                 # iterates throu
 #################################################################
 #################################################################
 
-    if imageChannels == 3:   
-        print("Starting 3-channel workflow")                            # user feedback
-        subs = np.split(imageStack, 3, 1)                               # list object containing two arrays corresponding to the two channels of the imageStack
-        ch1 = np.squeeze(subs[0],axis=1)                                # array object corresponding to channel one of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
-        ch2 = np.squeeze(subs[1],axis=1)                                # array object corresponding to channel two of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
-        ch2 = np.squeeze(subs[2],axis=1)                                # array object corresponding to channel three of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
-        
-        ch1BoxMeans = findBoxMeans(ch1, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
-        ch2BoxMeans = findBoxMeans(ch2, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
-        ch3BoxMeans = findBoxMeans(ch2, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
+    #if imageChannels == 3:   
+    print("Starting 3-channel workflow")                            # user feedback
+    subs = np.split(imageStack, 3, axis=3)                               # list object containing two arrays corresponding to the two channels of the imageStack
+    ch1 = np.squeeze(subs[0],axis=3)                                # array object corresponding to channel one of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
+    ch2 = np.squeeze(subs[1],axis=3)                                # array object corresponding to channel two of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
+    ch2 = np.squeeze(subs[2],axis=3)                                # array object corresponding to channel three of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
+    
+    ch1BoxMeans = findBoxMeans(ch1, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
+    ch2BoxMeans = findBoxMeans(ch2, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
+    ch3BoxMeans = findBoxMeans(ch2, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
 
-        '''
-        !!! left off here. Write a fxn to normalize 0-1 within each box and then return the ratio
-        '''
+    '''
+    !!! left off here. Write a fxn to normalize 0-1 within each box and then return the ratio
+    '''
 
-        numBoxes = ch1BoxMeans.shape[0]                                 # returns number of boxes in array (fxn of image dimensions and box size); same as ch2BoxMeans.shape[0]
-        columnNames = ["Parameter", "Mean", "Median", "StdDev", "SEM"]  # initial column names, will be expanded in for loop below
-        Ch1AcfPlots = np.zeros((imageStack.shape[0]*2-1))               # empty array with otherwise the correct shape for an autocorrelation plot, will be appended to below
-        Ch2AcfPlots = np.zeros((imageStack.shape[0]*2-1))               # empty array with otherwise the correct shape for an autocorrelation plot, will be appended to below
-        ccfPlots = np.zeros((imageStack.shape[0]*2-1))                  # empty array with otherwise the correct shape for a crosscorrelation plot, will be appended to below
-        paramDict = {"Signal Shift":[],
-                     "Ch1 Period":[], 
-                     "Ch1 Width":[],                                    # dict with a string description of each parameter and empty list to append measurements to
-                     "Ch1 Max":[], 
-                     "Ch1 Min":[], 
-                     "Ch1 Amp":[], 
-                     "Ch1 Rel Amp":[], 
-                     "Ch2 Period":[], 
-                     "Ch2 Width":[], 
-                     "Ch2 Max":[], 
-                     "Ch2 Min":[], 
-                     "Ch2 Amp":[], 
-                     "Ch2 Rel Amp":[]}
-        for key, var in paramDict.items():                              # lazy step...
-            var.append(key)                                             # every list has the string description of the measurement in index 0
-        
-        for boxNumber in range(numBoxes):                               # iterates through ndarray of box means
-            columnNames.append("Box#" + str(boxNumber))                 # appends the box number to the column names
-            ccfPlot, shift = findCCF(ch1BoxMeans[boxNumber],    
-                                     ch2BoxMeans[boxNumber],            # calculates the ccf curve and signal shift for every box. 
-                                     boxSavePath, 
-                                     boxNumber)
-            
-            acfPlotCh1, periodCh1 = findACF(ch1BoxMeans[boxNumber],     # calculates the acf curve and signal period for every box in channel 1
-                                            boxSavePath, 
-                                            boxNumber, 
-                                            channel = "Ch1")
-
-            widthCh1, maxCh1, minCh1, ampCh1, relAmpCh1 = analyzePeaks(ch1BoxMeans[boxNumber], 
-                                                                       boxSavePath,     # finds the peak width, max, min, amp, and relAmp for each box
-                                                                       boxNumber, 
-                                                                       channel = "Ch1") 
-            
-            acfPlotCh2, periodCh2 = findACF(ch2BoxMeans[boxNumber],     # calculates the acf curve and signal period for every box in channel 2
-                                            boxSavePath, 
-                                            boxNumber, 
-                                            channel = "Ch2")
-
-            widthCh2, maxCh2, minCh2, ampCh2, relAmpCh2 = analyzePeaks(ch2BoxMeans[boxNumber], 
-                                                                       boxSavePath,     # finds the peak width, max, min, amp, and relAmp for each box
-                                                                       boxNumber, 
-                                                                       channel = "Ch2") 
-                                                                       
-            ccfPlots = np.vstack((ccfPlots, ccfPlot))                   # stacks the ccf plot for the current box onto the growing array of ccf plots
-            Ch1AcfPlots = np.vstack((Ch1AcfPlots, acfPlotCh1))          # stacks the acf plot for the current box onto the growing array of ch1 acf plots
-            Ch2AcfPlots = np.vstack((Ch2AcfPlots, acfPlotCh2))          # stacks the acf plot for the current box onto the growing array of ch2 acf plots
-            varDict = {"Signal Shift":shift,
-                       "Ch1 Period":periodCh1, 
-                       "Ch1 Width":widthCh1, 
-                       "Ch1 Max":maxCh1, 
-                       "Ch1 Min":minCh1,                                # dict with string descriptors matching paramDict above
-                       "Ch1 Amp":ampCh1, 
-                       "Ch1 Rel Amp":relAmpCh1,
-                       "Ch2 Period":periodCh2, 
-                       "Ch2 Width":widthCh2, 
-                       "Ch2 Max":maxCh2, 
-                       "Ch2 Min":minCh2, 
-                       "Ch2 Amp":ampCh2, 
-                       "Ch2 Rel Amp":relAmpCh2}
-            for key, var in varDict.items():                            # iterates through the dictionary...
-                paramDict[key].append(float(var))                       # ...and appends the appropriate variable into the growing lists in paramdict
-
-        for grownArray in [Ch1AcfPlots, Ch2AcfPlots, ccfPlots]:         # iterates through the arrays of ccf and acf plots
-            grownArray = np.delete(grownArray, obj=0, axis=0)           # deletes the empty array in each of the respective correlation plot arrays
-        
-        listOfCFs = []                                                  # empty list to fill with raw plot values for the ccf and acf plots
-
-        listOfCFs.append(plotCF(ccfPlots,                               # plots the ccf and returns the raw plot values for the ccf plot
-                                boxSavePath, 
-                                paramDict["Signal Shift"], 
-                                channel = "", 
-                                cfType = "CCF"))
-
-        for key, var in {"Ch1 Period":Ch1AcfPlots,                      # temporary dict with string descriptors and variables to work with
-                         "Ch2 Period": Ch2AcfPlots}.items():
-
-            listOfCFs.append(plotCF(var,                                # plots the acf for both ch1 and ch2 and returns the raw plot values for the acf plots
+    numBoxes = ch1BoxMeans.shape[0]                                 # returns number of boxes in array (fxn of image dimensions and box size); same as ch2BoxMeans.shape[0]
+    columnNames = ["Parameter", "Mean", "Median", "StdDev", "SEM"]  # initial column names, will be expanded in for loop below
+    Ch1AcfPlots = np.zeros((imageStack.shape[0]*2-1))               # empty array with otherwise the correct shape for an autocorrelation plot, will be appended to below
+    Ch2AcfPlots = np.zeros((imageStack.shape[0]*2-1))               # empty array with otherwise the correct shape for an autocorrelation plot, will be appended to below
+    ccfPlots = np.zeros((imageStack.shape[0]*2-1))                  # empty array with otherwise the correct shape for a crosscorrelation plot, will be appended to below
+    paramDict = {"Signal Shift":[],
+                    "Ch1 Period":[], 
+                    "Ch1 Width":[],                                    # dict with a string description of each parameter and empty list to append measurements to
+                    "Ch1 Max":[], 
+                    "Ch1 Min":[], 
+                    "Ch1 Amp":[], 
+                    "Ch1 Rel Amp":[], 
+                    "Ch2 Period":[], 
+                    "Ch2 Width":[], 
+                    "Ch2 Max":[], 
+                    "Ch2 Min":[], 
+                    "Ch2 Amp":[], 
+                    "Ch2 Rel Amp":[]}
+    for key, var in paramDict.items():                              # lazy step...
+        var.append(key)                                             # every list has the string description of the measurement in index 0
+    
+    for boxNumber in range(numBoxes):                               # iterates through ndarray of box means
+        columnNames.append("Box#" + str(boxNumber))                 # appends the box number to the column names
+        signal = ch1BoxMeans[boxNumber]
+        volume = ch2BoxMeans[boxNumber]
+        volCorr = ratio(signal, volume)
+        ccfPlot, shift = findCCF(volCorr,    
+                                    ch3BoxMeans[boxNumber],            # calculates the ccf curve and signal shift for every box. 
                                     boxSavePath, 
-                                    paramDict[key], 
-                                    channel = key[:3]))
+                                    boxNumber)
         
-        df = pd.DataFrame(np.hstack(listOfCFs), columns=["X Axis",      # converts raw plot values to a dataframe...
-                                                         "CCF Mean", 
-                                                         "CCF Std Dev", 
-                                                         "X Axis", 
-                                                         "Ch1 Mean", 
-                                                         "Ch1 Std Dev", 
-                                                         "X Axis", 
-                                                         "Ch2 Mean", 
-                                                         "Ch2 Std Dev"])
-        df.to_csv(boxSavePath / ("cfPlots.csv"))                        # ... and saves it as a .csv so you can make your own pretty graphs
+        acfPlotCh1, periodCh1 = findACF(ch1BoxMeans[boxNumber],     # calculates the acf curve and signal period for every box in channel 1
+                                        boxSavePath, 
+                                        boxNumber, 
+                                        channel = "Ch1")
 
-        periodsCh1 = [x for x in paramDict["Ch1 Period"][1:] if np.isnan(x) != True]
-                                                                        # removes nans from list of ch1 period measurements
-                                                                        # find ACF function returns a nan if no suitable peaks are detected
-        periodsCh2 = [x for x in paramDict["Ch2 Period"][1:] if np.isnan(x) != True]
-                                                                        # removes nans from list of ch2 period measurements
-                                                                        # find ACF function returns a nan if no suitable peaks are detected
-        pcntZerosCh1 = ((numBoxes-len(periodsCh1))/numBoxes)*100        # calculates what percent of the period measurments were nan (bad measurements)
-        pcntZerosCh2 = ((numBoxes-len(periodsCh2))/numBoxes)*100        # calculates what percent of the period measurments were nan (bad measurements)
-
-        for ch in ["Ch1", "Ch2"]:                                       # for both the ch1 and ch2 data
-            plotPeaks(paramDict[ch + " Width"][1:],                     # sends data to the plot peaks fxn to plot peak population histograms etc
-                      paramDict[ch + " Min"][1:],                       # excludes the first index in the list, which is the string description of the measurement
-                      paramDict[ch + " Max"][1:], 
-                      paramDict[ch + " Amp"][1:], 
-                      boxSavePath, channel=ch)
-
-        summaryDict={"Filename":nameWithoutExtension}                   # create dict to fill with summary stats; start with the file name
-        summaryDict["# of Boxes"] = numBoxes                            # add number of boxes analyzed in the image
-        summaryDict["Ch1 Pcnt Zero Boxes"] = pcntZerosCh1               # This can be used as a metric for analysis quality.
-        summaryDict["Ch2 Pcnt Zero Boxes"] = pcntZerosCh2               # This can be used as a metric for analysis quality.
-
-        if groupNames != ['']:                        
-            summaryDict["Group Name"] = groupName       # !!!!! MAY NEED TO MODIFY THIS TO PLAY NICE WITH ANI'S GUI
-
-        mean, median, std, sem =  calcListStats(paramDict["Signal Shift"][1:]) 
-                                                                        # return the list stats for signal shift
-        for stat, val in {"Mean":mean, 
-                          "Median":median,                              # temporary dict with string descriptions for each variable
-                          "StDev":std,                                  # iterates through each variable...
-                          "SEM":sem}.items():
-            summaryDict[stat + " Signal Shift"] = val                   # ...and appends it to the summary dict 
-        for ch in ["Ch1", "Ch2"]:                                       # for both Ch1 and Ch2...
-            for meas in ["Period", 
-                         "Width",                                       # and for each type of measurement..
-                         "Max", 
-                         "Min", 
-                         "Amp", 
-                         "Rel Amp"]:
-                mean, median, std, sem =  calcListStats(paramDict[ch + " " + meas][1:])
-                                                                        # define the list stats for that channel and measurement
-                for index, item in {1:mean, 
-                                    2:median,                           # temp dict that defines which index to insert which measurement into the parameter dict
-                                    3:std, 
-                                    4:sem}.items():
-
-                    paramDict[ch + " " + meas].insert(index, item)      # inserts each measurement at the appropriate location
-                for stat, val in {"Mean":mean, 
-                                  "Median":median, 
-                                  "StDev":std,                          # temp dict that defines string description for each variable...
-                                  "SEM":sem}.items():
-                    summaryDict[ch + " " + stat + " " + meas] = val     # ...and appends it to the summary dict
+        widthCh1, maxCh1, minCh1, ampCh1, relAmpCh1 = analyzePeaks(ch1BoxMeans[boxNumber], 
+                                                                    boxSavePath,     # finds the peak width, max, min, amp, and relAmp for each box
+                                                                    boxNumber, 
+                                                                    channel = "Ch1") 
         
-        for key in summaryDict.keys():
-            if key not in columnHeaders:                                # if string description of some variable is not already in the column headers list...
-                columnHeaders.append(key)                               # ...append it
+        acfPlotCh2, periodCh2 = findACF(ch2BoxMeans[boxNumber],     # calculates the acf curve and signal period for every box in channel 2
+                                        boxSavePath, 
+                                        boxNumber, 
+                                        channel = "Ch2")
 
-        listOfMeasurements = []                                         
-        for finishedList in paramDict.values():
-            listOfMeasurements.append(finishedList)
-        saveBoxValues(listOfMeasurements, boxSavePath, columnNames)     # single function that prints summary and box size for everything
+        widthCh2, maxCh2, minCh2, ampCh2, relAmpCh2 = analyzePeaks(ch2BoxMeans[boxNumber], 
+                                                                    boxSavePath,     # finds the peak width, max, min, amp, and relAmp for each box
+                                                                    boxNumber, 
+                                                                    channel = "Ch2") 
+                                                                    
+        ccfPlots = np.vstack((ccfPlots, ccfPlot))                   # stacks the ccf plot for the current box onto the growing array of ccf plots
+        Ch1AcfPlots = np.vstack((Ch1AcfPlots, acfPlotCh1))          # stacks the acf plot for the current box onto the growing array of ch1 acf plots
+        Ch2AcfPlots = np.vstack((Ch2AcfPlots, acfPlotCh2))          # stacks the acf plot for the current box onto the growing array of ch2 acf plots
+        varDict = {"Signal Shift":shift,
+                    "Ch1 Period":periodCh1, 
+                    "Ch1 Width":widthCh1, 
+                    "Ch1 Max":maxCh1, 
+                    "Ch1 Min":minCh1,                                # dict with string descriptors matching paramDict above
+                    "Ch1 Amp":ampCh1, 
+                    "Ch1 Rel Amp":relAmpCh1,
+                    "Ch2 Period":periodCh2, 
+                    "Ch2 Width":widthCh2, 
+                    "Ch2 Max":maxCh2, 
+                    "Ch2 Min":minCh2, 
+                    "Ch2 Amp":ampCh2, 
+                    "Ch2 Rel Amp":relAmpCh2}
+        for key, var in varDict.items():                            # iterates through the dictionary...
+            paramDict[key].append(float(var))                       # ...and appends the appropriate variable into the growing lists in paramdict
 
-        masterStatsList.append(summaryDict)                             # summary of stats for this file is finished, append it to the growing list and move on to the next
-        print(str(round((i+1)/len(fileNames)*100, 1)) + 
-                  "%" + " Finished with Analysis")                      # user feedback
+    for grownArray in [Ch1AcfPlots, Ch2AcfPlots, ccfPlots]:         # iterates through the arrays of ccf and acf plots
+        grownArray = np.delete(grownArray, obj=0, axis=0)           # deletes the empty array in each of the respective correlation plot arrays
+    
+    listOfCFs = []                                                  # empty list to fill with raw plot values for the ccf and acf plots
+
+    listOfCFs.append(plotCF(ccfPlots,                               # plots the ccf and returns the raw plot values for the ccf plot
+                            boxSavePath, 
+                            paramDict["Signal Shift"], 
+                            channel = "", 
+                            cfType = "CCF"))
+
+    for key, var in {"Ch1 Period":Ch1AcfPlots,                      # temporary dict with string descriptors and variables to work with
+                        "Ch2 Period": Ch2AcfPlots}.items():
+
+        listOfCFs.append(plotCF(var,                                # plots the acf for both ch1 and ch2 and returns the raw plot values for the acf plots
+                                boxSavePath, 
+                                paramDict[key], 
+                                channel = key[:3]))
+    
+    df = pd.DataFrame(np.hstack(listOfCFs), columns=["X Axis",      # converts raw plot values to a dataframe...
+                                                        "CCF Mean", 
+                                                        "CCF Std Dev", 
+                                                        "X Axis", 
+                                                        "Ch1 Mean", 
+                                                        "Ch1 Std Dev", 
+                                                        "X Axis", 
+                                                        "Ch2 Mean", 
+                                                        "Ch2 Std Dev"])
+    df.to_csv(boxSavePath / ("cfPlots.csv"))                        # ... and saves it as a .csv so you can make your own pretty graphs
+
+    periodsCh1 = [x for x in paramDict["Ch1 Period"][1:] if np.isnan(x) != True]
+                                                                    # removes nans from list of ch1 period measurements
+                                                                    # find ACF function returns a nan if no suitable peaks are detected
+    periodsCh2 = [x for x in paramDict["Ch2 Period"][1:] if np.isnan(x) != True]
+                                                                    # removes nans from list of ch2 period measurements
+                                                                    # find ACF function returns a nan if no suitable peaks are detected
+    pcntZerosCh1 = ((numBoxes-len(periodsCh1))/numBoxes)*100        # calculates what percent of the period measurments were nan (bad measurements)
+    pcntZerosCh2 = ((numBoxes-len(periodsCh2))/numBoxes)*100        # calculates what percent of the period measurments were nan (bad measurements)
+
+    for ch in ["Ch1", "Ch2"]:                                       # for both the ch1 and ch2 data
+        plotPeaks(paramDict[ch + " Width"][1:],                     # sends data to the plot peaks fxn to plot peak population histograms etc
+                    paramDict[ch + " Min"][1:],                       # excludes the first index in the list, which is the string description of the measurement
+                    paramDict[ch + " Max"][1:], 
+                    paramDict[ch + " Amp"][1:], 
+                    boxSavePath, channel=ch)
+
+    summaryDict={"Filename":nameWithoutExtension}                   # create dict to fill with summary stats; start with the file name
+    summaryDict["# of Boxes"] = numBoxes                            # add number of boxes analyzed in the image
+    summaryDict["Ch1 Pcnt Zero Boxes"] = pcntZerosCh1               # This can be used as a metric for analysis quality.
+    summaryDict["Ch2 Pcnt Zero Boxes"] = pcntZerosCh2               # This can be used as a metric for analysis quality.
+
+    if groupNames != ['']:                        
+        summaryDict["Group Name"] = groupName       # !!!!! MAY NEED TO MODIFY THIS TO PLAY NICE WITH ANI'S GUI
+
+    mean, median, std, sem =  calcListStats(paramDict["Signal Shift"][1:]) 
+                                                                    # return the list stats for signal shift
+    for stat, val in {"Mean":mean, 
+                        "Median":median,                              # temporary dict with string descriptions for each variable
+                        "StDev":std,                                  # iterates through each variable...
+                        "SEM":sem}.items():
+        summaryDict[stat + " Signal Shift"] = val                   # ...and appends it to the summary dict 
+    for ch in ["Ch1", "Ch2"]:                                       # for both Ch1 and Ch2...
+        for meas in ["Period", 
+                        "Width",                                       # and for each type of measurement..
+                        "Max", 
+                        "Min", 
+                        "Amp", 
+                        "Rel Amp"]:
+            mean, median, std, sem =  calcListStats(paramDict[ch + " " + meas][1:])
+                                                                    # define the list stats for that channel and measurement
+            for index, item in {1:mean, 
+                                2:median,                           # temp dict that defines which index to insert which measurement into the parameter dict
+                                3:std, 
+                                4:sem}.items():
+
+                paramDict[ch + " " + meas].insert(index, item)      # inserts each measurement at the appropriate location
+            for stat, val in {"Mean":mean, 
+                                "Median":median, 
+                                "StDev":std,                          # temp dict that defines string description for each variable...
+                                "SEM":sem}.items():
+                summaryDict[ch + " " + stat + " " + meas] = val     # ...and appends it to the summary dict
+    
+    for key in summaryDict.keys():
+        if key not in columnHeaders:                                # if string description of some variable is not already in the column headers list...
+            columnHeaders.append(key)                               # ...append it
+
+    listOfMeasurements = []                                         
+    for finishedList in paramDict.values():
+        listOfMeasurements.append(finishedList)
+    saveBoxValues(listOfMeasurements, boxSavePath, columnNames)     # single function that prints summary and box size for everything
+
+    masterStatsList.append(summaryDict)                             # summary of stats for this file is finished, append it to the growing list and move on to the next
+    print(str(round((i+1)/len(fileNames)*100, 1)) + 
+                "%" + " Finished with Analysis")                      # user feedback
           
 #################################################################
 #################################################################
