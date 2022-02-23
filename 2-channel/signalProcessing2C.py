@@ -18,7 +18,7 @@ from tkinter.filedialog import askdirectory
 import timeit
 
 np.seterr(divide='ignore', invalid='ignore')
-
+'''THIS IS THE VOLUME DIVISION BRANCH'''
 '''*** Start GUI Window ***'''
 
 #initiates Tk window
@@ -421,7 +421,8 @@ def normalize(arr):
 def ratio(signal, volume):
     signal = normalize(signal)
     volume = normalize(volume)
-    return((signal + 1)/(volume + 1))
+    return(signal - volume)
+    #return((signal + 1)/(volume + 1))
 
 #################################################################
 #################################################################
