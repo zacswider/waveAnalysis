@@ -520,14 +520,20 @@ for i in range(len(fileNames)):                                 # iterates throu
     
     for boxNumber in range(numBoxes):                               # iterates through ndarray of box means
         columnNames.append("Box#" + str(boxNumber))                 # appends the box number to the column names
-        signal = ch1BoxMeans[boxNumber]
-        volume = ch2BoxMeans[boxNumber]
-        volCorr = ratio(signal, volume)
-        ccfPlot, shift = findCCF(volCorr,    
-                                    ch3BoxMeans[boxNumber],            # calculates the ccf curve and signal shift for every box. 
-                                    boxSavePath, 
+        gbd_signal = ch1BoxMeans[boxNumber]
+        vol_signal = ch2BoxMeans[boxNumber]
+        utr_signal = ch3BoxMeans[boxNumber]
+        volPlot, volShift = findCCF(vol_signal,
+                                    utr_signal,
+                                    boxSavePath,
                                     boxNumber)
-        
+        gbdPlot, gbdShift = findCCF(gbd_signal,
+                                    utr_signal,
+                                    boxSavePath,
+                                    boxNumber)
+        ccfPlot = gbdPlot
+        shift = gbdShift - volShift
+
         acfPlotCh1, periodCh1 = findACF(ch1BoxMeans[boxNumber],     # calculates the acf curve and signal period for every box in channel 1
                                         boxSavePath, 
                                         boxNumber, 
