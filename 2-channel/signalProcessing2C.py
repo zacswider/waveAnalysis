@@ -136,7 +136,7 @@ if len(errors) >= 1 :
 '''*** Start Processing Functions ***'''
 def findWorkspace(directory):                                                       #accepts a starting directory and a prompt for the GUI
     Tk().withdraw()
-    filelist = [fname for fname in os.listdir(directory) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
+    filelist = [fname for fname in os.listdir(directory) if not fname.startswith('.') if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
     return(filelist)                                                       #returns the folder path and list of file names
 
 def setGroups(groupNames, nameWithoutExtension):
