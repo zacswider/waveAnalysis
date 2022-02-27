@@ -20,95 +20,15 @@ import timeit
 
 np.seterr(divide='ignore', invalid='ignore')
 
-'''*** Start GUI Window ***'''
-
-#initiates Tk window
-root = tk.Tk()
-root.title('Select your options')
-root.geometry('500x250')
-
-#sets number of columns in the main window
-root.columnconfigure(0, weight=1)
-root.columnconfigure(1, weight=1)
-root.columnconfigure(2, weight=1)
-
-#defining variable types for the different widget fields
-boxSizeVar = tk.IntVar()            #variable for box grid size
-boxSizeVar.set(20)                  #set default value 
-plotIndividualACFsVar = tk.BooleanVar()     #variable for plotting individual ACFs
-plotIndividualCCFsVar = tk.BooleanVar()     #variable for plotting individual CCFs
-plotIndividualPeaksVar = tk.BooleanVar()    #variable for plotting individual peaks
-acfPeakPromVar = tk.DoubleVar()             #variable for peak prominance threshold   
-acfPeakPromVar.set(0.1)                     #set default value
-groupNamesVar = tk.StringVar()   #variable for group names list
-folderPath = tk.StringVar()      #variable for path to images
-
-#function for getting path to user's directory
-def getFolderPath():
-    folderSelected = askdirectory()
-    folderPath.set(folderSelected)
-
-#function for hitting cancel button or quitting
-def on_quit(): 
-    root.destroy() #destroys window
-    sys.exit("You opted to cancel the script!")
-
-#function for hitting start button
-def on_start(): 
-        root.destroy() #destroys window
-    
-
-'''widget creation'''
-#file path selection widget
-fileEntry = ttk.Entry(root, textvariable=folderPath)
-fileEntry.grid(column=0, row=0, padx=10, sticky='E')
-browseButton = ttk.Button(root, text= 'Select source directory', command=getFolderPath)
-browseButton.grid(column=1, row=0, sticky='W')
-
-#boxSize entry widget
-boxSizeBox = ttk.Entry(root, width = 3, textvariable=boxSizeVar) #creates box widget
-boxSizeBox.grid(column=0, row=1, padx=10, sticky='E') #places widget in frame
-boxSizeBox.focus()      #focuses cursor in box
-boxSizeBox.icursor(2)   #positions cursor after default input characters
-ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=1, columnspan=2, padx=10, sticky='W') #create label text
-
-#create acfpeakprom entry widget
-ttk.Entry(root, width = 3, textvariable=acfPeakPromVar).grid(column=0, row=2, padx=10, sticky='E') #create the widget
-ttk.Label(root, text='Enter ACF peak prominence threshold').grid(column=1, row=2, padx=10, sticky='W') #create label text
-
-#create groupNames entry widget
-ttk.Entry(root,textvariable=groupNamesVar).grid(column=0, row=3, padx=10, sticky='E') #create the widget
-ttk.Label(root, text='Enter group names separated by commas').grid(column=1, row=3, padx=10, sticky='W') #create label text
-
-#create checkbox widgets and labels
-ttk.Checkbutton(root, variable=plotIndividualACFsVar).grid(column=0, row=5, sticky='E', padx=15)
-ttk.Label(root, text='Plot individual ACFs').grid(column=1, row=5, columnspan=2, padx=10, sticky='W') #plot individual ACFs
-ttk.Checkbutton(root, variable=plotIndividualCCFsVar).grid(column=0, row=6, sticky='E', padx=15) #plot individual CCFs
-ttk.Label(root, text='Plot individual CCFs').grid(column=1, row=6, columnspan=2, padx=10, sticky='W')
-
-ttk.Checkbutton(root, variable=plotIndividualPeaksVar).grid(column=0, row=7, sticky='E', padx=15) #plot individual peaks
-ttk.Label(root, text='Plot individual peaks').grid(column=1, row=7, columnspan=2, padx=10, sticky='W')
-
-#Creates the 'Start Analysis' button
-startButton = ttk.Button(root, text='Start Analysis', command=on_start) #creates the button and bind it to close the window when clicked
-startButton.grid(column=1, row=9, pady=10, sticky='W') #place it in the tk window
-
-#Creates the 'Cancel' button
-cancelButton = ttk.Button(root, text='Cancel', command=on_quit) #creates the button and bind it to on_quit function
-cancelButton.grid(column=0, row=9, pady=10, sticky='E') #place it in the tk window
-
-root.protocol("WM_DELETE_WINDOW", on_quit) #calls on_quit if the root window is x'd out.
-root.mainloop() #run the script
-
 #get the values stored in the widget
-boxSizeInPx = boxSizeVar.get()
-plotIndividualACFs= plotIndividualACFsVar.get()
-plotIndividualCCFs = plotIndividualCCFsVar.get()
-plotIndividualPeaks = plotIndividualPeaksVar.get()
-acfPeakProm = acfPeakPromVar.get()
-groupNames = groupNamesVar.get()
-groupNames = [x.strip() for x in groupNames.split(',')] #list of group names. splits string input by commans and removes spaces
-baseDirectory = folderPath.get() 
+boxSizeInPx = 30
+plotIndividualACFs= False
+plotIndividualCCFs = False
+plotIndividualPeaks = False
+acfPeakProm = 0.1
+groupNames = ['']
+#groupNames = [x.strip() for x in groupNames.split(',')] #list of group names. splits string input by commans and removes spaces
+baseDirectory = '/Users/bementmbp/Desktop/outputTest'
 
 #make dictionary of parameters for log file use
 logParams = {
@@ -162,8 +82,9 @@ def findBoxMeans(imageArray, boxSize):              #accepts an image array as a
             boxMean = np.array([np.mean(imageArray[:,(y*boxSize):(y*boxSize+boxSize),(x*boxSize):(x*boxSize+boxSize)], (1,2))])  
             #creates a 2d array of shape (depth, 1) containing the mean values of the px within the box for each slices
             growingArray[x][y] = boxMean            #reassigns zero values at this position to the box mean values
+    shape = (growingArray.shape[0],growingArray.shape[1])
     growingArray = np.reshape(growingArray, (growingArray.shape[0]*growingArray.shape[1], growingArray.shape[2])) #reshapes to a 2d instead of 3d array
-    return(growingArray)                            #returns ndarray of shape (number of boxes, number of frames)
+    return(growingArray, shape)                            #returns ndarray of shape (number of boxes, number of frames)
 
 def printBoxACF(signal, acor, boxNum, directory, channel="", delay=None):   #Accepts a signal and an autocorrelation to plot
     acfSavePath = directory / ("boxGraphs") / (channel + "ACF_Plots")       #Specifies subfolder path
@@ -425,8 +346,8 @@ def makeLog(directory, logParams):                                  # makes a te
 #################################################################
 
 start = timeit.default_timer()
-directory = baseDirectory                                       # redundant line...
-fileNames = findWorkspace(baseDirectory)             # string object describing the file path, list object containing all file names ending with .tif
+directory = '/Users/bementmbp/Desktop/outputTest'                                       # redundant line...
+fileNames = ['200226_Live_SFC_Aegg_GFP-wGBD_mCh_iRFP-UtrCH_Cclhx_E02-T01_Max_26-50.tif']             # string object describing the file path, list object containing all file names ending with .tif
 masterStatsList = []                                            # empty list to fill with file stats
 columnHeaders = []                                              # emtpy list to fill with column headers
 
@@ -588,10 +509,13 @@ for i in range(len(fileNames)):                                 # iterates throu
         ch1 = np.squeeze(subs[0],axis=1)                                # array object corresponding to channel one of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
         ch2 = np.squeeze(subs[1],axis=1)                                # array object corresponding to channel two of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
         
-        ch1BoxMeans = findBoxMeans(ch1, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
-        ch2BoxMeans = findBoxMeans(ch2, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
+        ch1BoxMeans, ch1Shape = findBoxMeans(ch1, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
+        
+        ch2BoxMeans, ch1Shape = findBoxMeans(ch2, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
 
         numBoxes = ch1BoxMeans.shape[0]                                 # returns number of boxes in array (fxn of image dimensions and box size); same as ch2BoxMeans.shape[0]
+        shifts_2D = np.zeros(numBoxes)
+        print(shifts_2D.shape)
         columnNames = ["Parameter", "Mean", "Median", "StdDev", "SEM"]  # initial column names, will be expanded in for loop below
         Ch1AcfPlots = np.zeros((imageStack.shape[0]*2-1))               # empty array with otherwise the correct shape for an autocorrelation plot, will be appended to below
         Ch2AcfPlots = np.zeros((imageStack.shape[0]*2-1))               # empty array with otherwise the correct shape for an autocorrelation plot, will be appended to below
@@ -618,7 +542,7 @@ for i in range(len(fileNames)):                                 # iterates throu
                                      ch2BoxMeans[boxNumber],            # calculates the ccf curve and signal shift for every box. 
                                      boxSavePath, 
                                      boxNumber)
-            
+            shifts_2D[boxNumber] = shift
             acfPlotCh1, periodCh1 = findACF(ch1BoxMeans[boxNumber],     # calculates the acf curve and signal period for every box in channel 1
                                             boxSavePath, 
                                             boxNumber, 
@@ -764,7 +688,10 @@ for i in range(len(fileNames)):                                 # iterates throu
 df = pd.DataFrame(masterStatsList, columns=columnHeaders)               # convert all the stats to a df
 df.to_csv(directory + "/0_fileStats.csv")                               # and export as a .csv
 
-
+shifts_2D = np.reshape(shifts_2D, ch1Shape)
+print(shifts_2D.shape)
+plt.imshow(shifts_2D)
+plt.show()
 if groupNames != ['']:                                                  # if the user added group names to compare
     compareSavePath = pathlib.Path(directory + "/0_comparisons")        # sets save path for output
     compareSavePath.mkdir(exist_ok=True, parents=True)                  # makes save path for output, if it doesn't already exist
