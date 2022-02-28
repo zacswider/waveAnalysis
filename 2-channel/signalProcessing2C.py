@@ -136,7 +136,7 @@ if len(errors) >= 1 :
 '''*** Start Processing Functions ***'''
 def findWorkspace(directory):                                                       #accepts a starting directory and a prompt for the GUI
     Tk().withdraw()
-    filelist = [fname for fname in os.listdir(directory) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
+    filelist = [fname for fname in os.listdir(directory) if not fname.startswith('.') and fname.endswith('.tif')]   #Makes a list of file names that end with .tif
     return(filelist)                                                       #returns the folder path and list of file names
 
 def setGroups(groupNames, nameWithoutExtension):
@@ -421,8 +421,8 @@ def normalize(arr):
 def ratio(signal, volume):
     signal = normalize(signal)
     volume = normalize(volume)
-    return(signal - volume)
-    #return((signal + 1)/(volume + 1))
+    #return(signal - volume)
+    return((signal + 1)/(volume + 1))
 
 #################################################################
 #################################################################
@@ -487,11 +487,11 @@ for i in range(len(fileNames)):                                 # iterates throu
     subs = np.split(imageStack, 3, axis=3)                               # list object containing two arrays corresponding to the two channels of the imageStack
     ch1 = np.squeeze(subs[0],axis=3)                                # array object corresponding to channel one of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
     ch2 = np.squeeze(subs[1],axis=3)                                # array object corresponding to channel two of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
-    ch2 = np.squeeze(subs[2],axis=3)                                # array object corresponding to channel three of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
+    ch3 = np.squeeze(subs[2],axis=3)                                # array object corresponding to channel three of imageStack. Also deletes axis 1, the "channel" axis, which is now empty
     
     ch1BoxMeans = findBoxMeans(ch1, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
     ch2BoxMeans = findBoxMeans(ch2, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
-    ch3BoxMeans = findBoxMeans(ch2, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
+    ch3BoxMeans = findBoxMeans(ch3, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
 
     '''
     !!! left off here. Write a fxn to normalize 0-1 within each box and then return the ratio
