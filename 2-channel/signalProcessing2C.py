@@ -21,14 +21,14 @@ import timeit
 np.seterr(divide='ignore', invalid='ignore')
 
 #get the values stored in the widget
-boxSizeInPx = 30
+boxSizeInPx = 20
 plotIndividualACFs= False
 plotIndividualCCFs = False
 plotIndividualPeaks = False
 acfPeakProm = 0.1
 groupNames = ['']
 #groupNames = [x.strip() for x in groupNames.split(',')] #list of group names. splits string input by commans and removes spaces
-baseDirectory = '/Users/bementmbp/Desktop/outputTest'
+baseDirectory = '/Users/bementmbp/Desktop/uniform_test'
 
 #make dictionary of parameters for log file use
 logParams = {
@@ -346,8 +346,8 @@ def makeLog(directory, logParams):                                  # makes a te
 #################################################################
 
 start = timeit.default_timer()
-directory = '/Users/bementmbp/Desktop/outputTest'                                       # redundant line...
-fileNames = ['200226_Live_SFC_Aegg_GFP-wGBD_mCh_iRFP-UtrCH_Cclhx_E02-T01_Max_26-50.tif']             # string object describing the file path, list object containing all file names ending with .tif
+directory = '/Users/bementmbp/Desktop/uniform_test'                                       # redundant line...
+fileNames = ['uniform_test_bad.tif']             # string object describing the file path, list object containing all file names ending with .tif
 masterStatsList = []                                            # empty list to fill with file stats
 columnHeaders = []                                              # emtpy list to fill with column headers
 
@@ -405,7 +405,7 @@ for i in range(len(fileNames)):                                 # iterates throu
 
     if imageChannels == 1:   
         print("Starting 1-channel workflow")                            # user feedback
-        boxMeans = findBoxMeans(imageStack, boxSizeInPx)                # returns array of mean px value in each box; mean box value for every frame in dataset
+        boxMeans, boxMeansShape = findBoxMeans(imageStack, boxSizeInPx)                # returns array of mean px value in each box; mean box value for every frame in dataset
         numBoxes = boxMeans.shape[0]                                    # returns number of boxes in array (fxn of image dimensions and box size)
         columnNames = ["Parameter", "Mean", "Median", "StdDev", "SEM"]  # initial column names, will be expanded in for loop below
         acfPlots=np.empty((imageStack.shape[0]*2-1))                    # empty array with otherwise the correct shape for an autocorrelation plot, will be appended to below
@@ -416,14 +416,14 @@ for i in range(len(fileNames)):                                 # iterates throu
                      "Ch1 Min":["Ch1 Min"],                             #  !!!!! DO I WANT TO KEEP CH1 IN THERE FOR 1-CHANNEL WORKFLOW?
                      "Ch1 Amp":["Ch1 Amp"], 
                      "Ch1 Rel Amp":["Ch1 Rel Amp"]} 
-        
+        periods_2D = np.zeros(numBoxes)
         for boxNumber in range(numBoxes):                               # iterates through ndarray of box means
             columnNames.append("Box#" + str(boxNumber))                 # appends the box number to the column names
             acfPlot, period = findACF(boxMeans[boxNumber],              # calculates the acf curve and signal period for every box. 
                                       boxSavePath, 
                                       boxNumber, 
                                       channel = "")                     # channels is empty b/c there's only one channel.
- 
+            periods_2D[boxNumber] = period
             width, max, min, amp, relAmp = analyzePeaks(boxMeans[boxNumber], 
                                                         boxSavePath,    # finds the peak width, max, min, amp, and relAmp for each box
                                                         boxNumber, 
@@ -511,7 +511,7 @@ for i in range(len(fileNames)):                                 # iterates throu
         
         ch1BoxMeans, ch1Shape = findBoxMeans(ch1, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
         
-        ch2BoxMeans, ch1Shape = findBoxMeans(ch2, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
+        ch2BoxMeans, ch2Shape = findBoxMeans(ch2, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
 
         numBoxes = ch1BoxMeans.shape[0]                                 # returns number of boxes in array (fxn of image dimensions and box size); same as ch2BoxMeans.shape[0]
         shifts_2D = np.zeros(numBoxes)
@@ -673,6 +673,8 @@ for i in range(len(fileNames)):                                 # iterates throu
             listOfMeasurements.append(finishedList)
         saveBoxValues(listOfMeasurements, boxSavePath, columnNames)     # single function that prints summary and box size for everything
 
+        shifts_2D = np.reshape(shifts_2D, ch1Shape)
+
         masterStatsList.append(summaryDict)                             # summary of stats for this file is finished, append it to the growing list and move on to the next
         print(str(round((i+1)/len(fileNames)*100, 1)) + 
                   "%" + " Finished with Analysis")                      # user feedback
@@ -688,9 +690,9 @@ for i in range(len(fileNames)):                                 # iterates throu
 df = pd.DataFrame(masterStatsList, columns=columnHeaders)               # convert all the stats to a df
 df.to_csv(directory + "/0_fileStats.csv")                               # and export as a .csv
 
-shifts_2D = np.reshape(shifts_2D, ch1Shape)
-print(shifts_2D.shape)
-plt.imshow(shifts_2D)
+print(periods_2D)
+periods_2D = np.reshape(periods_2D, boxMeansShape)
+plt.imshow(periods_2D)
 plt.show()
 if groupNames != ['']:                                                  # if the user added group names to compare
     compareSavePath = pathlib.Path(directory + "/0_comparisons")        # sets save path for output
