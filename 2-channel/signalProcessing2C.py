@@ -1,19 +1,17 @@
-import os                                       
-import sys                                      
+import os
+import sys
 import math
-import pathlib   
-import fnmatch
-import datetime                               
+import pathlib
+import datetime
 import numpy as np
-import pandas as pd  
+import pandas as pd
 import seaborn as sns
 import tkinter as tk
 from tkinter import Tk
 from tkinter import ttk
-import skimage.io as skio  
+import skimage.io as skio
 import scipy.signal as sig
-from genericpath import exists            
-import matplotlib.pyplot as plt    
+import matplotlib.pyplot as plt
 from tkinter.filedialog import askdirectory   
 import timeit
 
@@ -137,7 +135,7 @@ if len(errors) >= 1 :
 '''*** Start Processing Functions ***'''
 def findWorkspace(directory):                                                       #accepts a starting directory and a prompt for the GUI
     Tk().withdraw()
-    filelist = [fname for fname in os.listdir(directory) if fname.endswith('.tif')]   #Makes a list of file names that end with .tif
+    filelist = [fname for fname in os.listdir(directory) if fname.endswith('.tif') and not fname.startswith('.')]   #Makes a list of file names that end with .tif
     return(filelist)                                                       #returns the folder path and list of file names
 
 def setGroups(groupNames, nameWithoutExtension):
@@ -145,20 +143,19 @@ def setGroups(groupNames, nameWithoutExtension):
         if group in nameWithoutExtension:
             return(group)
 
-def smoothWithSavgol(signal, windowSize, polynomial):                       #accepts a signal array (or list), number of values to match, and polynomial number.
-    smoothedSignal = sig.savgol_filter(signal, windowSize, polynomial)      #smooths the input signal...
-    return smoothedSignal                                                   #...and returns it
+def smoothWithSavgol(signal, windowSize, polynomial):                       # accepts a signal array (or list), number of values to match, and polynomial number.
+    return(sig.savgol_filter(signal, windowSize, polynomial))               # returns smoothed signal
 
-def findBoxMeans(imageArray, boxSize):              #accepts an image array as a parameter, as well as the desired box size
-    depth = imageArray.shape[0]                     #number of frames
-    yDims = imageArray.shape[1]                     #number of pixels on y-axis
-    xDims = imageArray.shape[2]                     #number of pixels on x-axis
-    yBoxes = yDims // boxSize                       #returns int result of floor division; number of boxes on the y axis
-    xBoxes = xDims // boxSize                       #returns int result of floor division; number of boxes on the x axis
-    growingArray = np.zeros((xBoxes, yBoxes, depth))#makes a starting array of 64 bit zeros that can be modified later. shape = (num x boxes, num y boxes, depth of imageStack)
+def findBoxMeans(imageArray, boxSize):              # accepts an image array as a parameter, as well as the desired box size
+    depth = imageArray.shape[0]                     # number of frames
+    yDims = imageArray.shape[1]                     # number of pixels on y-axis
+    xDims = imageArray.shape[2]                     # number of pixels on x-axis
+    yBoxes = yDims // boxSize                       # returns int result of floor division; number of boxes on the y axis
+    xBoxes = xDims // boxSize                       # returns int result of floor division; number of boxes on the x axis
+    growingArray = np.zeros((xBoxes, yBoxes, depth))# makes a starting array of 64 bit zeros that can be modified later. shape = (num x boxes, num y boxes, depth of imageStack)
 
     for x in range(xBoxes):                         #iterates through the number of boxes on the x-axis
-        for y in range (yBoxes):                    #iterates through the number of boxes on the y-axis
+        for y in range(yBoxes):                    #iterates through the number of boxes on the y-axis
             boxMean = np.array([np.mean(imageArray[:,(y*boxSize):(y*boxSize+boxSize),(x*boxSize):(x*boxSize+boxSize)], (1,2))])  
             #creates a 2d array of shape (depth, 1) containing the mean values of the px within the box for each slices
             growingArray[x][y] = boxMean            #reassigns zero values at this position to the box mean values
@@ -456,11 +453,11 @@ if len(groupsFound) != len(groupNames):     # the number of groups should match 
 
 makeLog(directory, logParams)                                   # make log text file
 
-for i in range(len(fileNames)):                                 # iterates through the .tif files in the specified directory
+for fileName in fileNames:                                 # iterates through the .tif files in the specified directory
 
-    print("Starting to work on " + fileNames[i] + "!")          # user feedback
-    imageStack=skio.imread(directory + "/" + fileNames[i])      # reads image as np ndArray
-    nameWithoutExtension = fileNames[i].rsplit(".",1)[0]        # gets the file name without the file extension
+    print(f"Starting to work on {fileName}!")          # user feedback
+    imageStack=skio.imread(directory + "/" + fileName)      # reads image as np ndArray
+    nameWithoutExtension = fileName.rsplit(".",1)[0]        # gets the file name without the file extension
     boxSavePath = pathlib.Path(directory + "/0_signalProcessing/" + nameWithoutExtension) # sets save path for output for each image file
     boxSavePath.mkdir(exist_ok=True, parents=True)              # makes save path for output, if it doesn't already exist
     if groupNames != ['']:                                      # if user entered group names to compare...
