@@ -14,6 +14,8 @@ import scipy.fftpack as fft
 import matplotlib.pyplot as plt  
 from tkinter.filedialog import askdirectory
 
+from tifffile import imwrite
+
 
 #################################################################
 #################################################################
@@ -87,7 +89,7 @@ rollFramesBox = ttk.Entry(root, width = 3, textvariable=rollByVar) #creates box 
 rollFramesBox.grid(column=0, row=3, padx=10, sticky='E') #places widget in frame
 rollFramesBox.focus()      #focuses cursor in box
 rollFramesBox.icursor(2)   #positions cursor after default input characters
-ttk.Label(root, text='Enter grid box size (px)').grid(column=1, row=3, columnspan=2, padx=10, sticky='W') #create label text
+ttk.Label(root, text='Enter the number of frames to roll by').grid(column=1, row=3, columnspan=2, padx=10, sticky='W') #create label text
 
 #create acfpeakprom entry widget
 ttk.Entry(root, width = 3, textvariable=acfPeakPromVar).grid(column=0, row=4, padx=10, sticky='E') #create the widget
@@ -167,13 +169,15 @@ def findBoxMeans(imageArray, boxSize):              #accepts an image array as a
     xBoxes = xDims // boxSize                       #returns int result of floor division; number of boxes on the x axis
     growingArray = np.zeros((1, depth))             #makes a starting array of 64 bit zeros that can be added onto later. shape = (1, depth of imageStack)
 
+    box_means_shape = xBoxes,yBoxes, 
+
     for x in range(xBoxes):                         #iterates through the number of boxes on the x-axis
         for y in range (yBoxes):                    #iterates through the number of boxes on the y-axis
             boxMean = np.array([np.mean(imageArray[:,(y*boxSize):(y*boxSize+boxSize),(x*boxSize):(x*boxSize+boxSize)], (1,2))])  
             #creates a 2d array of shape (depth, 1) containing the mean values of the px within the box for each slices
             growingArray = np.append(growingArray, boxMean, axis = 0)      #appends the 2d array onto the growing array
     growingArray = np.delete(growingArray, 0, axis=0)
-    return(growingArray)                            #returns ndarray of shape (number of boxes, number of frames)
+    return(growingArray, box_means_shape)                            #returns ndarray of shape (number of boxes, number of frames)
 
 def printBoxACF(signal, acor, boxNum, directory, boxNumber, delay=None, subStackIndex=None):
 
@@ -380,6 +384,12 @@ for i in range(len(fileNames)):                                 #iterates throug
     numberSubMovies = (imageStack.shape[0]-analyzeFrames)//rollBy+1     #calculates the number of times a sub-movie can be evenly created
     paramDict = {"period":[], "width":[], "max":[], "min":[], "amp":[], "relAmp":[]}
     
+    yBoxes = imageStack.shape[1] // boxSizeInPx                       #returns int result of floor division; number of boxes on the y axis
+    xBoxes = imageStack.shape[2] // boxSizeInPx                       #returns int result of floor division; number of boxes on the x axis
+
+    periods_2D = np.zeros(shape=(numberSubMovies,xBoxes, yBoxes), dtype='f')
+    widths_2D = np.zeros(shape=(numberSubMovies,xBoxes, yBoxes), dtype='f')
+
     for y in range(numberSubMovies):                                    #iterates through each of the possible submovies
 
         tempParamDict = {"period":[], "width":[], "max":[], "min":[], "amp":[], "relAmp":[]}
@@ -388,10 +398,14 @@ for i in range(len(fileNames)):                                 #iterates throug
         endingFrame = (analyzeFrames+(rollBy*y))                        #ending frame to duplicate
         subStack = np.copy(imageStack[startingFrame:endingFrame, ])     #copies the ndarray from starting to ending frame
         subStackIndex = str(startingFrame) + "_" + str(endingFrame)      #string object carrying the sub movie name        
-        subStackMeans = findBoxMeans(subStack, boxSizeInPx)
+        subStackMeans, box_means_shape = findBoxMeans(subStack, boxSizeInPx)
+        print(f'box_means_shape is {box_means_shape}')
         numBoxes = subStackMeans.shape[0]
         columnNames = ["Parameter", "subStack Index"]
         tempMeanAcf=np.empty((analyzeFrames*2-1))
+
+        periods_2D_temp = np.zeros(numBoxes, dtype='f')
+        widths_2D_temp = np.zeros(numBoxes, dtype='f')
         
         for key, tempList in tempParamDict.items():
             tempList.append(key) #BEFORE ANALYZING ANY BOXES, EACH PARAM LIST STARTS WITH THE SUBSTACK INDEX
@@ -402,6 +416,9 @@ for i in range(len(fileNames)):                                 #iterates throug
             acfPlot, period = findACF(subStackMeans[boxNumber], subStackSavePath, nameWithoutExtension, boxNumber, subStackIndex)
             width, max, min, amp, relAmp = analyzePeaks(subStackMeans[boxNumber], subStackSavePath, boxNumber, subStackIndex)
             tempMeanAcf=np.vstack((tempMeanAcf, acfPlot)) #ADDS ONTO THE GROWING LIST OF BOX ACFS FOR EACHTIME POINT
+
+            periods_2D_temp[boxNumber] = period
+            widths_2D_temp[boxNumber] = width
 
             varDict = {"period":period, "width":width, "max":max, "min":min, "amp":amp, "relAmp":relAmp}
             for key, var in varDict.items():
@@ -421,6 +438,11 @@ for i in range(len(fileNames)):                                 #iterates throug
             subStackACFs.mkdir(exist_ok=True, parents=True)
             subStackPlotsAndShifts(meanAcfArray, subStackACFs, subStackIndex, tempParamDict["period"])
 
+        periods_2D_temp = np.reshape(periods_2D_temp, box_means_shape) 
+        periods_2D[y] = periods_2D_temp
+        widths_2D_temp = np.reshape(periods_2D_temp, box_means_shape) 
+        widths_2D[y] = widths_2D_temp
+
         print(str(round((y+1)/numberSubMovies*100, 1)) + "%" + " Finished with " + fileNames[i])
     
     for key, lol in paramDict.items():
@@ -435,5 +457,8 @@ for i in range(len(fileNames)):                                 #iterates throug
     for key, permList in paramDict.items():
         saveSubStackValues(permList, subStackSavePath, key, columnNames)
         printTemporalVars(permList, key, subStackSavePath)
+
+    imwrite(directory + '/periods_rolling.tif', periods_2D, dtype='f')
+    imwrite(directory + '/widths_rolling.tif', widths_2D, dtype='f')   
 
     print(str(round((i+1)/len(fileNames)*100, 1)) + "%" + " Finished with Analysis")
