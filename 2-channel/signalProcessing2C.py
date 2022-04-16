@@ -12,6 +12,7 @@ from tkinter import Tk
 from tkinter import ttk
 import skimage.io as skio  
 import scipy.signal as sig
+from tifffile import imwrite
 from genericpath import exists            
 import matplotlib.pyplot as plt    
 from tkinter.filedialog import askdirectory   
@@ -346,8 +347,8 @@ def makeLog(directory, logParams):                                  # makes a te
 #################################################################
 
 start = timeit.default_timer()
-directory = '/Users/bementmbp/Desktop/uniform_test'                                       # redundant line...
-fileNames = ['uniform_test_bad.tif']             # string object describing the file path, list object containing all file names ending with .tif
+directory = '/Users/bementmbp/Desktop/140-190'                                       # redundant line...
+fileNames = [file for file in os.listdir(directory) if file.endswith('.tif') and not file.startswith('.')]             # string object describing the file path, list object containing all file names ending with .tif
 masterStatsList = []                                            # empty list to fill with file stats
 columnHeaders = []                                              # emtpy list to fill with column headers
 
@@ -416,7 +417,8 @@ for i in range(len(fileNames)):                                 # iterates throu
                      "Ch1 Min":["Ch1 Min"],                             #  !!!!! DO I WANT TO KEEP CH1 IN THERE FOR 1-CHANNEL WORKFLOW?
                      "Ch1 Amp":["Ch1 Amp"], 
                      "Ch1 Rel Amp":["Ch1 Rel Amp"]} 
-        periods_2D = np.zeros(numBoxes)
+        periods_2D = np.zeros(numBoxes, dtype='f')
+        width_2D = np.zeros(numBoxes, dtype='f')
         for boxNumber in range(numBoxes):                               # iterates through ndarray of box means
             columnNames.append("Box#" + str(boxNumber))                 # appends the box number to the column names
             acfPlot, period = findACF(boxMeans[boxNumber],              # calculates the acf curve and signal period for every box. 
@@ -424,10 +426,12 @@ for i in range(len(fileNames)):                                 # iterates throu
                                       boxNumber, 
                                       channel = "")                     # channels is empty b/c there's only one channel.
             periods_2D[boxNumber] = period
+            
             width, max, min, amp, relAmp = analyzePeaks(boxMeans[boxNumber], 
                                                         boxSavePath,    # finds the peak width, max, min, amp, and relAmp for each box
                                                         boxNumber, 
                                                         channel="")     # channels is empty b/c there's only one channel.
+            width_2D[boxNumber] = width
 
             acfPlots = np.vstack((acfPlots, acfPlot))                   # stacks the acf plot for the current box onto the growing array of acf plots
                                                                         # could make this more memory efficient by making the correct sized array first, and redefining for each box
@@ -514,6 +518,7 @@ for i in range(len(fileNames)):                                 # iterates throu
         ch2BoxMeans, ch2Shape = findBoxMeans(ch2, boxSizeInPx)                    # returns array of mean px value in each box; mean box value for every frame in dataset
 
         numBoxes = ch1BoxMeans.shape[0]                                 # returns number of boxes in array (fxn of image dimensions and box size); same as ch2BoxMeans.shape[0]
+        
         shifts_2D = np.zeros(numBoxes)
         print(shifts_2D.shape)
         columnNames = ["Parameter", "Mean", "Median", "StdDev", "SEM"]  # initial column names, will be expanded in for loop below
@@ -690,10 +695,12 @@ for i in range(len(fileNames)):                                 # iterates throu
 df = pd.DataFrame(masterStatsList, columns=columnHeaders)               # convert all the stats to a df
 df.to_csv(directory + "/0_fileStats.csv")                               # and export as a .csv
 
-print(periods_2D)
+print(f'box means shape is {boxMeansShape}')
 periods_2D = np.reshape(periods_2D, boxMeansShape)
-plt.imshow(periods_2D)
-plt.show()
+width_2D = np.reshape(width_2D, boxMeansShape)
+imwrite('/Users/bementmbp/Desktop/periods.tif', periods_2D, dtype='f')
+imwrite('/Users/bementmbp/Desktop/width.tif', width_2D, dtype='f')
+
 if groupNames != ['']:                                                  # if the user added group names to compare
     compareSavePath = pathlib.Path(directory + "/0_comparisons")        # sets save path for output
     compareSavePath.mkdir(exist_ok=True, parents=True)                  # makes save path for output, if it doesn't already exist
