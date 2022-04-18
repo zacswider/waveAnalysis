@@ -568,7 +568,7 @@ for index, fileName in enumerate(fileNames):                                 # i
 
         masterStatsList.append(summaryDict)                             # summary of stats for this file is finished, append it to the growing list and move on to the next
 
-        print(str(round((i+1)/len(fileNames)*100, 1)) + 
+        print(str(round((index+1)/len(fileNames)*100, 1)) + 
                   "%" + " Finished with Analysis")                      # user feedback
 
 #################################################################
