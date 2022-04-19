@@ -453,7 +453,7 @@ if len(groupsFound) != len(groupNames):     # the number of groups should match 
 
 makeLog(directory, logParams)                                   # make log text file
 
-for index, fileName in enumerate(fileNames):                                 # iterates through the .tif files in the specified directory
+for file_index, fileName in enumerate(fileNames):                                 # iterates through the .tif files in the specified directory
 
     print(f"Starting to work on {fileName}!")          # user feedback
     imageStack=skio.imread(directory + "/" + fileName)      # reads image as np ndArray
@@ -568,7 +568,7 @@ for index, fileName in enumerate(fileNames):                                 # i
 
         masterStatsList.append(summaryDict)                             # summary of stats for this file is finished, append it to the growing list and move on to the next
 
-        print(str(round((index+1)/len(fileNames)*100, 1)) + 
+        print(str(round((file_index+1)/len(fileNames)*100, 1)) + 
                   "%" + " Finished with Analysis")                      # user feedback
 
 #################################################################
@@ -747,7 +747,7 @@ for index, fileName in enumerate(fileNames):                                 # i
         saveBoxValues(listOfMeasurements, boxSavePath, columnNames)     # single function that prints summary and box size for everything
 
         masterStatsList.append(summaryDict)                             # summary of stats for this file is finished, append it to the growing list and move on to the next
-        print(str(round((index+1)/len(fileNames)*100, 1)) + 
+        print(str(round((file_index+1)/len(fileNames)*100, 1)) + 
                   "%" + " Finished with Analysis")                      # user feedback
           
 #################################################################
