@@ -1,4 +1,4 @@
-name: waves
+name: wave_analysis
 channels:
   - defaults
   - conda-forge
@@ -338,4 +338,4 @@ dependencies:
   - zope.event=4.5.0=py38_0
   - zope.interface=5.3.0=py38h9ed2024_0
   - zstd=1.4.5=h41d2c2f_0
-prefix: /Users/bementmbp/opt/anaconda3
+prefix: /Users/bementmbp/opt/anaconda3/envs/waves
