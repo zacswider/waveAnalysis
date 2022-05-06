@@ -73,7 +73,7 @@ HeapDict==1.0.1
 html5lib @ file:///tmp/build/80754af9/html5lib_1593446221756/work
 idna @ file:///home/linux1/recipes/ci/idna_1610986105248/work
 imageio @ file:///tmp/build/80754af9/imageio_1617700267927/work
-imagesize @ file:///home/ktietz/src/ci/imagesize_1611921604382/work
+imagesize @ file:///Users/ktietz/demo/mc3/conda-bld/imagesize_1628863108022/work
 importlib-metadata @ file:///opt/concourse/worker/volumes/live/a634a87c-b5e5-41bd-628d-cd0413666c93/volume/importlib-metadata_1617877368300/work
 iniconfig @ file:///home/linux1/recipes/ci/iniconfig_1610983019677/work
 intervaltree @ file:///tmp/build/80754af9/intervaltree_1598376443606/work
