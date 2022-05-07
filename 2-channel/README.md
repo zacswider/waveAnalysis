@@ -43,12 +43,12 @@ Finally, if we choose to compare different groups, we will get file full of plot
 ## Running the scripts 
 
 1) If it's not already open, open the terminal or anaconda prompt.
-2) If you haven't restarted the terminal since installing your environment, you're already in the correct directory. If you aren't sure, type `pwd` into the terminal and hit enter. Next, type `cd ~/Desktop/signalProcessing-main/2-channel` into the terminal and hit enter to navigate to the unzipped flder.
+2) If you haven't restarted the terminal since installing your environment, you're already in the correct directory. If you aren't sure, type `cd` into the terminal and hit enter to reset your path. Next, type `cd ~/Desktop/signalProcessing-main/2-channel` into the terminal and hit enter to navigate to the unzipped flder.
 3) Activate the newly installed environment by typing `conda activate wave_analysis` into the terminal and hitting enter. 
 4) Type `python3 signalprocessing2c.py` into the terminal and hit enter to run the script.
 5) Next a window will appear asking you for some parameters to adjust:
 
-<img width="496" alt="Screen Shot 2022-01-17 at 8 51 59 AM" src="https://user-images.githubusercontent.com/32859488/149791989-d627fab0-c64d-4690-923b-fb56bbe7cb7f.png">
+<img width="496" alt="Example GUI" src="https://user-images.githubusercontent.com/32859488/149791989-d627fab0-c64d-4690-923b-fb56bbe7cb7f.png">
 
 ### Setting parameters:
 1) This is the source directory for your analysis. Navigate to it using the "Select source directory button". This directory should have one or more 1 or 2-channel time lapse datasets saved in standard standard `tzcyx` order. 
