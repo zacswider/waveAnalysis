@@ -42,11 +42,11 @@ Finally, if we choose to compare different groups, we will get file full of plot
 
 ## Running the scripts 
 
-1) If it's not already open, open the terminal by pushing `Command–Space bar`, typing "terminal", and hitting enter.
-2) If you haven't restarted the terminal since installing your environment, you're already in the correct directory. If you aren't sure, type `pwd` into the terminal and hit enter. Next, type `cd ~/Desktop/signalProcessing-main` into the terminal and hit enter to navigate to the unzipped flder.
-3) Activate the newly installed environment by typing `conda activate waves` into the terminal and hitting enter. 
+1) If it's not already open, open the terminal or anaconda prompt.
+2) If you haven't restarted the terminal since installing your environment, you're already in the correct directory. If you aren't sure, type `pwd` into the terminal and hit enter. Next, type `cd ~/Desktop/signalProcessing-main/2-channel` into the terminal and hit enter to navigate to the unzipped flder.
+3) Activate the newly installed environment by typing `conda activate wave_analysis` into the terminal and hitting enter. 
 4) Type `python3 signalprocessing2c.py` into the terminal and hit enter to run the script.
-5) It may take a second to connect to the correct environment the first time you run, but next a window will appear asking you for some parameters to adjust:
+5) Next a window will appear asking you for some parameters to adjust:
 
 <img width="496" alt="Screen Shot 2022-01-17 at 8 51 59 AM" src="https://user-images.githubusercontent.com/32859488/149791989-d627fab0-c64d-4690-923b-fb56bbe7cb7f.png">
 
@@ -59,8 +59,6 @@ Finally, if we choose to compare different groups, we will get file full of plot
 6) If you check this box, a graphical output of the crosscorrelation for every box analyzed will be saved to the analysis folder.
 7) If you check this box, a graphical output of the wave peak analalysis for every box analyzed will be saved to the analysis folder.
 NOTE: Options 6 and 7 and very slow, especially for large images. We recommend only checking these boxes while optimizing the settings to check analysis quality.
-
-That's it! Just click start analysis, and the script will process and save the output to your analysis folder. 
 
 
 
