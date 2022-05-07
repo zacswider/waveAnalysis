@@ -17,14 +17,14 @@ In this section I will assume that you have no idea what Python is, or how to us
 2) Go to https://www.anaconda.com/products/individual and download/install Anaconda (a distribution of Python and a package manager). 
 3) Once installed, open the terminal by pushing `Command–Space bar`, typing "terminal", and hitting enter.
 4) Type `cd Desktop/signalProcessing-main` into the terminal and hit enter to navigate to the unzipped flder.
-5) Type `conda env create --file environment.yml` into the terminal and hit enter. This will install a bunch of scientific computing/analysis packages into an environment call "waves". The script will need the packages in this environment to run correctly.
+5) Type `conda env create --file environment.yml` into the terminal and hit enter. This will install a bunch of scientific computing/analysis packages into an environment call "wave_analysis". The script will need the packages in this environment to run correctly.
 6) When complete, the final lines in your terminal should say 
 ```
 Executing transaction: done
 #
 # To activate this environment, use
 #
-#     $ conda activate waves
+#     $ conda activate wave_analysis
 #
 # To deactivate an active environment, use
 #
@@ -33,8 +33,23 @@ Executing transaction: done
 
 ### On a PC:
 
-1) Please check back shortly, I am in the process of updating this readme
-
+1) Click the big green "Code" button in the upper right corner of this repository. Select "Download ZIP", and then unzip it to your desktop.
+2) Go to https://www.anaconda.com/products/individual and download/install Anaconda (a distribution of Python and a package manager). 
+3) Once installed, open the anaconda prompt.
+4) Type `cd Desktop/signalProcessing-main` into the prompt and hit enter to navigate to the unzipped flder.
+5) Type `conda env create --file environment.yml` into the terminal and hit enter. This will install a bunch of scientific computing/analysis packages into an environment call "wave_analysis". The script will need the packages in this environment to run correctly.
+6) When complete, the final lines in your terminal should say 
+```
+Executing transaction: done
+#
+# To activate this environment, use
+#
+#     $ conda activate wave_analysis
+#
+# To deactivate an active environment, use
+#
+#     $ conda deactivate
+```
 
 
 
