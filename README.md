@@ -1,5 +1,38 @@
 # signalProcessing scripts
-These tools were developed for analyzing excitable / oscillatory dynamics in living cells. The 2-channel analysis script signalProcessing2C.py is conceptually based off of a MATLAB framework written by Marcin Leda and Andrew Goryachev (published in Bement _et al.,_ 2015; PMID 26479320), and was reimagined here by Zac Swider and Ani Michaud in Python form to increase speed, accuracy, and access. This script analyzes wave period, amplitudes, width, and (if applicable) the temporal shift between signals in short time lapse datasets (tens of frames, typically, see the repository for more details). The 1-channel rolling script extends upon this functionality by analyzing these metrics across extended timelapse datasets (hundreds - thousands of frames, see the repository for more details). The assemblyDisassembly plots script was written to analyze the contributions of wave assembly and disassembly to the overall wave population in the cell (see the repository for more details).
+These tools were developed for analyzing excitable / oscillatory dynamics in living cells. The 2-channel analysis script signalProcessing2C.py is conceptually based off of a MATLAB framework written by Marcin Leda and Andrew Goryachev (published in Bement _et al.,_ 2015; PMID 26479320), and was reimagined here by Zac Swider and Ani Michaud in Python form to increase speed, accuracy, and access. This script analyzes wave period, amplitudes, width, and (if applicable) the temporal shift between signals in short time lapse datasets (tens of frames, typically, see the repository for more details). The 1-channel rolling script extends upon this functionality by analyzing these metrics across extended timelapse datasets (hundreds - thousands of frames, see the repository for more details). 
+
+## Example output
+
+In this workflow, each channel is broken up in n boxes (the box size will depend on the size of the features of interest).
+
+![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/boxes_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/boxes_light.jpg#gh-light-mode-only)
+
+And each box is measured independently as follows:
+
+The mean pixel intensity in each box, when viewed over time, is a readout for the oscillatory dynamics in that region. For each channel, the period of the oscillatory signal can be estimated by calculating the autocorrelation of that signal.
+
+![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/autocorrelation_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/autocorrelation_light.jpg#gh-light-mode-only)
+
+For 2-channel datasets, the temporal shift (if any) between the two signals is estimated by calculating the crosscorrelation of the two channels. 
+
+![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/crosscorrelation_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/crosscorrelation_light.jpg#gh-light-mode-only)
+
+
+Oscillation properties (e.g., signal peak, signal trough, signal amplitude, temporal duration) can be determined from each waveform. As a precaution for noisy data, which real-world data are more often than not, the signal are smoothed using a Savitzky–Golay filter to avoid quantifying spurious peaks.
+
+![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/peaks_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/peaks_light.jpg#gh-light-mode-only)
+
+Once each box has been independently quantified, they can be combined to estimate properties of the wave population. For example, in the example above we measured a period of 12 frames, is that measurement representative of the whole sample? By looking at the distribution of all period measurements, we can see that it is. 
+
+![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/meanACF_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/meanACF_light.jpg#gh-light-mode-only)
+
+Similarly, we can assess the population of signal shift measurements, and oscillation/wave properties.
+
+![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/meanPeaks_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/meanPeaks_light.jpg#gh-light-mode-only)
+
+Finally, if a given batch of images contains different groups, we will get file full of plots comparing each signal metric between groups.
+
+![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/comparisons_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/comparisons_light.jpg#gh-light-mode-only)
 
 ## Preparing data for analysis
 Before running any analysis on your 1 or 2-channel time lapse datasets, be sure to complete all necessary pre-processing steps. Some thing to consider:
