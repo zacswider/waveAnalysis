@@ -5,3 +5,5 @@ In the example below, I'm showing a kymograph from a frog cell going through its
 ![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/polDepol-output_light.jpg)
 
 In principle this script can be used to interactively visualize the contributions of any fluorescent marker to the mean signal in the image over time. To use it, simply enter the full path to a single-channel time lapse image in .tif format, and (if desired) a path to save the resulting plot values. If you are analyzing a particularly long time lapse, it may be helpful to downsample the image initially to accelerate the computation. To do so, simply enter an integer scale factor > 1. When running, this script will open an interactive matplotlib figure with a slider to adjust the number of frames to compare, and another slider to adjust the number of frames to average. If a satisfactory setting is identified, the values from the plot can be saved by clicking the "Save" button.
+
+![Alt Text](https://github.com/zacswider/README_Images/blob/main/assembly_disassembly_use.gif)
