@@ -442,8 +442,9 @@ for file in fileNames:                      # check each file
         if group in file:                   # if there's a match...
             uniqueDic[file].append(group)   # ... add it to the list
 
-for val in uniqueDic.values():              # check each file
+for key, val in uniqueDic.items():              # check each file
     if len(val) > 1:                        # each file name should only have ONE matching group name
+        print(f'The following file produced an error while matching group names:\n{key}')
         print('Error: make sure your group names are unique to each group')
         sys.exit()
 
