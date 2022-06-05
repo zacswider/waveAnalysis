@@ -2,6 +2,7 @@ import os
 import sys 
 import pathlib   
 import timeit
+import datetime
 import numpy as np
 from custom_gui import CustomGUI
 from signal_processing_class import SignalProcessor
@@ -50,6 +51,19 @@ log_params = {  "Box Size(px)" : box_size,
                 "Files Not Processed" : []
              }
 
+''' ** housekeeping functions ** '''
+def make_log(directory, logParams):
+    '''
+    Convert dictionary of parameters to a log file and save it in the directory
+    '''
+    logPath = os.path.join(directory, "0_log.txt")                    # path to log file
+    now = datetime.datetime.now()                                   # get current date and time
+    logFile = open(logPath, "w")                                    # initiate text file
+    logFile.write("\n" + now.strftime("%Y-%m-%d %H:%M") + "\n")     # write current date and time
+    for key, value in logParams.items():                            # for each key:value pair in the parameter dictionary...
+        logFile.write('%s: %s\n' % (key, value))                    # write pair to new line
+    logFile.close()                                                 # close the file
+
 ''' ** error catching for group names ** '''
 # list of file names in specified directory
 file_names = filelist = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
@@ -60,15 +74,15 @@ groups_found = np.unique([group for group in group_names for file in file_names 
 # dictionary of file names and their corresponding group names
 uniqueDic = {file : [group for group in group_names if group in file] for file in file_names}
 
-for file_name, group_names in uniqueDic.items():
+for file_name, matching_groups in uniqueDic.items():
     # if a file doesn't have a group name, log it but still run the script
-    if len(group_names) == 0:
+    if len(matching_groups) == 0:
         log_params["Group Matching Errors"].append(f'{file_name} was not matched to a group')
 
     # if a file has multiple groups names, raise error and exit the script
-    elif len(group_names) > 1:
+    elif len(matching_groups) > 1:
         print('****** ERROR ******',
-             f'\n{file_name} matched to multiple groups: {group_names}',
+             f'\n{file_name} matched to multiple groups: {matching_groups}',
              '\nPlease fix errors and try again.',
              '\n****** ERROR ******')
         sys.exit()
@@ -89,6 +103,11 @@ start = timeit.default_timer()
 stats_list = []
 # emtpy list to fill with column headers
 col_headers = []
+# create main save path
+main_save_path = os.path.join(folder_path, "0_signalProcessing")
+# create directory if it doesn't exist
+if not os.path.exists(main_save_path):
+    os.makedirs(main_save_path)
 
 for file_name in file_names: 
     print(f"Starting to work on {file_name}")
@@ -108,6 +127,9 @@ for file_name in file_names:
         log_params['Files Not Processed'].append(f'{file_name} has more than 2 channels')
         continue
     
+    # if file is not skipped, log it and continue
+    log_params['Files Processed'].append(f'{file_name}')
+
     # name without the extension
     name_wo_ext = file_name.rsplit(".",1)[0]
 
@@ -120,3 +142,5 @@ for file_name in file_names:
         group_name = [group for group in group_names if group in name_wo_ext][0]
 
 
+# log parameters and errors
+make_log(main_save_path, log_params)
