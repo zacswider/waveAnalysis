@@ -7,7 +7,6 @@ class SignalProcessor:
         self.image_path = image_path
         self.box_size = box_size
         self.image = imread(self.image_path)
-        print(self.image.shape)
 
         # standardize image dimensions
         with TiffFile(self.image_path) as tif_file:
@@ -15,20 +14,26 @@ class SignalProcessor:
         self.num_channels = metadata.get('channels', 1)
         self.num_slices = metadata.get('slices', 1)
         self.num_frames = metadata.get('frames', 1)
-        print(f'num frames is {self.num_frames}')
-        print(f'num slices is {self.num_slices}')
-        print(f'num channels is {self.num_channels}')
+        print(f'Image dimensions before reshaping {self.image.shape}')
+        print(f'number of channels is {self.num_channels}')
+        print(f'number of slices is {self.num_slices}')
+        print(f'number of frames is {self.num_frames}')
         self.image = self.image.reshape(self.num_frames, 
                                         self.num_slices, 
                                         self.num_channels, 
                                         self.image.shape[-2], 
                                         self.image.shape[-1])
-        
+        print(f'Image dimensions after reshaping {self.image.shape}')
         # max project image stack if num_slices > 1
         if self.num_slices > 1:
             self.image = np.max(self.image, axis = 1)
-        
-        print(self.image.shape)
+            self.num_slices = 1
+            self.image = self.image.reshape(self.num_frames, 
+                                        self.num_slices, 
+                                        self.num_channels, 
+                                        self.image.shape[-2], 
+                                        self.image.shape[-1])
+            print(f'Image dimensions after projecting {self.image.shape}')
 
         # calculate number of boxes in each dimension
         self.x_dim = self.image.shape[-1]
