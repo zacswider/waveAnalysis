@@ -4,16 +4,20 @@ from tifffile import imread, imwrite, TiffFile
 class SignalProcessor:
     
     def __init__(self, image_path, box_size):
-
-        self.image = imread(image_path)
+        self.image_path = image_path
         self.box_size = box_size
+        self.image = imread(self.image_path)
+        print(self.image.shape)
 
         # standardize image dimensions
-        with TiffFile(image_path) as tif_file:
+        with TiffFile(self.image_path) as tif_file:
             metadata = tif_file.imagej_metadata
         self.num_channels = metadata.get('channels', 1)
-        self.num_slices = metadata.get('num_slices', 1)
-        self.num_frames = metadata.get('num_frames', 1)
+        self.num_slices = metadata.get('slices', 1)
+        self.num_frames = metadata.get('frames', 1)
+        print(f'num frames is {self.num_frames}')
+        print(f'num slices is {self.num_slices}')
+        print(f'num channels is {self.num_channels}')
         self.image = self.image.reshape(self.num_frames, 
                                         self.num_slices, 
                                         self.num_channels, 
