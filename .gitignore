@@ -2,3 +2,5 @@
 *.pyc
 2-channel/testDatasets/220415_Live_Flvw_Emb_GFP-wGBD_mCh_Utr647_E02-T01.tif
 2-channel/testDatasets/0_signalProcessing/0_log.txt
+2-channel/testDatasets/1_Group1-1C.tif
+*.csv
