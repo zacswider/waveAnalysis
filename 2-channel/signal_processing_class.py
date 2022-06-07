@@ -160,6 +160,143 @@ class SignalProcessor:
         measurements.insert(0, measurement_name)
         return measurements
 
+    # function to plot a summary of the period measurements
+    def plot_mean_CF(self):
+        '''
+        This function plots the population mean autocorrelation or crosscorrelation curve.
+        It also plots a histogram and box plot of the distribution of period measurements
+        (for autocorrelation curves) and the distribution of shift measurements (for crosscorrelation curves).
+        '''
+        def return_figure(num_points: int, arr: np.ndarray, shifts_or_periods: np.ndarray, channel: str, type_of_plot: str, type_of_measurement: str):
+            '''
+            Space saving function for plotting the mean autocorrelation or crosscorrelation curve.
+            Returns a figure object.
+            '''
+            fig, ax = plt.subplot_mosaic(mosaic = '''AA
+                                                     BC''')
+            arr_mean = np.mean(arr, axis = 0)
+            arr_std = np.std(arr, axis = 0)
+            ax['A'].plot(arr_mean, color='blue')
+            ax['A'].fill_between(np.arange(num_points), 
+                                            arr_mean - arr_std, 
+                                            arr_mean + arr_std, 
+                                            color='blue', 
+                                            alpha=0.2)
+            ax['A'].set_title(f'{channel} Mean {type_of_plot} Curve ± Standard Deviation') 
+            ax['B'].hist(shifts_or_periods)
+            ax['B'].set_xlabel(f'Histogram of {type_of_measurement} values (frames)')
+            ax['B'].set_ylabel('Occurances')
+            ax['C'].boxplot(shifts_or_periods)
+            ax['C'].set_xlabel(f'Boxplot of {type_of_measurement} values')
+            ax['C'].set_ylabel(f'Measured {type_of_measurement} (frames)')
+            fig.subplots_adjust(hspace=0.25, wspace=0.5)   
+            plt.close()
+            return fig
+
+        # num points on x-axis
+        x_axis_points = self.num_frames*2 - 1
+        # empty dict to fill with figures, in the event that we make more than one
+        self.acf_figs = {}
+        
+        # populate the ACF data from each box into a single array
+        if len(self.acf_results) > 0:
+            ch1_acfs = np.zeros(shape=(self.num_boxes, x_axis_points))
+            ch1_box_periods = np.zeros(shape=(self.num_boxes))
+            for box in range(self.num_boxes):
+                ch1_acfs[box] = self.acf_results[f'Ch1_ACF_box{box}'][1]
+                ch1_box_periods[box] = self.acf_results[f'Ch1_ACF_box{box}'][0]
+            # if channel 2 exists, do the same for it
+            if self.num_channels == 2:
+                ch2_acfs = np.zeros(shape=(self.num_boxes, x_axis_points))
+                ch2_box_periods = np.zeros(shape=(self.num_boxes))
+                for box in range(self.num_boxes):
+                    ch2_acfs[box] = self.acf_results[f'Ch2_ACF_box{box}'][1]
+                    ch2_box_periods[box] = self.acf_results[f'Ch2_ACF_box{box}'][0]
+                
+                fig2 = return_figure(x_axis_points, ch2_acfs, ch2_box_periods, 'Ch2', 'Autocorrelation', 'period')
+                self.acf_figs['Ch2 ACF'] = fig2
+                
+        
+        fig1 = return_figure(x_axis_points, ch1_acfs, ch1_box_periods, 'Ch1', 'Autocorrelation', 'period')
+        self.acf_figs['Ch1 ACF'] = fig1
+
+        if len(self.ccf_results) > 0:
+            mean_ccfs = np.zeros(shape=(self.num_boxes, x_axis_points))
+            box_shifts = np.zeros(shape=(self.num_boxes))
+            for box in range(self.num_boxes):
+                mean_ccfs[box] = self.ccf_results[f'CCF_box{box}'][1]
+                box_shifts[box] = self.ccf_results[f'CCF_box{box}'][0]
+            
+            fig3 = return_figure(x_axis_points, mean_ccfs, box_shifts, 'Mean', 'Cross-correlation', 'shift')
+            self.acf_figs['Mean CCF'] = fig3
+        
+        return self.acf_figs
+
+    # function to plot a summary of the peak measurements
+    def plot_peak_props(self):
+        '''
+        This function plots the data stored in self.peak_results.
+        '''
+        def return_figure(min_array: np.ndarray, max_array: np.ndarray, amp_array: np.ndarray, width_array: np.ndarray, Ch_name: str):
+            fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
+
+            labels = ["amp", "min", "max"]                                                  # labels to use
+            colors = ['tab:purple', 'tab:orange', 'tab:blue']                               # colors to use
+            plot_this = [min_array, max_array, amp_array]                                       # list of lists to plot
+            for label, color, item in zip(labels, colors, plot_this):
+                ax1.hist(item, color = color, label = label, alpha = 0.75)
+            ax1.legend(loc='upper right', fontsize = 'small', ncol = 1)
+            ax1.set_xlabel(f'{Ch_name} histogram of peak values')
+            ax1.set_ylabel('Occurances')
+            bplot = ax2.boxplot(plot_this, vert=True, patch_artist=True, labels=labels)      # boxplot object
+            for patch, color in zip(bplot['boxes'], colors):                                
+                patch.set_facecolor(color) 
+            ax2.set_xlabel(f'{Ch_name} boxplot of peak values')
+            
+            ax3.hist(width_array, color = 'tab:orange', alpha = 0.75)
+            ax3.set_xlabel(f'{Ch_name} histogram of peak widths')
+            ax3.set_ylabel('Occurances')
+            bp = ax4.boxplot(width_array, vert=True, patch_artist=True)
+            bp['boxes'][0].set_facecolor('tab:orange')
+            ax4.set_xlabel(f'{Ch_name} boxplot of peak widths')
+            ax4.set_ylabel('Peak width (frames)')
+            fig.subplots_adjust(hspace=0.25, wspace=0.5)
+            plt.close()
+            return fig
+
+        # empty dict to fill with figures, in the event that we make more than one
+        self.peak_figs = {}
+        # populate the peak data from each box into a single array
+        if len(self.peak_results) > 0:
+            ch1_width = np.zeros(shape=(self.num_boxes))
+            ch1_max = np.zeros(shape=(self.num_boxes))
+            ch1_min = np.zeros(shape=(self.num_boxes))
+            ch1_amp = np.zeros(shape=(self.num_boxes))
+            
+            for box in range(self.num_boxes):
+                ch1_width[box] = self.peak_results[f'Ch1_box{box}'][0]
+                ch1_max[box] = self.peak_results[f'Ch1_box{box}'][1]
+                ch1_min[box] = self.peak_results[f'Ch1_box{box}'][2]
+                ch1_amp[box] = self.peak_results[f'Ch1_box{box}'][3]
+            # if channel 2 exists, do the same for it
+            if self.num_channels == 2:
+                ch2_width = np.zeros(shape=(self.num_boxes))
+                ch2_max = np.zeros(shape=(self.num_boxes))
+                ch2_min = np.zeros(shape=(self.num_boxes))
+                ch2_amp = np.zeros(shape=(self.num_boxes))
+                for box in range(self.num_boxes):
+                    ch2_width[box] = self.peak_results[f'Ch2_box{box}'][0]
+                    ch2_max[box] = self.peak_results[f'Ch2_box{box}'][1]
+                    ch2_min[box] = self.peak_results[f'Ch2_box{box}'][2]
+                    ch2_amp[box] = self.peak_results[f'Ch2_box{box}'][3]
+                
+                fig2 = return_figure(ch2_min, ch2_max, ch2_amp, ch2_width, 'Ch2')
+                self.peak_figs['Ch2'] = fig2
+
+            fig1 = return_figure(ch1_min, ch1_max, ch1_amp, ch1_width, 'Ch1')
+            self.peak_figs['Ch1'] = fig1
+        return self.peak_figs
+
     # function to summarize the results in the acf_results, ccf_results, and peak_results dictionaries as a dataframe
     def summarize_results(self, file_name = None, group_name = None):
         '''
@@ -335,74 +472,4 @@ class SignalProcessor:
                 self.file_data_summary['Ch2 SEM RelAmp'] = np.std(ch2_relAmp_measurements[5:]) / np.sqrt(len(ch2_relAmp_measurements[5:]))
 
         return self.im_measurements, self.file_data_summary
-
-    # function to plot a summary of the period measurements
-    def plot_mean_CF(self):
-        
-        def return_figure(self, num_points: int, arr: np.ndarray, shifts_or_periods: np.ndarray, channel: str, type_of_plot: str, type_of_measurement: str):
-            
-            fig, ax = plt.subplot_mosaic(mosaic = '''AA
-                                                     BC''')
-            arr_mean = np.mean(arr, axis = 0)
-            arr_std = np.std(arr, axis = 0)
-            ax['A'].plot(arr_mean, color='blue')
-            ax['A'].fill_between(np.arange(num_points), 
-                                            arr_mean - arr_std, 
-                                            arr_mean + arr_std, 
-                                            color='blue', 
-                                            alpha=0.2)
-            ax['A'].set_title(f'{channel} Mean {type_of_plot} Curve ± Standard Deviation') 
-            ax['B'].hist(shifts_or_periods)
-            ax['B'].set_xlabel(f'Histogram of {type_of_measurement} values (frames)')
-            ax['B'].set_ylabel('Occurances')
-            ax['C'].boxplot(shifts_or_periods)
-            ax['C'].set_xlabel(f'Boxplot of {type_of_measurement} values')
-            ax['C'].set_ylabel(f'Measured {type_of_measurement} (frames)')
-            fig.subplots_adjust(hspace=0.25, wspace=0.5)   
-            return fig
-
-        # num points on x-axis
-        x_axis_points = self.num_frames*2 - 1
-        # empty dict to fill with figures, in the event that we make more than one
-        self.acf_figs = {}
-        
-        # populate the ACF data from each box into a single array
-        if len(self.acf_results) > 0:
-            ch1_acfs = np.zeros(shape=(self.num_boxes, x_axis_points))
-            ch1_box_periods = np.zeros(shape=(self.num_boxes))
-            for box in range(self.num_boxes):
-                ch1_acfs[box] = self.acf_results[f'Ch1_ACF_box{box}'][1]
-                ch1_box_periods[box] = self.acf_results[f'Ch1_ACF_box{box}'][0]
-            # if channel 2 exists, do the same for it
-            if self.num_channels == 2:
-                ch2_acfs = np.zeros(shape=(self.num_boxes, x_axis_points))
-                ch2_box_periods = np.zeros(shape=(self.num_boxes))
-                for box in range(self.num_boxes):
-                    ch2_acfs[box] = self.acf_results[f'Ch2_ACF_box{box}'][1]
-                    ch2_box_periods[box] = self.acf_results[f'Ch2_ACF_box{box}'][0]
-                
-                fig2 = return_figure(self, x_axis_points, ch2_acfs, ch2_box_periods, 'Ch2', 'Autocorrelation', 'period')
-                self.acf_figs['Ch2 ACF'] = fig2
-                plt.close()
-        
-        fig1 = return_figure(self, x_axis_points, ch1_acfs, ch1_box_periods, 'Ch1', 'Autocorrelation', 'period')
-        self.acf_figs['Ch1 ACF'] = fig1
-        plt.close()
-
-        if len(self.ccf_results) > 0:
-            mean_ccfs = np.zeros(shape=(self.num_boxes, x_axis_points))
-            box_shifts = np.zeros(shape=(self.num_boxes))
-            for box in range(self.num_boxes):
-                mean_ccfs[box] = self.ccf_results[f'CCF_box{box}'][1]
-                box_shifts[box] = self.ccf_results[f'CCF_box{box}'][0]
-            
-            fig3 = return_figure(self, x_axis_points, mean_ccfs, box_shifts, 'Mean', 'Cross-correlation', 'shift')
-            self.acf_figs['Mean CCF'] = fig3
-            plt.close()
-        
-        return self.acf_figs
-
-
-        
-
 
