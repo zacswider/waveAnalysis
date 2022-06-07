@@ -187,6 +187,14 @@ for file_name in file_names:
         ccf_plot = acf_plots['Mean CCF']
         ccf_plot.savefig(f'{im_save_path}/{name_wo_ext}_CCF.png')
 
+    # plot and save the population peak properties for each channel
+    peak_plots = processor.plot_peak_props()
+    ch1_peak_plot = peak_plots['Ch1']
+    ch1_peak_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch1_Peaks.png')
+    if processor.num_channels == 2:
+        ch2_peak_plot = peak_plots['Ch2']
+        ch2_peak_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch2_Peaks.png')
+
 
 # convert summary_list to dataframe using the column headers and save to main save path
 summary_df = pd.DataFrame(summary_list, columns = col_headers)
