@@ -136,9 +136,6 @@ for file_name in file_names:
     # if file is not skipped, log it and continue
     log_params['Files Processed'].append(f'{file_name}')
 
-    # empty dictionary to fill with summary statistics for the current file
-    file_data_summary = {}
-
     # name without the extension
     name_wo_ext = file_name.rsplit(".",1)[0]
 
@@ -162,189 +159,37 @@ for file_name in file_names:
 
     # calculate the peak properties (width, max, min, amp, relAmp) for each channel for each box
     peak_properties = processor.calc_peaks()
-
-    # consolidate results into a single dataframe
-    # initial column names
-    col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]
-    for box in range(num_boxes):
-        # add box number to column names
-        col_names.append(f"Box {box}")
-    
-    # initialize lists to fill with measurmemets for each box and summary statistics
-    ch1_period_measurements = []
-    ch1_width_measurements = []
-    ch1_max_measurements = []
-    ch1_min_measurements = []
-    ch1_amp_measurements = []
-    ch1_relAmp_measurements = []
-    if processor.num_channels == 2:
-        ch2_period_measurements = []
-        ch2_width_measurements = []
-        ch2_max_measurements = []
-        ch2_min_measurements = []
-        ch2_amp_measurements = []
-        ch2_relAmp_measurements = []
-        shift_measurements = []
-    
-    # summarize period measurements for each box
-    for key, value in acf_results.items():
-        if 'Ch1' in key:
-            ch1_period_measurements.append(value[0])
-        if processor.num_channels == 2 and 'Ch2' in key:
-            ch2_period_measurements.append(value[0])
-    for key, value in peak_properties.items():
-        if 'Ch1' in key:
-            ch1_width_measurements.append(value[0])
-            ch1_max_measurements.append(value[1])
-            ch1_min_measurements.append(value[2])
-            ch1_amp_measurements.append(value[3])
-            ch1_relAmp_measurements.append(value[4])
-        if processor.num_channels == 2 and 'Ch2' in key:
-            ch2_width_measurements.append(value[0])
-            ch2_max_measurements.append(value[1])
-            ch2_min_measurements.append(value[2])
-            ch2_amp_measurements.append(value[3])
-            ch2_relAmp_measurements.append(value[4])
-    if processor.num_channels == 2:
-        for value in ccf_results.values():
-            shift_measurements.append(value[0])
-         
-    # calculate the number of boxes with no period for each channel
-    ch1_pcnt_no_period = ((num_boxes-len(ch1_period_measurements))/num_boxes)*100
-    if processor.num_channels == 2:
-        ch2_pcnt_no_period = ((num_boxes-len(ch2_period_measurements))/num_boxes)*100
-
-    # summarize statistics in file_data_summary
-    file_data_summary['File Name'] = file_name
-    file_data_summary['Num Boxes'] = num_boxes
-    file_data_summary['Ch1 % Zero Boxes'] = ch1_pcnt_no_period
-    if processor.num_channels == 2:
-        file_data_summary['Ch2 % Zero Boxes'] = ch2_pcnt_no_period
-    if group_names != ['']:
-        file_data_summary['Group Name'] = group_name
-    if processor.num_channels == 2:
-        file_data_summary['Mean Signal Shift'] = np.mean(shift_measurements)
-        file_data_summary['Median Signal Shift'] = np.median(shift_measurements)
-        file_data_summary['StdDev Signal Shift'] = np.std(shift_measurements)
-        file_data_summary['SEM Signal Shift'] = np.std(shift_measurements) / np.sqrt(len(shift_measurements))
-    file_data_summary['Ch1 Mean Period'] = np.mean(ch1_period_measurements)
-    file_data_summary['Ch1 Median Period'] = np.median(ch1_period_measurements)
-    file_data_summary['Ch1 StdDev Period'] = np.std(ch1_period_measurements)
-    file_data_summary['Ch1 SEM Period'] = np.std(ch1_period_measurements) / np.sqrt(len(ch1_period_measurements))
-    file_data_summary['Ch1 Mean Width'] = np.mean(ch1_width_measurements)
-    file_data_summary['Ch1 Median Width'] = np.median(ch1_width_measurements)
-    file_data_summary['Ch1 StdDev Width'] = np.std(ch1_width_measurements)
-    file_data_summary['Ch1 SEM Width'] = np.std(ch1_width_measurements) / np.sqrt(len(ch1_width_measurements))
-    file_data_summary['Ch1 Mean Max'] = np.mean(ch1_max_measurements)
-    file_data_summary['Ch1 Median Max'] = np.median(ch1_max_measurements)
-    file_data_summary['Ch1 StdDev Max'] = np.std(ch1_max_measurements)
-    file_data_summary['Ch1 SEM Max'] = np.std(ch1_max_measurements) / np.sqrt(len(ch1_max_measurements))
-    file_data_summary['Ch1 Mean Min'] = np.mean(ch1_min_measurements)
-    file_data_summary['Ch1 Median Min'] = np.median(ch1_min_measurements)
-    file_data_summary['Ch1 StdDev Min'] = np.std(ch1_min_measurements)
-    file_data_summary['Ch1 SEM Min'] = np.std(ch1_min_measurements) / np.sqrt(len(ch1_min_measurements))
-    file_data_summary['Ch1 Mean Amp'] = np.mean(ch1_amp_measurements)
-    file_data_summary['Ch1 Median Amp'] = np.median(ch1_amp_measurements)
-    file_data_summary['Ch1 StdDev Amp'] = np.std(ch1_amp_measurements)
-    file_data_summary['Ch1 SEM Amp'] = np.std(ch1_amp_measurements) / np.sqrt(len(ch1_amp_measurements))
-    file_data_summary['Ch1 Mean RelAmp'] = np.mean(ch1_relAmp_measurements)
-    file_data_summary['Ch1 Median RelAmp'] = np.median(ch1_relAmp_measurements)
-    file_data_summary['Ch1 StdDev RelAmp'] = np.std(ch1_relAmp_measurements)
-    file_data_summary['Ch1 SEM RelAmp'] = np.std(ch1_relAmp_measurements) / np.sqrt(len(ch1_relAmp_measurements))
-    if processor.num_channels == 2:
-        file_data_summary['Ch2 Mean Period'] = np.mean(ch2_period_measurements)
-        file_data_summary['Ch2 Median Period'] = np.median(ch2_period_measurements)
-        file_data_summary['Ch2 StdDev Period'] = np.std(ch2_period_measurements)
-        file_data_summary['Ch2 SEM Period'] = np.std(ch2_period_measurements) / np.sqrt(len(ch2_period_measurements))
-        file_data_summary['Ch2 Mean Width'] = np.mean(ch2_width_measurements)
-        file_data_summary['Ch2 Median Width'] = np.median(ch2_width_measurements)
-        file_data_summary['Ch2 StdDev Width'] = np.std(ch2_width_measurements)
-        file_data_summary['Ch2 SEM Width'] = np.std(ch2_width_measurements) / np.sqrt(len(ch2_width_measurements))
-        file_data_summary['Ch2 Mean Max'] = np.mean(ch2_max_measurements)
-        file_data_summary['Ch2 Median Max'] = np.median(ch2_max_measurements)
-        file_data_summary['Ch2 StdDev Max'] = np.std(ch2_max_measurements)
-        file_data_summary['Ch2 SEM Max'] = np.std(ch2_max_measurements) / np.sqrt(len(ch2_max_measurements))
-        file_data_summary['Ch2 Mean Min'] = np.mean(ch2_min_measurements)
-        file_data_summary['Ch2 Median Min'] = np.median(ch2_min_measurements)
-        file_data_summary['Ch2 StdDev Min'] = np.std(ch2_min_measurements)
-        file_data_summary['Ch2 SEM Min'] = np.std(ch2_min_measurements) / np.sqrt(len(ch2_min_measurements))
-        file_data_summary['Ch2 Mean Amp'] = np.mean(ch2_amp_measurements)
-        file_data_summary['Ch2 Median Amp'] = np.median(ch2_amp_measurements)
-        file_data_summary['Ch2 StdDev Amp'] = np.std(ch2_amp_measurements)
-        file_data_summary['Ch2 SEM Amp'] = np.std(ch2_amp_measurements) / np.sqrt(len(ch2_amp_measurements))
-        file_data_summary['Ch2 Mean RelAmp'] = np.mean(ch2_relAmp_measurements)
-        file_data_summary['Ch2 Median RelAmp'] = np.median(ch2_relAmp_measurements)
-        file_data_summary['Ch2 StdDev RelAmp'] = np.std(ch2_relAmp_measurements)
-        file_data_summary['Ch2 SEM RelAmp'] = np.std(ch2_relAmp_measurements) / np.sqrt(len(ch2_relAmp_measurements))
-    
-    # function to summarize measurments statistics by appending them to the beginning of the measurement list
-    def add_stats(measurements: list, measurement_name: str):
-        '''
-        Accepts a list of measurements. Calculates the mean, median, standard deviation, and SEM,
-        and append them to the beginning of the list in that order. Finally, appends the name of
-        the measurement of the beginning of the list.
-        '''
-        meas_mean = np.mean(measurements)
-        meas_median = np.median(measurements)
-        meas_std = np.std(measurements)
-        meas_sem = meas_std / np.sqrt(len(measurements))
-        measurements.insert(0, meas_mean)
-        measurements.insert(1, meas_median)
-        measurements.insert(2, meas_std)
-        measurements.insert(3, meas_sem)
-        measurements.insert(0, measurement_name)
-        return measurements
-
-    # insert Mean, Median, StdDev, and SEM into the beginning of each period list
-    ch1_period_measurements = add_stats(ch1_period_measurements, "Ch1 Period")
-    ch1_amp_measurements = add_stats(ch1_amp_measurements, "Ch1 Amplitude")
-    ch1_width_measurements = add_stats(ch1_width_measurements, "Ch1 Width")
-    ch1_max_measurements = add_stats(ch1_max_measurements, "Ch1 Max")
-    ch1_min_measurements = add_stats(ch1_min_measurements, "Ch1 Min")
-    ch1_relAmp_measurements = add_stats(ch1_relAmp_measurements, "Ch1 Relative Amplitude")
-
-    if processor.num_channels == 2:
-        ch2_period_measurements = add_stats(ch2_period_measurements, "Ch2 Period")
-        shift_measurements = add_stats(shift_measurements, "Shift")
-        ch2_amp_measurements = add_stats(ch2_amp_measurements, "Ch2 Amplitude")
-        ch2_width_measurements = add_stats(ch2_width_measurements, "Ch2 Width")
-        ch2_max_measurements = add_stats(ch2_max_measurements, "Ch2 Max")
-        ch2_min_measurements = add_stats(ch2_min_measurements, "Ch2 Min")
-        ch2_relAmp_measurements = add_stats(ch2_relAmp_measurements, "Ch2 Relative Amplitude")
     
     # create a subfolder within the main save path with the same name as the image file
     im_save_path = os.path.join(main_save_path, name_wo_ext)
     if not os.path.exists(im_save_path):
         os.makedirs(im_save_path)
 
-    # save the summarized measurements as a .csv file in the main save path
-    im_measurements = pd.DataFrame(columns = col_names, data = [ch1_period_measurements, 
-                                                                ch2_period_measurements,
-                                                                ch1_width_measurements,
-                                                                ch2_width_measurements,
-                                                                ch1_max_measurements,
-                                                                ch2_max_measurements,
-                                                                ch1_min_measurements,
-                                                                ch2_min_measurements,
-                                                                ch1_amp_measurements,
-                                                                ch2_amp_measurements,
-                                                                ch1_relAmp_measurements,
-                                                                ch2_relAmp_measurements,
-                                                                shift_measurements])
-
-    im_measurements.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)
+    # summaryize the data for current image as dataframe, and save as .csv
+    im_measurements_df, im_summary_dict = processor.summarize_results()
+    im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)
 
     # populate column headers list with keys from the measurements dictionary
-    for key in file_data_summary.keys(): 
+    for key in im_summary_dict.keys(): 
         if key not in col_headers: 
             col_headers.append(key) 
     
     # append summary data to the summary list
-    summary_list.append(file_data_summary)
+    summary_list.append(im_summary_dict)
 
-# convert summary_list to dataframe using the column headers
+    # plot and save the population autocorrelation results for each channel
+    acf_plots = processor.plot_mean_CF()
+    ch1_acf_plot = acf_plots['Ch1 ACF']
+    ch1_acf_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch1_ACF.png')
+    if processor.num_channels == 2:
+        ch2_acf_plot = acf_plots['Ch2 ACF']
+        ch2_acf_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch2_ACF.png')
+        ccf_plot = acf_plots['Mean CCF']
+        ccf_plot.savefig(f'{im_save_path}/{name_wo_ext}_CCF.png')
+
+
+# convert summary_list to dataframe using the column headers and save to main save path
 summary_df = pd.DataFrame(summary_list, columns = col_headers)
-# save summary_df to main save path
 summary_df.to_csv(f'{main_save_path}/summary.csv', index = False)
 
 end = timeit.default_timer()
