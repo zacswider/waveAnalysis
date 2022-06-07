@@ -18,6 +18,7 @@ class SignalProcessor:
         self.num_slices = metadata.get('slices', 1)
         self.num_frames = metadata.get('frames', 1)
         print(f'Image dimensions before reshaping {self.image.shape}')
+        print(f'number of items before reshaping is {self.image.size}')
         print(f'number of channels is {self.num_channels}')
         print(f'number of slices is {self.num_slices}')
         print(f'number of frames is {self.num_frames}')
@@ -27,32 +28,38 @@ class SignalProcessor:
                                         self.image.shape[-2], 
                                         self.image.shape[-1])
         print(f'Image dimensions after reshaping {self.image.shape}')
+        print(f'number of items after reshaping is {self.image.size}')
+
         # max project image stack if num_slices > 1
         if self.num_slices > 1:
+            print(f'Max projecting image stack')
             self.image = np.max(self.image, axis = 1)
             self.num_slices = 1
             self.image = self.image.reshape(self.num_frames, 
-                                        self.num_slices, 
-                                        self.num_channels, 
-                                        self.image.shape[-2], 
-                                        self.image.shape[-1])
+                                            self.num_slices, 
+                                            self.num_channels, 
+                                            self.image.shape[-2], 
+                                            self.image.shape[-1])
             print(f'Image dimensions after projecting {self.image.shape}')
-
+        
         # calculate number of boxes in each dimension
         self.x_dim = self.image.shape[-1]
         self.y_dim = self.image.shape[-2]
         self.x_boxes = self.x_dim // self.box_size
         self.y_boxes = self.y_dim // self.box_size
         self.num_boxes = self.x_boxes * self.y_boxes
-
+        print('reload succcesful')
         # return the time-axis means for each channel
         self.box_means = np.zeros((self.x_boxes, self.y_boxes, self.num_channels, self.num_frames))
         for channel in range(self.num_channels):
+            print(f'Calculating channel {channel+1}')
             for x in range(self.x_boxes):
                 for y in range(self.y_boxes):
-                    self.box_means[x, y, channel] = np.mean(self.image[:, 0, channel, x*self.box_size:(x+1)*self.box_size, y*self.box_size:(y+1)*self.box_size], axis=(1,2))
+                    self.box_means[x, y, channel, :] = np.mean(self.image[:, 0, channel, (x*self.box_size):(x*self.box_size+self.box_size), (y*self.box_size):(y*self.box_size+self.box_size)], axis=(1,2))
         # reshape into 2D array. Shape is (channels, boxes, frames)
-        self.box_means = self.box_means.reshape((self.num_channels, self.num_boxes, self.num_frames))
+        print(f'Box means shape is {self.box_means.shape} bfore reshaping')
+        self.box_means = self.box_means.reshape((self.num_boxes, self.num_channels, self.num_frames))
+        print(f'Box means shape is {self.box_means.shape} after reshaping')
 
         # empty dictionary to fill with measurements. These will subsequently be populated by the functions
         # below and returned to the user. They will also be used by the summarizing and plotting functions.
@@ -69,7 +76,7 @@ class SignalProcessor:
         for channel in range(self.num_channels):
             for box_num in range(self.num_boxes):
                 # calculate full autocorrelation
-                signal = self.box_means[channel, box_num]
+                signal = self.box_means[box_num, channel]
                 acf_curve = np.correlate(signal - signal.mean(), signal - signal.mean(), mode='full')
                 # normalize the curve
                 acf_curve = acf_curve / (self.num_frames * signal.std() ** 2)
@@ -96,8 +103,8 @@ class SignalProcessor:
         assert self.num_channels == 2, 'CCF only works for 2 channels'
         for box_num in range(self.num_boxes):
             # calculate full cross-correlation (channels, boxes, frames)
-            signal_1 = self.box_means[1, box_num, :]
-            signal_2 = self.box_means[0, box_num, :]
+            signal_1 = self.box_means[box_num, 1, :]
+            signal_2 = self.box_means[box_num, 0, :]
             cc_curve = np.correlate(signal_1 - signal_1.mean(), signal_2 - signal_2.mean(), mode='full')
             # normalize the curve
             cc_curve = cc_curve / (self.num_frames * signal_1.std() * signal_2.std())
@@ -117,7 +124,7 @@ class SignalProcessor:
         '''
         for channel in range(self.num_channels):
             for box_num in range(self.num_boxes):
-                signal = sig.savgol_filter(self.box_means[channel, box_num], window_length = 11, polyorder = 2)
+                signal = sig.savgol_filter(self.box_means[box_num, channel], window_length = 11, polyorder = 2)
                 peaks, _ = sig.find_peaks(signal, prominence=(np.max(signal)-np.min(signal))*0.1)
 
                 # if peaks detected, calculate properties and return property averages. Otherwise return nans
