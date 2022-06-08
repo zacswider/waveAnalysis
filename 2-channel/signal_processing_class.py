@@ -17,18 +17,11 @@ class SignalProcessor:
         self.num_channels = metadata.get('channels', 1)
         self.num_slices = metadata.get('slices', 1)
         self.num_frames = metadata.get('frames', 1)
-        print(f'Image dimensions before reshaping {self.image.shape}')
-        print(f'number of items before reshaping is {self.image.size}')
-        print(f'number of channels is {self.num_channels}')
-        print(f'number of slices is {self.num_slices}')
-        print(f'number of frames is {self.num_frames}')
         self.image = self.image.reshape(self.num_frames, 
                                         self.num_slices, 
                                         self.num_channels, 
                                         self.image.shape[-2], 
                                         self.image.shape[-1])
-        print(f'Image dimensions after reshaping {self.image.shape}')
-        print(f'number of items after reshaping is {self.image.size}')
 
         # max project image stack if num_slices > 1
         if self.num_slices > 1:
@@ -40,7 +33,6 @@ class SignalProcessor:
                                             self.num_channels, 
                                             self.image.shape[-2], 
                                             self.image.shape[-1])
-            print(f'Image dimensions after projecting {self.image.shape}')
         
         # calculate number of boxes in each dimension
         self.x_dim = self.image.shape[-1]
@@ -48,18 +40,14 @@ class SignalProcessor:
         self.x_boxes = self.x_dim // self.box_size
         self.y_boxes = self.y_dim // self.box_size
         self.num_boxes = self.x_boxes * self.y_boxes
-        print('reload succcesful')
         # return the time-axis means for each channel
         self.box_means = np.zeros((self.x_boxes, self.y_boxes, self.num_channels, self.num_frames))
         for channel in range(self.num_channels):
-            print(f'Calculating channel {channel+1}')
             for x in range(self.x_boxes):
                 for y in range(self.y_boxes):
                     self.box_means[x, y, channel, :] = np.mean(self.image[:, 0, channel, (x*self.box_size):(x*self.box_size+self.box_size), (y*self.box_size):(y*self.box_size+self.box_size)], axis=(1,2))
         # reshape into 2D array. Shape is (channels, boxes, frames)
-        print(f'Box means shape is {self.box_means.shape} bfore reshaping')
         self.box_means = self.box_means.reshape((self.num_boxes, self.num_channels, self.num_frames))
-        print(f'Box means shape is {self.box_means.shape} after reshaping')
 
         # empty dictionary to fill with measurements. These will subsequently be populated by the functions
         # below and returned to the user. They will also be used by the summarizing and plotting functions.
@@ -190,7 +178,7 @@ class SignalProcessor:
             ax['C'].set_xlabel(f'Boxplot of {type_of_measurement} values')
             ax['C'].set_ylabel(f'Measured {type_of_measurement} (frames)')
             fig.subplots_adjust(hspace=0.25, wspace=0.5)   
-            plt.close()
+            plt.close(fig)
             return fig
 
         # num points on x-axis
@@ -261,7 +249,7 @@ class SignalProcessor:
             ax4.set_xlabel(f'{Ch_name} boxplot of peak widths')
             ax4.set_ylabel('Peak width (frames)')
             fig.subplots_adjust(hspace=0.25, wspace=0.5)
-            plt.close()
+            plt.close(fig)
             return fig
 
         # empty dict to fill with figures, in the event that we make more than one
