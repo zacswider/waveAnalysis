@@ -81,7 +81,8 @@ if rolling:
                     "Plot movie CCFs" : plot_sf_CCFs,
                     "Plot movie Peaks" : plot_sf_peaks,
                     "Files Processed" : [],
-                    "Files Not Processed" : []
+                    "Files Not Processed" : [],
+                    'Subframes Used' : []
              } 
 
 ''' ** housekeeping functions ** '''
@@ -163,7 +164,6 @@ col_headers = []
 print('Processing files...')
 with tqdm(total = len(file_names)) as pbar:
     for file_name in file_names: 
-        print(f'Processing file {file_name}')
         if not rolling:
             processor = SignalProcessor(image_path = f'{folder_path}/{file_name}', box_size = box_size)
         if rolling:
@@ -203,7 +203,7 @@ with tqdm(total = len(file_names)) as pbar:
         # for rolling analyis, calculate the numbe of subframes used
         if rolling:
             num_subframes = processor.num_subframes
-            log_params['Subframes Used'] = num_subframes
+            log_params['Subframes Used'].append(num_subframes)
 
         # calculate autocorrelation for each channel for each box (for each subframe, if applicable)
         acf_results = processor.calc_ACF(peak_thresh = acf_peak_thresh)
