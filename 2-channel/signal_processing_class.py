@@ -90,7 +90,8 @@ class SignalProcessor:
 
                     self.acf_results[f'Ch{channel+1}_ACF_box{box_num}'] = (delay, acf_curve)
 
-        if self.roll:     
+        if self.roll: 
+                
             for channel in range(self.num_channels):
                 for box_num in range(self.num_boxes):
                     for subframe in range(self.num_subframes):
@@ -194,9 +195,9 @@ class SignalProcessor:
                             mean_min = np.mean(signal[peaks]-proms, axis = 0)
                             mean_amp = mean_max - mean_min
                             mean_rel_amp = mean_amp / mean_min
-                            self.peak_results[f'Ch{channel+1}_box{box_num}_subframe{subframe}'] = (mean_width, mean_max, mean_min, mean_amp, mean_rel_amp)
+                            self.peak_results[f'Ch{channel+1}_box{box_num}_subframe{subframe}_'] = (mean_width, mean_max, mean_min, mean_amp, mean_rel_amp)
                         else:
-                            self.peak_results[f'Ch{channel+1}_box{box_num}_subframe{subframe}'] = (np.nan, np.nan, np.nan, np.nan, np.nan)
+                            self.peak_results[f'Ch{channel+1}_box{box_num}_subframe{subframe}_'] = (np.nan, np.nan, np.nan, np.nan, np.nan)
         return self.peak_results
 
     # function to summarize measurments statistics by appending them to the beginning of the measurement list
@@ -589,6 +590,59 @@ class SignalProcessor:
                 # append to growing list
                 shift_measurements.append(subframe_shift_measurements)
 
+        if len(self.peak_results) > 0:
+            ch1_width_measurements = []
+            ch1_max_measurements = []
+            ch1_min_measurements = []
+            ch1_amp_measurements = []
+            ch1_relAmp_measurements = []
+            if self.num_channels == 2:
+                ch2_width_measurements = []
+                ch2_max_measurements = []
+                ch2_min_measurements = []
+                ch2_amp_measurements = []
+                ch2_relAmp_measurements = []
+
+            for sub_frame in range(self.num_subframes):
+                subframe_ch1_width_measurements = []
+                subframe_ch1_max_measurements = []
+                subframe_ch1_min_measurements = []
+                subframe_ch1_amp_measurements = []
+                subframe_ch1_relAmp_measurements = []
+                if self.num_channels == 2:
+                    subframe_ch2_width_measurements = []
+                    subframe_ch2_max_measurements = []
+                    subframe_ch2_min_measurements = []
+                    subframe_ch2_amp_measurements = []
+                    subframe_ch2_relAmp_measurements = []
+                for key, val in self.peak_results.items():
+                    if f'subframe{sub_frame}_' in key and 'Ch1' in key:
+                        subframe_ch1_width_measurements.append(val[0])
+                        subframe_ch1_max_measurements.append(val[1])
+                        subframe_ch1_min_measurements.append(val[2])
+                        subframe_ch1_amp_measurements.append(val[3])
+                        subframe_ch1_relAmp_measurements.append(val[4])
+                    if self.num_channels == 2:
+                        if f'subframe{sub_frame}_' in key and 'Ch2' in key:
+                            subframe_ch2_width_measurements.append(val[0])
+                            subframe_ch2_max_measurements.append(val[1])
+                            subframe_ch2_min_measurements.append(val[2])
+                            subframe_ch2_amp_measurements.append(val[3])
+                            subframe_ch2_relAmp_measurements.append(val[4])
+                
+                # append to growing list
+                ch1_width_measurements.append(subframe_ch1_width_measurements)
+                ch1_max_measurements.append(subframe_ch1_max_measurements)
+                ch1_min_measurements.append(subframe_ch1_min_measurements)
+                ch1_amp_measurements.append(subframe_ch1_amp_measurements)
+                ch1_relAmp_measurements.append(subframe_ch1_relAmp_measurements)
+                if self.num_channels == 2:
+                    ch2_width_measurements.append(subframe_ch2_width_measurements)
+                    ch2_max_measurements.append(subframe_ch2_max_measurements)
+                    ch2_min_measurements.append(subframe_ch2_min_measurements)
+                    ch2_amp_measurements.append(subframe_ch2_amp_measurements)
+                    ch2_relAmp_measurements.append(subframe_ch2_relAmp_measurements)
+
         # insert Mean, Median, StdDev, and SEM into the beginning of each  list
         if len(self.acf_results) > 0:
             for subframe_list in ch1_period_measurements:
@@ -600,24 +654,61 @@ class SignalProcessor:
         if len(self.ccf_results) > 0:
             for subframe_list in shift_measurements:
                 subframe_list = self.add_stats(subframe_list, "Shift")
+        
+        if len(self.peak_results) > 0:
+            for subframe_list in ch1_width_measurements:
+                subframe_list = self.add_stats(subframe_list, "Ch1 Width")
+            for subframe_list in ch1_max_measurements:
+                subframe_list = self.add_stats(subframe_list, "Ch1 Max")
+            for subframe_list in ch1_min_measurements:
+                subframe_list = self.add_stats(subframe_list, "Ch1 Min")
+            for subframe_list in ch1_amp_measurements:
+                subframe_list = self.add_stats(subframe_list, "Ch1 Amp")
+            for subframe_list in ch1_relAmp_measurements:
+                subframe_list = self.add_stats(subframe_list, "Ch1 RelAmp")
+            if self.num_channels == 2:
+                for subframe_list in ch2_width_measurements:
+                    subframe_list = self.add_stats(subframe_list, "Ch2 Width")
+                for subframe_list in ch2_max_measurements:
+                    subframe_list = self.add_stats(subframe_list, "Ch2 Max")
+                for subframe_list in ch2_min_measurements:
+                    subframe_list = self.add_stats(subframe_list, "Ch2 Min")
+                for subframe_list in ch2_amp_measurements:
+                    subframe_list = self.add_stats(subframe_list, "Ch2 Amp")
+                for subframe_list in ch2_relAmp_measurements:
+                    subframe_list = self.add_stats(subframe_list, "Ch2 RelAmp")
 
         # append the lists to the dictionary, if they exist
         self.im_measurements = {}
+        subframe_measurements = []
+
         for subframe in range(self.num_subframes):
-            self.im_measurements[f'subframe{subframe}'] = pd.DataFrame(columns = col_names)
-        
-        if len(self.acf_results) > 0:
-            for subframe in range(self.num_subframes):
-                self.im_measurements[f'subframe{subframe}'] = pd.concat([self.im_measurements[f'subframe{subframe}'], pd.DataFrame([ch1_period_measurements[subframe]], columns = col_names)], axis = 0)
-            if self.num_channels == 2:
-                for subframe in range(self.num_subframes):
-                    self.im_measurements[f'subframe{subframe}'] = pd.concat([self.im_measurements[f'subframe{subframe}'], pd.DataFrame([ch2_period_measurements[subframe]], columns = col_names)], axis = 0)
+            subframe_data = []
+            if len(self.acf_results) > 0:
+                subframe_data.append(ch1_period_measurements[subframe])
+                if self.num_channels == 2:
+                    subframe_data.append(ch2_period_measurements[subframe])
+            if len(self.ccf_results) > 0:
+                subframe_data.append(shift_measurements[subframe])
+            if len(self.peak_results) > 0:
+                subframe_data.append(ch1_width_measurements[subframe])
+                subframe_data.append(ch1_max_measurements[subframe])
+                subframe_data.append(ch1_min_measurements[subframe])
+                subframe_data.append(ch1_amp_measurements[subframe])
+                subframe_data.append(ch1_relAmp_measurements[subframe])
+                if self.num_channels == 2:
+                    subframe_data.append(ch2_width_measurements[subframe])
+                    subframe_data.append(ch2_max_measurements[subframe])
+                    subframe_data.append(ch2_min_measurements[subframe])
+                    subframe_data.append(ch2_amp_measurements[subframe])
+                    subframe_data.append(ch2_relAmp_measurements[subframe])
 
-        if len(self.ccf_results) > 0:
-            for subframe in range(self.num_subframes):
-                self.im_measurements[f'subframe{subframe}'] = pd.concat([self.im_measurements[f'subframe{subframe}'], pd.DataFrame([shift_measurements[subframe]], columns = col_names)], axis = 0)
+            subframe_measurements.append(subframe_data)
 
-        # empty dictionary to fill with summary statistics for the current object
+        for subframe in range(self.num_subframes):
+            self.im_measurements[f'subframe{subframe}'] = pd.DataFrame(np.array(subframe_measurements[subframe]).tolist(), columns = col_names)
+
+        # empty dictionary to fill with summary statistics for the current object   
         self.file_data_summary = []
 
         for subframe in range(self.num_subframes):
@@ -638,13 +729,57 @@ class SignalProcessor:
                     subframe_summary[f'Ch2 Pcnt Zero Period'] = ch2_pcnt_zero_measurements[subframe]
         
             if len(self.ccf_results) > 0:
-                    subframe_summary['Subframe'] = subframe
-                    subframe_summary[f'Shift Mean'] = np.nanmean(shift_measurements[subframe][5:])
-                    subframe_summary[f'Shift Median'] = np.nanmedian(shift_measurements[subframe][5:])
-                    subframe_summary[f'Shift StdDev'] = np.nanstd(shift_measurements[subframe][5:])
-                    subframe_summary[f'Shift SEM'] = np.nanstd(shift_measurements[subframe][5:]) / np.sqrt(len(shift_measurements[subframe][5:]))
-
+                subframe_summary['Subframe'] = subframe
+                subframe_summary[f'Shift Mean'] = np.nanmean(shift_measurements[subframe][5:])
+                subframe_summary[f'Shift Median'] = np.nanmedian(shift_measurements[subframe][5:])
+                subframe_summary[f'Shift StdDev'] = np.nanstd(shift_measurements[subframe][5:])
+                subframe_summary[f'Shift SEM'] = np.nanstd(shift_measurements[subframe][5:]) / np.sqrt(len(shift_measurements[subframe][5:]))
             
+            if len(self.peak_results) > 0:
+                subframe_summary['Subframe'] = subframe
+                subframe_summary[f'Ch1 Mean Width'] = np.nanmean(ch1_width_measurements[subframe][5:])
+                subframe_summary[f'Ch1 Median Width'] = np.nanmedian(ch1_width_measurements[subframe][5:])
+                subframe_summary[f'Ch1 StdDev Width'] = np.nanstd(ch1_width_measurements[subframe][5:])
+                subframe_summary[f'Ch1 SEM Width'] = np.nanstd(ch1_width_measurements[subframe][5:]) / np.sqrt(len(ch1_width_measurements[subframe][5:]))
+                subframe_summary[f'Ch1 Mean Max'] = np.nanmean(ch1_max_measurements[subframe][5:])
+                subframe_summary[f'Ch1 Median Max'] = np.nanmedian(ch1_max_measurements[subframe][5:])
+                subframe_summary[f'Ch1 StdDev Max'] = np.nanstd(ch1_max_measurements[subframe][5:])
+                subframe_summary[f'Ch1 SEM Max'] = np.nanstd(ch1_max_measurements[subframe][5:]) / np.sqrt(len(ch1_max_measurements[subframe][5:]))
+                subframe_summary[f'Ch1 Mean Min'] = np.nanmean(ch1_min_measurements[subframe][5:])
+                subframe_summary[f'Ch1 Median Min'] = np.nanmedian(ch1_min_measurements[subframe][5:])
+                subframe_summary[f'Ch1 StdDev Min'] = np.nanstd(ch1_min_measurements[subframe][5:])
+                subframe_summary[f'Ch1 SEM Min'] = np.nanstd(ch1_min_measurements[subframe][5:]) / np.sqrt(len(ch1_min_measurements[subframe][5:]))
+                subframe_summary[f'Ch1 Mean Amp'] = np.nanmean(ch1_amp_measurements[subframe][5:])
+                subframe_summary[f'Ch1 Median Amp'] = np.nanmedian(ch1_amp_measurements[subframe][5:])
+                subframe_summary[f'Ch1 StdDev Amp'] = np.nanstd(ch1_amp_measurements[subframe][5:])
+                subframe_summary[f'Ch1 SEM Amp'] = np.nanstd(ch1_amp_measurements[subframe][5:]) / np.sqrt(len(ch1_amp_measurements[subframe][5:]))
+                subframe_summary[f'Ch1 Mean RelAmp'] = np.nanmean(ch1_relAmp_measurements[subframe][5:])
+                subframe_summary[f'Ch1 Median RelAmp'] = np.nanmedian(ch1_relAmp_measurements[subframe][5:])
+                subframe_summary[f'Ch1 StdDev RelAmp'] = np.nanstd(ch1_relAmp_measurements[subframe][5:])
+                subframe_summary[f'Ch1 SEM RelAmp'] = np.nanstd(ch1_relAmp_measurements[subframe][5:]) / np.sqrt(len(ch1_relAmp_measurements[subframe][5:]))
+
+                if self.num_channels == 2:
+                    subframe_summary[f'Ch2 Mean Width'] = np.nanmean(ch2_width_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 Median Width'] = np.nanmedian(ch2_width_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 StdDev Width'] = np.nanstd(ch2_width_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 SEM Width'] = np.nanstd(ch2_width_measurements[subframe][5:]) / np.sqrt(len(ch2_width_measurements[subframe][5:]))
+                    subframe_summary[f'Ch2 Mean Max'] = np.nanmean(ch2_max_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 Median Max'] = np.nanmedian(ch2_max_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 StdDev Max'] = np.nanstd(ch2_max_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 SEM Max'] = np.nanstd(ch2_max_measurements[subframe][5:]) / np.sqrt(len(ch2_max_measurements[subframe][5:]))
+                    subframe_summary[f'Ch2 Mean Min'] = np.nanmean(ch2_min_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 Median Min'] = np.nanmedian(ch2_min_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 StdDev Min'] = np.nanstd(ch2_min_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 SEM Min'] = np.nanstd(ch2_min_measurements[subframe][5:]) / np.sqrt(len(ch2_min_measurements[subframe][5:]))
+                    subframe_summary[f'Ch2 Mean Amp'] = np.nanmean(ch2_amp_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 Median Amp'] = np.nanmedian(ch2_amp_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 StdDev Amp'] = np.nanstd(ch2_amp_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 SEM Amp'] = np.nanstd(ch2_amp_measurements[subframe][5:]) / np.sqrt(len(ch2_amp_measurements[subframe][5:]))
+                    subframe_summary[f'Ch2 Mean RelAmp'] = np.nanmean(ch2_relAmp_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 Median RelAmp'] = np.nanmedian(ch2_relAmp_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 StdDev RelAmp'] = np.nanstd(ch2_relAmp_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 SEM RelAmp'] = np.nanstd(ch2_relAmp_measurements[subframe][5:]) / np.sqrt(len(ch2_relAmp_measurements[subframe][5:]))
+
             self.file_data_summary.append(subframe_summary)
             
         # populate column headers list with keys from the measurements dictionary
