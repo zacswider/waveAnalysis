@@ -6,10 +6,14 @@ from tifffile import imread, imwrite, TiffFile
 
 class SignalProcessor:
     
-    def __init__(self, image_path, box_size):
+    def __init__(self, image_path, box_size, roll = False, roll_size = 0, roll_by = 0):
         self.image_path = image_path
         self.box_size = box_size
         self.image = imread(self.image_path)
+        self.roll = roll
+        self.roll_size = roll_size
+        self.roll_by = roll_by
+
 
         # standardize image dimensions
         with TiffFile(self.image_path) as tif_file:
@@ -40,6 +44,10 @@ class SignalProcessor:
         self.x_boxes = self.x_dim // self.box_size
         self.y_boxes = self.y_dim // self.box_size
         self.num_boxes = self.x_boxes * self.y_boxes
+        
+        if self.roll:
+            self.num_subframes = (self.num_frames - roll_size) // roll_by
+
         # return the time-axis means for each channel
         self.box_means = np.zeros((self.x_boxes, self.y_boxes, self.num_channels, self.num_frames))
         for channel in range(self.num_channels):
@@ -61,25 +69,49 @@ class SignalProcessor:
         Returns a dictionary containing the channel identify and box number as keys and the
         calculated period and autocorrelation curve as a values in a tuple.
         '''
-        for channel in range(self.num_channels):
-            for box_num in range(self.num_boxes):
-                # calculate full autocorrelation
-                signal = self.box_means[box_num, channel]
-                acf_curve = np.correlate(signal - signal.mean(), signal - signal.mean(), mode='full')
-                # normalize the curve
-                acf_curve = acf_curve / (self.num_frames * signal.std() ** 2)
-                peaks, _ = sig.find_peaks(acf_curve, prominence=peak_thresh)
-                # absolute difference between each peak and zero
-                peaks_abs = abs(peaks - acf_curve.shape[0]//2)
-                # if peaks were identified, pick the one closest to the center
-                if len(peaks) > 1:
-                    delay = np.min(peaks_abs[np.nonzero(peaks_abs)])
-                # otherwise, return nans for both period and autocorrelation curve
-                else:
-                    delay = np.nan
-                    acf_curve = np.full((self.num_frames*2-1), np.nan)
+        if not self.roll:
+            for channel in range(self.num_channels):
+                for box_num in range(self.num_boxes):
+                    # calculate full autocorrelation
+                    signal = self.box_means[box_num, channel]
+                    acf_curve = np.correlate(signal - signal.mean(), signal - signal.mean(), mode='full')
+                    # normalize the curve
+                    acf_curve = acf_curve / (self.num_frames * signal.std() ** 2)
+                    peaks, _ = sig.find_peaks(acf_curve, prominence=peak_thresh)
+                    # absolute difference between each peak and zero
+                    peaks_abs = abs(peaks - acf_curve.shape[0]//2)
+                    # if peaks were identified, pick the one closest to the center
+                    if len(peaks) > 1:
+                        delay = np.min(peaks_abs[np.nonzero(peaks_abs)])
+                    # otherwise, return nans for both period and autocorrelation curve
+                    else:
+                        delay = np.nan
+                        acf_curve = np.full((self.num_frames*2-1), np.nan)
 
-                self.acf_results[f'Ch{channel+1}_ACF_box{box_num}'] = (delay, acf_curve)
+                    self.acf_results[f'Ch{channel+1}_ACF_box{box_num}'] = (delay, acf_curve)
+
+        if self.roll:     
+            for channel in range(self.num_channels):
+                for box_num in range(self.num_boxes):
+                    for subframe in range(self.num_subframes):
+                        # calculate full autocorrelation
+                        signal = self.box_means[box_num, channel, self.roll_by*subframe : self.roll_size + self.roll_by*subframe]
+                        acf_curve = np.correlate(signal - signal.mean(), signal - signal.mean(), mode='full')
+                        # normalize the curve
+                        acf_curve = acf_curve / (self.roll_size * signal.std() ** 2)
+                        peaks, _ = sig.find_peaks(acf_curve, prominence=peak_thresh)
+                        # absolute difference between each peak and zero
+                        peaks_abs = abs(peaks - acf_curve.shape[0]//2)
+                        # if peaks were identified, pick the one closest to the center
+                        if len(peaks) > 1:
+                            delay = np.min(peaks_abs[np.nonzero(peaks_abs)])
+                        # otherwise, return nans for both period and autocorrelation curve
+                        else:
+                            delay = np.nan
+                            acf_curve = np.full((self.num_frames*2-1), np.nan)
+
+                        self.acf_results[f'Ch{channel+1}_ACF_box{box_num}_subframe{subframe}_'] = (delay, acf_curve)
+
         return self.acf_results
                 
     # function to return the cross-correlation of each box in the image stack
@@ -89,19 +121,36 @@ class SignalProcessor:
         calculated shift and crosscorrelation curve as a values in a tuple.
         '''
         assert self.num_channels == 2, 'CCF only works for 2 channels'
-        for box_num in range(self.num_boxes):
-            # calculate full cross-correlation (channels, boxes, frames)
-            signal_1 = self.box_means[box_num, 1, :]
-            signal_2 = self.box_means[box_num, 0, :]
-            cc_curve = np.correlate(signal_1 - signal_1.mean(), signal_2 - signal_2.mean(), mode='full')
-            # normalize the curve
-            cc_curve = cc_curve / (self.num_frames * signal_1.std() * signal_2.std())
-            # find the peak closes to zero
-            peaks, _ = sig.find_peaks(cc_curve)
-            peaks_abs = abs(peaks - cc_curve.shape[0]//2)
-            delay_index = peaks[np.argmin(peaks_abs)]
-            shift = delay_index - cc_curve.shape[0]//2
-            self.ccf_results[f'CCF_box{box_num}'] = (shift, cc_curve)
+        if not self.roll:
+            for box_num in range(self.num_boxes):
+                # calculate full cross-correlation (channels, boxes, frames)
+                signal_1 = self.box_means[box_num, 1, :]
+                signal_2 = self.box_means[box_num, 0, :]
+                cc_curve = np.correlate(signal_1 - signal_1.mean(), signal_2 - signal_2.mean(), mode='full')
+                # normalize the curve
+                cc_curve = cc_curve / (self.num_frames * signal_1.std() * signal_2.std())
+                # find the peak closes to zero
+                peaks, _ = sig.find_peaks(cc_curve)
+                peaks_abs = abs(peaks - cc_curve.shape[0]//2)
+                delay_index = peaks[np.argmin(peaks_abs)]
+                shift = delay_index - cc_curve.shape[0]//2
+                self.ccf_results[f'CCF_box{box_num}'] = (shift, cc_curve)
+        if self.roll:
+            for subframe in range(self.num_subframes):
+                for box_num in range(self.num_boxes):
+                    # calculate full cross-correlation (channels, boxes, frames)
+                    signal_1 = self.box_means[box_num, 1, self.roll_by*subframe : self.roll_size + self.roll_by*subframe]
+                    signal_2 = self.box_means[box_num, 0, self.roll_by*subframe : self.roll_size + self.roll_by*subframe]
+                    cc_curve = np.correlate(signal_1 - signal_1.mean(), signal_2 - signal_2.mean(), mode='full')
+                    # normalize the curve
+                    cc_curve = cc_curve / (self.num_frames * signal_1.std() * signal_2.std())
+                    # find the peak closes to zero
+                    peaks, _ = sig.find_peaks(cc_curve)
+                    peaks_abs = abs(peaks - cc_curve.shape[0]//2)
+                    delay_index = peaks[np.argmin(peaks_abs)]
+                    shift = delay_index - cc_curve.shape[0]//2
+                    self.ccf_results[f'CCF_box{box_num}_subframe{subframe}_'] = (shift, cc_curve)
+
         return self.ccf_results
 
     # function to return the peak properties of each box for each channel
@@ -110,24 +159,44 @@ class SignalProcessor:
         Returns a dictionary containing the channel identify and box number as keys and the
         calculated peak properties as a values in a tuple (width, max, min, amp, relAmp).
         '''
-        for channel in range(self.num_channels):
-            for box_num in range(self.num_boxes):
-                signal = sig.savgol_filter(self.box_means[box_num, channel], window_length = 11, polyorder = 2)
-                peaks, _ = sig.find_peaks(signal, prominence=(np.max(signal)-np.min(signal))*0.1)
+        if not self.roll:
+            for channel in range(self.num_channels):
+                for box_num in range(self.num_boxes):
+                    signal = sig.savgol_filter(self.box_means[box_num, channel], window_length = 11, polyorder = 2)
+                    peaks, _ = sig.find_peaks(signal, prominence=(np.max(signal)-np.min(signal))*0.1)
 
-                # if peaks detected, calculate properties and return property averages. Otherwise return nans
-                if len(peaks) > 0:
-                    proms, _, _ = sig.peak_prominences(signal, peaks)
-                    widths, _, _, _ = sig.peak_widths(signal, peaks, rel_height=0.5)
-                    mean_width = np.mean(widths, axis=0)
-                    mean_max = np.mean(signal[peaks], axis = 0)
-                    mean_min = np.mean(signal[peaks]-proms, axis = 0)
-                    mean_amp = mean_max - mean_min
-                    mean_rel_amp = mean_amp / mean_min
-                    self.peak_results[f'Ch{channel+1}_box{box_num}'] = (mean_width, mean_max, mean_min, mean_amp, mean_rel_amp)
-                else:
-                    self.peak_results[f'Ch{channel+1}_box{box_num}'] = (np.nan, np.nan, np.nan, np.nan, np.nan)
+                    # if peaks detected, calculate properties and return property averages. Otherwise return nans
+                    if len(peaks) > 0:
+                        proms, _, _ = sig.peak_prominences(signal, peaks)
+                        widths, _, _, _ = sig.peak_widths(signal, peaks, rel_height=0.5)
+                        mean_width = np.mean(widths, axis=0)
+                        mean_max = np.mean(signal[peaks], axis = 0)
+                        mean_min = np.mean(signal[peaks]-proms, axis = 0)
+                        mean_amp = mean_max - mean_min
+                        mean_rel_amp = mean_amp / mean_min
+                        self.peak_results[f'Ch{channel+1}_box{box_num}'] = (mean_width, mean_max, mean_min, mean_amp, mean_rel_amp)
+                    else:
+                        self.peak_results[f'Ch{channel+1}_box{box_num}'] = (np.nan, np.nan, np.nan, np.nan, np.nan)
+        
+        if self.roll:
+            for subframe in range(self.num_subframes):
+                for channel in range(self.num_channels):
+                    for box_num in range(self.num_boxes):
+                        signal = sig.savgol_filter(self.box_means[box_num, channel, self.roll_by*subframe : self.roll_size + self.roll_by*subframe], window_length = 11, polyorder = 2)
+                        peaks, _ = sig.find_peaks(signal, prominence=(np.max(signal)-np.min(signal))*0.1)
 
+                        # if peaks detected, calculate properties and return property averages. Otherwise return nans
+                        if len(peaks) > 0:
+                            proms, _, _ = sig.peak_prominences(signal, peaks)
+                            widths, _, _, _ = sig.peak_widths(signal, peaks, rel_height=0.5)
+                            mean_width = np.mean(widths, axis=0)
+                            mean_max = np.mean(signal[peaks], axis = 0)
+                            mean_min = np.mean(signal[peaks]-proms, axis = 0)
+                            mean_amp = mean_max - mean_min
+                            mean_rel_amp = mean_amp / mean_min
+                            self.peak_results[f'Ch{channel+1}_box{box_num}_subframe{subframe}'] = (mean_width, mean_max, mean_min, mean_amp, mean_rel_amp)
+                        else:
+                            self.peak_results[f'Ch{channel+1}_box{box_num}_subframe{subframe}'] = (np.nan, np.nan, np.nan, np.nan, np.nan)
         return self.peak_results
 
     # function to summarize measurments statistics by appending them to the beginning of the measurement list
@@ -137,9 +206,9 @@ class SignalProcessor:
         and append them to the beginning of the list in that order. Finally, appends the name of
         the measurement of the beginning of the list.
         '''
-        meas_mean = np.mean(measurements)
-        meas_median = np.median(measurements)
-        meas_std = np.std(measurements)
+        meas_mean = np.nanmean(measurements)
+        meas_median = np.nanmedian(measurements)
+        meas_std = np.nanstd(measurements)
         meas_sem = meas_std / np.sqrt(len(measurements))
         measurements.insert(0, meas_mean)
         measurements.insert(1, meas_median)
@@ -303,7 +372,8 @@ class SignalProcessor:
                 if 'Ch1' in key:
                     ch1_period_measurements.append(value[0])
             # calculate the number of boxes that didn't return a period
-            ch1_pcnt_no_period = ((self.num_boxes-len(ch1_period_measurements))/self.num_boxes)*100
+            periods_ch1 = [x for x in ch1_period_measurements if np.isnan(x) != True]
+            ch1_pcnt_no_period = ((self.num_boxes-len(periods_ch1))/self.num_boxes)*100
 
             if self.num_channels == 2:
                 ch2_period_measurements = []
@@ -311,7 +381,8 @@ class SignalProcessor:
                     if 'Ch2' in key:
                         ch2_period_measurements.append(value[0])
                 # calculate the number of boxes that didn't return a period
-                ch2_pcnt_no_period = ((self.num_boxes-len(ch2_period_measurements))/self.num_boxes)*100
+                periods_ch2 = [x for x in ch2_period_measurements if np.isnan(x) != True]
+                ch2_pcnt_no_period = ((self.num_boxes-len(periods_ch2))/self.num_boxes)*100
         
         if len(self.ccf_results) > 0:
             shift_measurements = []
@@ -397,67 +468,197 @@ class SignalProcessor:
         self.file_data_summary['Num Boxes'] = self.num_boxes
         if len(self.acf_results) > 0:
             self.file_data_summary['Ch1 % Zero Boxes'] = ch1_pcnt_no_period
-            self.file_data_summary['Ch1 Mean Period'] = np.mean(ch1_period_measurements[5:])
-            self.file_data_summary['Ch1 Median Period'] = np.median(ch1_period_measurements[5:])
-            self.file_data_summary['Ch1 StdDev Period'] = np.std(ch1_period_measurements[5:])
-            self.file_data_summary['Ch1 SEM Period'] = np.std(ch1_period_measurements[5:]) / np.sqrt(len(ch1_period_measurements[5:]))
+            self.file_data_summary['Ch1 Mean Period'] = np.nanmean(ch1_period_measurements[5:])
+            self.file_data_summary['Ch1 Median Period'] = np.nanmedian(ch1_period_measurements[5:])
+            self.file_data_summary['Ch1 StdDev Period'] = np.nanstd(ch1_period_measurements[5:])
+            self.file_data_summary['Ch1 SEM Period'] = np.nanstd(ch1_period_measurements[5:]) / np.sqrt(len(ch1_period_measurements[5:]))
 
             if self.num_channels == 2:
                 self.file_data_summary['Ch2 % Zero Boxes'] = ch2_pcnt_no_period
-                self.file_data_summary['Ch2 Mean Period'] = np.mean(ch2_period_measurements[5:])
-                self.file_data_summary['Ch2 Median Period'] = np.median(ch2_period_measurements[5:])
-                self.file_data_summary['Ch2 StdDev Period'] = np.std(ch2_period_measurements[5:])
-                self.file_data_summary['Ch2 SEM Period'] = np.std(ch2_period_measurements[5:]) / np.sqrt(len(ch2_period_measurements[5:]))
+                self.file_data_summary['Ch2 Mean Period'] = np.nanmean(ch2_period_measurements[5:])
+                self.file_data_summary['Ch2 Median Period'] = np.nanmedian(ch2_period_measurements[5:])
+                self.file_data_summary['Ch2 StdDev Period'] = np.nanstd(ch2_period_measurements[5:])
+                self.file_data_summary['Ch2 SEM Period'] = np.nanstd(ch2_period_measurements[5:]) / np.sqrt(len(ch2_period_measurements[5:]))
 
         if len(self.ccf_results) > 0:
-            self.file_data_summary['Mean Shift'] = np.mean(shift_measurements[5:])
-            self.file_data_summary['Median Shift'] = np.median(shift_measurements[5:])
-            self.file_data_summary['StdDev Shift'] = np.std(shift_measurements[5:])
-            self.file_data_summary['SEM Shift'] = np.std(shift_measurements[5:]) / np.sqrt(len(shift_measurements[5:]))
+            self.file_data_summary['Mean Shift'] = np.nanmean(shift_measurements[5:])
+            self.file_data_summary['Median Shift'] = np.nanmedian(shift_measurements[5:])
+            self.file_data_summary['StdDev Shift'] = np.nanstd(shift_measurements[5:])
+            self.file_data_summary['SEM Shift'] = np.nanstd(shift_measurements[5:]) / np.sqrt(len(shift_measurements[5:]))
 
         if len(self.peak_results) > 0:
-            self.file_data_summary['Ch1 Mean Width'] = np.mean(ch1_width_measurements[5:])
-            self.file_data_summary['Ch1 Median Width'] = np.median(ch1_width_measurements[5:])
-            self.file_data_summary['Ch1 StdDev Width'] = np.std(ch1_width_measurements[5:])
-            self.file_data_summary['Ch1 SEM Width'] = np.std(ch1_width_measurements[5:]) / np.sqrt(len(ch1_width_measurements[5:]))
-            self.file_data_summary['Ch1 Mean Max'] = np.mean(ch1_max_measurements[5:])
-            self.file_data_summary['Ch1 Median Max'] = np.median(ch1_max_measurements[5:])
-            self.file_data_summary['Ch1 StdDev Max'] = np.std(ch1_max_measurements[5:])
-            self.file_data_summary['Ch1 SEM Max'] = np.std(ch1_max_measurements[5:]) / np.sqrt(len(ch1_max_measurements[5:]))
-            self.file_data_summary['Ch1 Mean Min'] = np.mean(ch1_min_measurements[5:])
-            self.file_data_summary['Ch1 Median Min'] = np.median(ch1_min_measurements[5:])
-            self.file_data_summary['Ch1 StdDev Min'] = np.std(ch1_min_measurements[5:])
-            self.file_data_summary['Ch1 SEM Min'] = np.std(ch1_min_measurements[5:]) / np.sqrt(len(ch1_min_measurements[5:]))
-            self.file_data_summary['Ch1 Mean Amp'] = np.mean(ch1_amp_measurements[5:])
-            self.file_data_summary['Ch1 Median Amp'] = np.median(ch1_amp_measurements[5:])
-            self.file_data_summary['Ch1 StdDev Amp'] = np.std(ch1_amp_measurements[5:])
-            self.file_data_summary['Ch1 SEM Amp'] = np.std(ch1_amp_measurements[5:]) / np.sqrt(len(ch1_amp_measurements[5:]))
-            self.file_data_summary['Ch1 Mean RelAmp'] = np.mean(ch1_relAmp_measurements[5:])
-            self.file_data_summary['Ch1 Median RelAmp'] = np.median(ch1_relAmp_measurements[5:])
-            self.file_data_summary['Ch1 StdDev RelAmp'] = np.std(ch1_relAmp_measurements[5:])
-            self.file_data_summary['Ch1 SEM RelAmp'] = np.std(ch1_relAmp_measurements[5:]) / np.sqrt(len(ch1_relAmp_measurements[5:]))
+            self.file_data_summary['Ch1 Mean Width'] = np.nanmean(ch1_width_measurements[5:])
+            self.file_data_summary['Ch1 Median Width'] = np.nanmedian(ch1_width_measurements[5:])
+            self.file_data_summary['Ch1 StdDev Width'] = np.nanstd(ch1_width_measurements[5:])
+            self.file_data_summary['Ch1 SEM Width'] = np.nanstd(ch1_width_measurements[5:]) / np.sqrt(len(ch1_width_measurements[5:]))
+            self.file_data_summary['Ch1 Mean Max'] = np.nanmean(ch1_max_measurements[5:])
+            self.file_data_summary['Ch1 Median Max'] = np.nanmedian(ch1_max_measurements[5:])
+            self.file_data_summary['Ch1 StdDev Max'] = np.nanstd(ch1_max_measurements[5:])
+            self.file_data_summary['Ch1 SEM Max'] = np.nanstd(ch1_max_measurements[5:]) / np.sqrt(len(ch1_max_measurements[5:]))
+            self.file_data_summary['Ch1 Mean Min'] = np.nanmean(ch1_min_measurements[5:])
+            self.file_data_summary['Ch1 Median Min'] = np.nanmedian(ch1_min_measurements[5:])
+            self.file_data_summary['Ch1 StdDev Min'] = np.nanstd(ch1_min_measurements[5:])
+            self.file_data_summary['Ch1 SEM Min'] = np.nanstd(ch1_min_measurements[5:]) / np.sqrt(len(ch1_min_measurements[5:]))
+            self.file_data_summary['Ch1 Mean Amp'] = np.nanmean(ch1_amp_measurements[5:])
+            self.file_data_summary['Ch1 Median Amp'] = np.nanmedian(ch1_amp_measurements[5:])
+            self.file_data_summary['Ch1 StdDev Amp'] = np.nanstd(ch1_amp_measurements[5:])
+            self.file_data_summary['Ch1 SEM Amp'] = np.nanstd(ch1_amp_measurements[5:]) / np.sqrt(len(ch1_amp_measurements[5:]))
+            self.file_data_summary['Ch1 Mean RelAmp'] = np.nanmean(ch1_relAmp_measurements[5:])
+            self.file_data_summary['Ch1 Median RelAmp'] = np.nanmedian(ch1_relAmp_measurements[5:])
+            self.file_data_summary['Ch1 StdDev RelAmp'] = np.nanstd(ch1_relAmp_measurements[5:])
+            self.file_data_summary['Ch1 SEM RelAmp'] = np.nanstd(ch1_relAmp_measurements[5:]) / np.sqrt(len(ch1_relAmp_measurements[5:]))
             
             if self.num_channels == 2:
-                self.file_data_summary['Ch2 Mean Width'] = np.mean(ch2_width_measurements[5:])
-                self.file_data_summary['Ch2 Median Width'] = np.median(ch2_width_measurements[5:])
-                self.file_data_summary['Ch2 StdDev Width'] = np.std(ch2_width_measurements[5:])
-                self.file_data_summary['Ch2 SEM Width'] = np.std(ch2_width_measurements[5:]) / np.sqrt(len(ch2_width_measurements[5:]))
-                self.file_data_summary['Ch2 Mean Max'] = np.mean(ch2_max_measurements[5:])
-                self.file_data_summary['Ch2 Median Max'] = np.median(ch2_max_measurements[5:])
-                self.file_data_summary['Ch2 StdDev Max'] = np.std(ch2_max_measurements[5:])
-                self.file_data_summary['Ch2 SEM Max'] = np.std(ch2_max_measurements[5:]) / np.sqrt(len(ch2_max_measurements[5:]))
-                self.file_data_summary['Ch2 Mean Min'] = np.mean(ch2_min_measurements[5:])
-                self.file_data_summary['Ch2 Median Min'] = np.median(ch2_min_measurements[5:])
-                self.file_data_summary['Ch2 StdDev Min'] = np.std(ch2_min_measurements[5:])
-                self.file_data_summary['Ch2 SEM Min'] = np.std(ch2_min_measurements[5:]) / np.sqrt(len(ch2_min_measurements[5:]))
-                self.file_data_summary['Ch2 Mean Amp'] = np.mean(ch2_amp_measurements[5:])
-                self.file_data_summary['Ch2 Median Amp'] = np.median(ch2_amp_measurements[5:])
-                self.file_data_summary['Ch2 StdDev Amp'] = np.std(ch2_amp_measurements[5:])
-                self.file_data_summary['Ch2 SEM Amp'] = np.std(ch2_amp_measurements[5:]) / np.sqrt(len(ch2_amp_measurements[5:]))
-                self.file_data_summary['Ch2 Mean RelAmp'] = np.mean(ch2_relAmp_measurements[5:])
-                self.file_data_summary['Ch2 Median RelAmp'] = np.median(ch2_relAmp_measurements[5:])
-                self.file_data_summary['Ch2 StdDev RelAmp'] = np.std(ch2_relAmp_measurements[5:])
-                self.file_data_summary['Ch2 SEM RelAmp'] = np.std(ch2_relAmp_measurements[5:]) / np.sqrt(len(ch2_relAmp_measurements[5:]))
+                self.file_data_summary['Ch2 Mean Width'] = np.nanmean(ch2_width_measurements[5:])
+                self.file_data_summary['Ch2 Median Width'] = np.nanmedian(ch2_width_measurements[5:])
+                self.file_data_summary['Ch2 StdDev Width'] = np.nanstd(ch2_width_measurements[5:])
+                self.file_data_summary['Ch2 SEM Width'] = np.nanstd(ch2_width_measurements[5:]) / np.sqrt(len(ch2_width_measurements[5:]))
+                self.file_data_summary['Ch2 Mean Max'] = np.nanmean(ch2_max_measurements[5:])
+                self.file_data_summary['Ch2 Median Max'] = np.nanmedian(ch2_max_measurements[5:])
+                self.file_data_summary['Ch2 StdDev Max'] = np.nanstd(ch2_max_measurements[5:])
+                self.file_data_summary['Ch2 SEM Max'] = np.nanstd(ch2_max_measurements[5:]) / np.sqrt(len(ch2_max_measurements[5:]))
+                self.file_data_summary['Ch2 Mean Min'] = np.nanmean(ch2_min_measurements[5:])
+                self.file_data_summary['Ch2 Median Min'] = np.nanmedian(ch2_min_measurements[5:])
+                self.file_data_summary['Ch2 StdDev Min'] = np.nanstd(ch2_min_measurements[5:])
+                self.file_data_summary['Ch2 SEM Min'] = np.nanstd(ch2_min_measurements[5:]) / np.sqrt(len(ch2_min_measurements[5:]))
+                self.file_data_summary['Ch2 Mean Amp'] = np.nanmean(ch2_amp_measurements[5:])
+                self.file_data_summary['Ch2 Median Amp'] = np.nanmedian(ch2_amp_measurements[5:])
+                self.file_data_summary['Ch2 StdDev Amp'] = np.nanstd(ch2_amp_measurements[5:])
+                self.file_data_summary['Ch2 SEM Amp'] = np.nanstd(ch2_amp_measurements[5:]) / np.sqrt(len(ch2_amp_measurements[5:]))
+                self.file_data_summary['Ch2 Mean RelAmp'] = np.nanmean(ch2_relAmp_measurements[5:])
+                self.file_data_summary['Ch2 Median RelAmp'] = np.nanmedian(ch2_relAmp_measurements[5:])
+                self.file_data_summary['Ch2 StdDev RelAmp'] = np.nanstd(ch2_relAmp_measurements[5:])
+                self.file_data_summary['Ch2 SEM RelAmp'] = np.nanstd(ch2_relAmp_measurements[5:]) / np.sqrt(len(ch2_relAmp_measurements[5:]))
+
+        return self.im_measurements, self.file_data_summary
+
+    # function to summarize the results in the acf_results, ccf_results, and peak_results from rolling analysis
+    def summarize_rolling_results(self, file_name = None):
+        '''
+        Takes the results from the calc_ACF, calc_CCF, and calc_peaks functions, summarizes the results for each
+        sub-movie as a dataframe, and returns a list of dataframes. Also generates and returns a summary dataframe 
+        for the entire movie.
+        '''
+        # initial column names
+        col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]
+        for box in range(self.num_boxes):
+            # add box number to column names
+            col_names.append(f"Box {box}")
+            
+        # initialize lists to fill with measurements for each box and summary statistics
+        if len(self.acf_results) > 0:
+            ch1_period_measurements = []
+            ch1_pcnt_zero_measurements = []
+            if self.num_channels == 2:
+                ch2_period_measurements = []
+                ch2_pcnt_zero_measurements = []
+            for sub_frame in range(self.num_subframes):
+                subframe_ch1_period_measurements = []
+                for key, value in self.acf_results.items():
+                    if f'subframe{sub_frame}_' in key and 'Ch1' in key:
+                        subframe_ch1_period_measurements.append(value[0])
+                
+                # append to growing list
+                ch1_period_measurements.append(subframe_ch1_period_measurements)
+                # calculate the number of boxes that didn't return a period
+                periods_ch1 = [x for x in subframe_ch1_period_measurements if np.isnan(x) != True]
+                ch1_pcnt_no_period = ((self.num_boxes-len(periods_ch1))/self.num_boxes)*100
+                ch1_pcnt_zero_measurements.append(ch1_pcnt_no_period)
+
+                if self.num_channels == 2:
+                    subframe_ch2_period_measurements = []
+                    for key, value in self.acf_results.items():
+                        if f'subframe{sub_frame}_' in key and 'Ch2' in key:
+                            subframe_ch2_period_measurements.append(value[0])
+                    
+                    # append to growing list
+                    ch2_period_measurements.append(subframe_ch2_period_measurements)
+                    # calculate the number of boxes that didn't return a period
+                    periods_ch2 = [x for x in subframe_ch2_period_measurements if np.isnan(x) != True]
+                    ch2_pcnt_no_period = ((self.num_boxes-len(periods_ch2))/self.num_boxes)*100
+                    ch2_pcnt_zero_measurements.append(ch2_pcnt_no_period)
+        
+        if len(self.ccf_results) > 0:
+            shift_measurements = []
+            for sub_frame in range(self.num_subframes):
+                subframe_shift_measurements = []
+                for key, value in self.ccf_results.items():
+                    if f'subframe{sub_frame}_' in key:
+                        subframe_shift_measurements.append(value[0])
+                
+                # append to growing list
+                shift_measurements.append(subframe_shift_measurements)
+
+        # insert Mean, Median, StdDev, and SEM into the beginning of each  list
+        if len(self.acf_results) > 0:
+            for subframe_list in ch1_period_measurements:
+                subframe_list = self.add_stats(subframe_list, "Ch1 Period")
+            if self.num_channels == 2:
+                for ch2_subframe_list in ch2_period_measurements:
+                    ch2_subframe_list = self.add_stats(ch2_subframe_list, "Ch2 Period")
+        
+        if len(self.ccf_results) > 0:
+            for subframe_list in shift_measurements:
+                subframe_list = self.add_stats(subframe_list, "Shift")
+
+        # append the lists to the dictionary, if they exist
+        self.im_measurements = {}
+        for subframe in range(self.num_subframes):
+            self.im_measurements[f'subframe{subframe}'] = pd.DataFrame(columns = col_names)
+        
+        if len(self.acf_results) > 0:
+            for subframe in range(self.num_subframes):
+                self.im_measurements[f'subframe{subframe}'] = pd.concat([self.im_measurements[f'subframe{subframe}'], pd.DataFrame([ch1_period_measurements[subframe]], columns = col_names)], axis = 0)
+            if self.num_channels == 2:
+                for subframe in range(self.num_subframes):
+                    self.im_measurements[f'subframe{subframe}'] = pd.concat([self.im_measurements[f'subframe{subframe}'], pd.DataFrame([ch2_period_measurements[subframe]], columns = col_names)], axis = 0)
+
+        if len(self.ccf_results) > 0:
+            for subframe in range(self.num_subframes):
+                self.im_measurements[f'subframe{subframe}'] = pd.concat([self.im_measurements[f'subframe{subframe}'], pd.DataFrame([shift_measurements[subframe]], columns = col_names)], axis = 0)
+
+        # empty dictionary to fill with summary statistics for the current object
+        self.file_data_summary = []
+
+        for subframe in range(self.num_subframes):
+            subframe_summary = {}
+            if len(self.acf_results) > 0:
+                subframe_summary['Subframe'] = subframe
+                subframe_summary[f'Ch1 Mean Period'] = np.nanmean(ch1_period_measurements[subframe][5:])
+                subframe_summary[f'Ch1 Median Period'] = np.nanmedian(ch1_period_measurements[subframe][5:])
+                subframe_summary[f'Ch1 StdDev Period'] = np.nanstd(ch1_period_measurements[subframe][5:])
+                subframe_summary[f'Ch1 SEM Period'] = np.nanstd(ch1_period_measurements[subframe][5:]) / np.sqrt(len(ch1_period_measurements[subframe][5:]))
+                subframe_summary[f'Ch1 Pcnt Zero Period'] = ch1_pcnt_zero_measurements[subframe]
+                
+                if self.num_channels == 2:
+                    subframe_summary[f'Ch2 Mean Period'] = np.nanmean(ch2_period_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 Median Period'] = np.nanmedian(ch2_period_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 StdDev Period'] = np.nanstd(ch2_period_measurements[subframe][5:])
+                    subframe_summary[f'Ch2 SEM Period'] = np.nanstd(ch2_period_measurements[subframe][5:]) / np.sqrt(len(ch2_period_measurements[subframe][5:]))
+                    subframe_summary[f'Ch2 Pcnt Zero Period'] = ch2_pcnt_zero_measurements[subframe]
+        
+            if len(self.ccf_results) > 0:
+                    subframe_summary['Subframe'] = subframe
+                    subframe_summary[f'Shift Mean'] = np.nanmean(shift_measurements[subframe][5:])
+                    subframe_summary[f'Shift Median'] = np.nanmedian(shift_measurements[subframe][5:])
+                    subframe_summary[f'Shift StdDev'] = np.nanstd(shift_measurements[subframe][5:])
+                    subframe_summary[f'Shift SEM'] = np.nanstd(shift_measurements[subframe][5:]) / np.sqrt(len(shift_measurements[subframe][5:]))
+
+            
+            self.file_data_summary.append(subframe_summary)
+            
+        # populate column headers list with keys from the measurements dictionary
+        col_headers = []
+        for subframe_summary in self.file_data_summary:
+            for key in subframe_summary.keys(): 
+                if key not in col_headers: 
+                    col_headers.append(key) 
+        # create dataframe from the dictionaries in file_data_summary, using the subframe key as a common index
+        self.file_data_summary = pd.DataFrame(self.file_data_summary, index = [f'Subframe{subframe}' for subframe in range(self.num_subframes)], columns = col_headers)
+
+
+
+        #self.file_data_summary = pd.DataFrame(self.file_data_summary, columns = col_headers)
 
         return self.im_measurements, self.file_data_summary
 
