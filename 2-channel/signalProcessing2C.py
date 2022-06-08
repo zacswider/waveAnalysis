@@ -1,6 +1,5 @@
 import os                                       
 import sys 
-import pathlib   
 import timeit
 import datetime
 import numpy as np
@@ -8,15 +7,43 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from custom_gui import CustomGUI
+from custom_gui import BaseGUI, RollingGUI
 from signal_processing_class import SignalProcessor
 
 np.seterr(divide='ignore', invalid='ignore')
 
 '''** GUI Window and sanity checks'''
 # make GUI object and display the window
-gui = CustomGUI()
+gui = BaseGUI()
 gui.mainloop()
+# get GUI parameters
+rolling = False
+box_size = gui.box_size
+folder_path = gui.folder_path
+group_names = gui.group_names
+acf_peak_thresh = gui.acf_peak_thresh
+plot_ind_ACFs = gui.plot_ind_ACFs
+plot_ind_CCFs = gui.plot_ind_CCFs
+plot_ind_peaks = gui.plot_ind_peaks
+# if rolling GUI specified, make rolling GUI object and display the window
+if gui.roll:
+    rolling = True
+    gui = RollingGUI()
+    gui.mainloop()
+    # get GUI parameters
+    box_size = gui.box_size
+    folder_path = gui.folder_path
+    acf_peak_thresh = gui.acf_peak_thresh
+    plot_sf_ACFs = gui.plot_sf_ACFs
+    plot_sf_CCFs = gui.plot_sf_CCFs
+    plot_sf_peaks = gui.plot_sf_peaks
+    subframe_size = gui.subframe_size
+    subframe_roll = gui.subframe_roll
+
+    group_names = ['']
+    plot_ind_ACFs = False
+    plot_ind_CCFs = False
+    plot_ind_peaks = False
 
 # identify and report errors in GUI input
 errors = []
@@ -33,15 +60,6 @@ if len(errors) >= 1 :
         print(count,":", error)
     sys.exit("Please fix errors and try again.") 
 
-# get GUI parameters
-box_size = gui.box_size
-folder_path = gui.folder_path
-group_names = gui.group_names
-acf_peak_thresh = gui.acf_peak_thresh
-plot_ind_ACFs = gui.plot_ind_ACFs
-plot_ind_CCFs = gui.plot_ind_CCFs
-plot_ind_peaks = gui.plot_ind_peaks
-
 #make dictionary of parameters for log file use
 log_params = {  "Box Size(px)" : box_size,
                 "Base Directory" : folder_path,
@@ -54,6 +72,16 @@ log_params = {  "Box Size(px)" : box_size,
                 "Files Processed" : [],
                 "Files Not Processed" : [],
                 'Plotting errors' : []
+             } 
+if rolling:
+    log_params = {  "Box Size(px)" : box_size,
+                    "Base Directory" : folder_path,
+                    "ACF Peak Prominence" : acf_peak_thresh,
+                    "Plot sub-movie ACFs" : plot_sf_ACFs,
+                    "Plot movie CCFs" : plot_sf_CCFs,
+                    "Plot movie Peaks" : plot_sf_peaks,
+                    "Files Processed" : [],
+                    "Files Not Processed" : []
              } 
 
 ''' ** housekeeping functions ** '''
@@ -135,7 +163,11 @@ col_headers = []
 print('Processing files...')
 with tqdm(total = len(file_names)) as pbar:
     for file_name in file_names: 
-        processor = SignalProcessor(image_path = f'{folder_path}/{file_name}', box_size = box_size)
+        print(f'Processing file {file_name}')
+        if not rolling:
+            processor = SignalProcessor(image_path = f'{folder_path}/{file_name}', box_size = box_size)
+        if rolling:
+            processor = SignalProcessor(image_path = f'{folder_path}/{file_name}', box_size = box_size, roll = rolling, roll_size = subframe_size, roll_by = subframe_roll)
 
         # log error and skip image if frames < 2 or channels >2
         if processor.num_frames < 2:
@@ -156,10 +188,6 @@ with tqdm(total = len(file_names)) as pbar:
 
         # name without the extension
         name_wo_ext = file_name.rsplit(".",1)[0]
-
-        # set save path for output for each image file
-        boxSavePath = pathlib.Path(folder_path + "/0_signalProcessing/" + name_wo_ext)
-        boxSavePath.mkdir(exist_ok=True, parents=True)
         
         # if user entered group name(s) into GUI, match the group for this file. If no match, keep set to None
         group_name = None
@@ -172,10 +200,15 @@ with tqdm(total = len(file_names)) as pbar:
         # calculate the number of boxes used for analysis
         num_boxes = processor.x_boxes * processor.y_boxes
 
-        # calculate autocorrelation for each channel for each box
+        # for rolling analyis, calculate the numbe of subframes used
+        if rolling:
+            num_subframes = processor.num_subframes
+            log_params['Subframes Used'] = num_subframes
+
+        # calculate autocorrelation for each channel for each box (for each subframe, if applicable)
         acf_results = processor.calc_ACF(peak_thresh = acf_peak_thresh)
 
-        # if possible, calculate the cross correlation between channels for each box
+        # if applicable, calculate the cross correlation between channels for each box
         if processor.num_channels == 2:
             ccf_results = processor.calc_CCF()
 
@@ -187,41 +220,54 @@ with tqdm(total = len(file_names)) as pbar:
         if not os.path.exists(im_save_path):
             os.makedirs(im_save_path)
 
-        # summaryize the data for current image as dataframe, and save as .csv
-        im_measurements_df, im_summary_dict = processor.summarize_results(file_name = file_name, group_name = group_name)
-        im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)
+        # for standard analysis, summarize the data for current image as dataframe, and save as .csv
+        if not rolling:
+            im_measurements_df, im_summary_dict = processor.summarize_results(file_name = file_name, group_name = group_name)
+            im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)
+        # for rolling analysis, summarize the data for each subframe as dataframe, and save as .csv
+        if rolling:
+            im_measurements_dfs, im_summary_df = processor.summarize_rolling_results(file_name = file_name)
+            for measurement_index, measurment in enumerate(im_measurements_dfs.values()):
+                # save as csv
+                measurment.to_csv(f'{im_save_path}/{name_wo_ext}_subframe{measurement_index}_measurements.csv', index = False)
+            # save summary dataframe as csv
+            im_summary_df.to_csv(f'{main_save_path}/{name_wo_ext}_summary.csv', index = False)
 
         # populate column headers list with keys from the measurements dictionary
-        for key in im_summary_dict.keys(): 
-            if key not in col_headers: 
-                col_headers.append(key) 
+        if not rolling:
+            for key in im_summary_dict.keys(): 
+                if key not in col_headers: 
+                    col_headers.append(key) 
         
-        # append summary data to the summary list
-        summary_list.append(im_summary_dict)
+            # append summary data to the summary list
+            summary_list.append(im_summary_dict)
 
         # plot and save the population autocorrelation results for each channel
-        acf_plots = processor.plot_mean_CF()
-        ch1_acf_plot = acf_plots['Ch1 ACF']
-        ch1_acf_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch1_ACF.png')
-        if processor.num_channels == 2:
-            ch2_acf_plot = acf_plots['Ch2 ACF']
-            ch2_acf_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch2_ACF.png')
-            ccf_plot = acf_plots['Mean CCF']
-            ccf_plot.savefig(f'{im_save_path}/{name_wo_ext}_CCF.png')
+        if plot_ind_ACFs:
+            acf_plots = processor.plot_mean_CF()
+            ch1_acf_plot = acf_plots['Ch1 ACF']
+            ch1_acf_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch1_ACF.png')
+            if processor.num_channels == 2:
+                ch2_acf_plot = acf_plots['Ch2 ACF']
+                ch2_acf_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch2_ACF.png')
+                ccf_plot = acf_plots['Mean CCF']
+                ccf_plot.savefig(f'{im_save_path}/{name_wo_ext}_CCF.png')
 
         # plot and save the population peak properties for each channel
-        peak_plots = processor.plot_peak_props()
-        ch1_peak_plot = peak_plots['Ch1']
-        ch1_peak_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch1_Peaks.png')
-        if processor.num_channels == 2:
-            ch2_peak_plot = peak_plots['Ch2']
-            ch2_peak_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch2_Peaks.png')
+        if plot_ind_peaks:
+            peak_plots = processor.plot_peak_props()
+            ch1_peak_plot = peak_plots['Ch1']
+            ch1_peak_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch1_Peaks.png')
+            if processor.num_channels == 2:
+                ch2_peak_plot = peak_plots['Ch2']
+                ch2_peak_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch2_Peaks.png')
         pbar.update(1)
 
 
 # convert summary_list to dataframe using the column headers and save to main save path
-summary_df = pd.DataFrame(summary_list, columns = col_headers)
-summary_df.to_csv(f'{main_save_path}/summary.csv', index = False)
+if not rolling:
+    summary_df = pd.DataFrame(summary_list, columns = col_headers)
+    summary_df.to_csv(f'{main_save_path}/summary.csv', index = False)
 
 # if group names were entered into the gui, generate comparisons between each group
 if group_names != ['']:
