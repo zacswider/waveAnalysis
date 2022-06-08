@@ -5,6 +5,9 @@ import timeit
 import datetime
 import numpy as np
 import pandas as pd
+import seaborn as sns
+from tqdm import tqdm
+import matplotlib.pyplot as plt
 from custom_gui import CustomGUI
 from signal_processing_class import SignalProcessor
 
@@ -49,21 +52,34 @@ log_params = {  "Box Size(px)" : box_size,
                 "Plot Individual Peaks" : plot_ind_peaks,
                 "Group Matching Errors" : [],
                 "Files Processed" : [],
-                "Files Not Processed" : []
-             }
+                "Files Not Processed" : [],
+                'Plotting errors' : []
+             } 
 
 ''' ** housekeeping functions ** '''
 def make_log(directory, logParams):
     '''
     Convert dictionary of parameters to a log file and save it in the directory
     '''
-    logPath = os.path.join(directory, "0_log.txt")                    # path to log file
-    now = datetime.datetime.now()                                   # get current date and time
-    logFile = open(logPath, "w")                                    # initiate text file
-    logFile.write("\n" + now.strftime("%Y-%m-%d %H:%M") + "\n")     # write current date and time
-    for key, value in logParams.items():                            # for each key:value pair in the parameter dictionary...
-        logFile.write('%s: %s\n' % (key, value))                    # write pair to new line
-    logFile.close()                                                 # close the file
+    now = datetime.datetime.now()
+    logPath = os.path.join(directory, f"0_log-{now.strftime('%Y%m%d%H%M')}.txt")
+    logFile = open(logPath, "w")                                    
+    logFile.write("\n" + now.strftime("%Y-%m-%d %H:%M") + "\n")     
+    for key, value in logParams.items():                            
+        logFile.write('%s: %s\n' % (key, value))                    
+    logFile.close()                                                 
+
+def plotComparisons(dataFrame: pd.DataFrame, dependent: str, independent = 'Group Name'):
+    '''
+    This func accepts a dataframe, the name of a dependent variable, and the name of an
+    independent variable (by default, set to Group Name). It returns a figure object showing
+    a box and scatter plot of the dependent variable grouped by the independent variable.
+    '''
+    ax = sns.boxplot(x=independent, y=dependent, data=dataFrame, palette = "Set2", showfliers = False)
+    ax = sns.swarmplot(x=independent, y=dependent, data=dataFrame, color=".25")	
+    ax.set_xticklabels(ax.get_xticklabels(),rotation=45)
+    fig = ax.get_figure()
+    return fig
 
 ''' ** error catching for group names ** '''
 # list of file names in specified directory
@@ -105,7 +121,8 @@ stats_list = []
 # emtpy list to fill with column headers
 col_headers = []
 # create main save path
-main_save_path = os.path.join(folder_path, "0_signalProcessing")
+now = datetime.datetime.now()
+main_save_path = os.path.join(folder_path, f"0_signalProcessing-{now.strftime('%Y%m%d%H%M')}")
 # create directory if it doesn't exist
 if not os.path.exists(main_save_path):
     os.makedirs(main_save_path)
@@ -115,92 +132,132 @@ summary_list = []
 # column headers to use with summary data during conversion to dataframe
 col_headers = []
 
-for file_name in file_names: 
-    print(f"Starting to work on {file_name}")
-    processor = SignalProcessor(image_path = f'{folder_path}/{file_name}', box_size = box_size)
+print('Processing files...')
+with tqdm(total = len(file_names)) as pbar:
+    for file_name in file_names: 
+        processor = SignalProcessor(image_path = f'{folder_path}/{file_name}', box_size = box_size)
 
-    # log error and skip image if frames < 2 or channels >2
-    if processor.num_frames < 2:
-        print(f"****** ERROR ******",
-              f"\n{file_name} has less than 2 frames",
-              "\n****** ERROR ******")
-        log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
-        continue
-    if processor.num_channels > 2:
-        print(f"****** ERROR ******",
-              f"\n{file_name} has more than 2 channels",
-              "\n****** ERROR ******")
-        log_params['Files Not Processed'].append(f'{file_name} has more than 2 channels')
-        continue
-    
-    # if file is not skipped, log it and continue
-    log_params['Files Processed'].append(f'{file_name}')
+        # log error and skip image if frames < 2 or channels >2
+        if processor.num_frames < 2:
+            print(f"****** ERROR ******",
+                f"\n{file_name} has less than 2 frames",
+                "\n****** ERROR ******")
+            log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
+            continue
+        if processor.num_channels > 2:
+            print(f"****** ERROR ******",
+                f"\n{file_name} has more than 2 channels",
+                "\n****** ERROR ******")
+            log_params['Files Not Processed'].append(f'{file_name} has more than 2 channels')
+            continue
+        
+        # if file is not skipped, log it and continue
+        log_params['Files Processed'].append(f'{file_name}')
 
-    # name without the extension
-    name_wo_ext = file_name.rsplit(".",1)[0]
+        # name without the extension
+        name_wo_ext = file_name.rsplit(".",1)[0]
 
-    # set save path for output for each image file
-    boxSavePath = pathlib.Path(folder_path + "/0_signalProcessing/" + name_wo_ext)
-    boxSavePath.mkdir(exist_ok=True, parents=True)
-    
-    # if user entered group name(s) into GUI, match the group for this file
-    if group_names != ['']:                                      # if user entered group names to compare...
-        group_name = [group for group in group_names if group in name_wo_ext][0]
+        # set save path for output for each image file
+        boxSavePath = pathlib.Path(folder_path + "/0_signalProcessing/" + name_wo_ext)
+        boxSavePath.mkdir(exist_ok=True, parents=True)
+        
+        # if user entered group name(s) into GUI, match the group for this file. If no match, keep set to None
+        group_name = None
+        if group_names != ['']:
+            try:
+                group_name = [group for group in group_names if group in name_wo_ext][0]
+            except IndexError:
+                pass
 
-    # calculate the number of boxes used for analysis
-    num_boxes = processor.x_boxes * processor.y_boxes
+        # calculate the number of boxes used for analysis
+        num_boxes = processor.x_boxes * processor.y_boxes
 
-    # calculate autocorrelation for each channel for each box
-    acf_results = processor.calc_ACF(peak_thresh = acf_peak_thresh)
+        # calculate autocorrelation for each channel for each box
+        acf_results = processor.calc_ACF(peak_thresh = acf_peak_thresh)
 
-    # if possible, calculate the cross correlation between channels for each box
-    if processor.num_channels == 2:
-        ccf_results = processor.calc_CCF()
+        # if possible, calculate the cross correlation between channels for each box
+        if processor.num_channels == 2:
+            ccf_results = processor.calc_CCF()
 
-    # calculate the peak properties (width, max, min, amp, relAmp) for each channel for each box
-    peak_properties = processor.calc_peaks()
-    
-    # create a subfolder within the main save path with the same name as the image file
-    im_save_path = os.path.join(main_save_path, name_wo_ext)
-    if not os.path.exists(im_save_path):
-        os.makedirs(im_save_path)
+        # calculate the peak properties (width, max, min, amp, relAmp) for each channel for each box
+        peak_properties = processor.calc_peaks()
+        
+        # create a subfolder within the main save path with the same name as the image file
+        im_save_path = os.path.join(main_save_path, name_wo_ext)
+        if not os.path.exists(im_save_path):
+            os.makedirs(im_save_path)
 
-    # summaryize the data for current image as dataframe, and save as .csv
-    im_measurements_df, im_summary_dict = processor.summarize_results()
-    im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)
+        # summaryize the data for current image as dataframe, and save as .csv
+        im_measurements_df, im_summary_dict = processor.summarize_results(file_name = file_name, group_name = group_name)
+        im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)
 
-    # populate column headers list with keys from the measurements dictionary
-    for key in im_summary_dict.keys(): 
-        if key not in col_headers: 
-            col_headers.append(key) 
-    
-    # append summary data to the summary list
-    summary_list.append(im_summary_dict)
+        # populate column headers list with keys from the measurements dictionary
+        for key in im_summary_dict.keys(): 
+            if key not in col_headers: 
+                col_headers.append(key) 
+        
+        # append summary data to the summary list
+        summary_list.append(im_summary_dict)
 
-    # plot and save the population autocorrelation results for each channel
-    acf_plots = processor.plot_mean_CF()
-    ch1_acf_plot = acf_plots['Ch1 ACF']
-    ch1_acf_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch1_ACF.png')
-    if processor.num_channels == 2:
-        ch2_acf_plot = acf_plots['Ch2 ACF']
-        ch2_acf_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch2_ACF.png')
-        ccf_plot = acf_plots['Mean CCF']
-        ccf_plot.savefig(f'{im_save_path}/{name_wo_ext}_CCF.png')
+        # plot and save the population autocorrelation results for each channel
+        acf_plots = processor.plot_mean_CF()
+        ch1_acf_plot = acf_plots['Ch1 ACF']
+        ch1_acf_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch1_ACF.png')
+        if processor.num_channels == 2:
+            ch2_acf_plot = acf_plots['Ch2 ACF']
+            ch2_acf_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch2_ACF.png')
+            ccf_plot = acf_plots['Mean CCF']
+            ccf_plot.savefig(f'{im_save_path}/{name_wo_ext}_CCF.png')
 
-    # plot and save the population peak properties for each channel
-    peak_plots = processor.plot_peak_props()
-    ch1_peak_plot = peak_plots['Ch1']
-    ch1_peak_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch1_Peaks.png')
-    if processor.num_channels == 2:
-        ch2_peak_plot = peak_plots['Ch2']
-        ch2_peak_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch2_Peaks.png')
+        # plot and save the population peak properties for each channel
+        peak_plots = processor.plot_peak_props()
+        ch1_peak_plot = peak_plots['Ch1']
+        ch1_peak_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch1_Peaks.png')
+        if processor.num_channels == 2:
+            ch2_peak_plot = peak_plots['Ch2']
+            ch2_peak_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch2_Peaks.png')
+        pbar.update(1)
 
 
 # convert summary_list to dataframe using the column headers and save to main save path
 summary_df = pd.DataFrame(summary_list, columns = col_headers)
 summary_df.to_csv(f'{main_save_path}/summary.csv', index = False)
 
+# if group names were entered into the gui, generate comparisons between each group
+if group_names != ['']:
+    print('Generating group comparisons...')
+    # make a group comparisons save path in the main save directory
+    group_save_path = os.path.join(main_save_path, "0_groupComparisons")
+    if not os.path.exists(group_save_path):
+        os.makedirs(group_save_path)
+    
+    # make a list of parameters to compare
+    params_to_compare = ['Ch1 Mean Period', 
+                         'Ch1 Mean Amp', 
+                         'Ch1 Mean Width', 
+                         'Ch1 Mean Max', 
+                         'Ch1 Mean Min', 
+                         'Ch1 Mean RelAmp']
+    if processor.num_channels == 2:
+        params_to_compare.extend(['Ch2 Mean Period', 
+                                  'Ch2 Mean Amp', 
+                                  'Ch2 Mean Width', 
+                                  'Ch2 Mean Max', 
+                                  'Ch2 Mean Min', 
+                                  'Ch2 Mean RelAmp'])
+
+    # generate and save figures for each parameter
+    for param in params_to_compare:
+        try:
+            fig = plotComparisons(summary_df, param)
+            fig.savefig(f'{group_save_path}/{param}.png')
+            plt.close(fig)
+        except ValueError:
+            log_params['Plotting errors'].append(f'No data to compare for {param}')
+
+
 end = timeit.default_timer()
 log_params["Time Elapsed"] = f"{end - start:.2f} seconds"
 # log parameters and errors
 make_log(main_save_path, log_params)
+print('Done!')
