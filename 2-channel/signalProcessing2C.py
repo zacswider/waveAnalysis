@@ -227,11 +227,14 @@ with tqdm(total = len(file_names)) as pbar:
         # for rolling analysis, summarize the data for each subframe as dataframe, and save as .csv
         if rolling:
             im_measurements_dfs, im_summary_df = processor.summarize_rolling_results(file_name = file_name)
+            csv_save_path = os.path.join(im_save_path, 'rolling_measurements')
+            if not os.path.exists(csv_save_path):
+                os.makedirs(csv_save_path)
             for measurement_index, measurment in enumerate(im_measurements_dfs.values()):
                 # save as csv
-                measurment.to_csv(f'{im_save_path}/{name_wo_ext}_subframe{measurement_index}_measurements.csv', index = False)
+                measurment.to_csv(f'{csv_save_path}/{name_wo_ext}_subframe{measurement_index}_measurements.csv', index = False)
             # save summary dataframe as csv
-            im_summary_df.to_csv(f'{main_save_path}/{name_wo_ext}_summary.csv', index = False)
+            im_summary_df.to_csv(f'{im_save_path}/{name_wo_ext}_summary.csv', index = False)
 
         # populate column headers list with keys from the measurements dictionary
         if not rolling:
@@ -252,6 +255,15 @@ with tqdm(total = len(file_names)) as pbar:
                 ch2_acf_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch2_ACF.png')
                 ccf_plot = acf_plots['Mean CCF']
                 ccf_plot.savefig(f'{im_save_path}/{name_wo_ext}_CCF.png')
+        
+        # make and save the summary plot for rolling data
+        if rolling:
+            summary_plots = processor.plot_rolling_summary()
+            plot_save_path = os.path.join(im_save_path, 'summary_plots')
+            if not os.path.exists(plot_save_path):
+                os.makedirs(plot_save_path)
+            for title, plot in summary_plots.items():
+                plot.savefig(f'{plot_save_path}/{name_wo_ext}_{title}.png')
 
         # plot and save the population peak properties for each channel
         if plot_ind_peaks:
