@@ -1,0 +1,13 @@
+name: waveanalysis
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python
+  - numpy
+  - seaborn
+  - tqdm
+  - tk
+  - pandas
+  - matplotlib
+  - tifffile
