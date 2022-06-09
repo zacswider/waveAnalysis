@@ -20,8 +20,11 @@ class BaseGUI(tk.Tk):
         self.box_size = tk.IntVar()
         self.box_size.set(20)
         self.plot_ind_ACFs = tk.BooleanVar()
+        self.plot_ind_ACFs.set(True)
         self.plot_ind_CCFs = tk.BooleanVar()
+        self.plot_ind_CCFs.set(True)
         self.plot_ind_peaks = tk.BooleanVar()
+        self.plot_ind_peaks.set(True)
         self.acf_peak_thresh = tk.DoubleVar()
         self.acf_peak_thresh.set(0.1)
         self.group_names = tk.StringVar()
@@ -135,7 +138,7 @@ class RollingGUI(tk.Tk):
         self.box_size = tk.IntVar()
         self.box_size.set(20)
         self.subframe_size = tk.IntVar()
-        self.subframe_size.set(100)
+        self.subframe_size.set(50)
         self.subframe_roll = tk.IntVar()
         self.subframe_roll.set(5)
         self.plot_sf_ACFs = tk.BooleanVar()
@@ -181,7 +184,7 @@ class RollingGUI(tk.Tk):
         # create ACF peak threshold label text
         self.acf_peak_thresh_label = ttk.Label(self, text = 'ACF peak threshold')
         self.acf_peak_thresh_label.grid(row = 4, column = 1, padx = 10, sticky = 'W')
-        
+        ''' # making this mandatory for the moment
         # create checkbox for plotting subframe ACFs
         self.plot_sf_ACFs_checkbox = ttk.Checkbutton(self, variable = self.plot_sf_ACFs)
         self.plot_sf_ACFs_checkbox.grid(row = 5, column = 0, padx = 10, sticky = 'E')
@@ -199,7 +202,7 @@ class RollingGUI(tk.Tk):
         self.plot_sf_peaks_checkbox.grid(row = 7, column = 0, padx = 10, sticky = 'E')
         self.plot_sf_peaks_label = ttk.Label(self, text = 'Plot sub-movie peaks')
         self.plot_sf_peaks_label.grid(row = 7, column = 1, padx = 10, sticky = 'W')
-        
+        '''
         # create start button
         self.start_button = ttk.Button(self, text = 'Start analysis')
         self.start_button['command'] = self.start_analysis
