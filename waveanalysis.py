@@ -164,6 +164,8 @@ col_headers = []
 print('Processing files...')
 with tqdm(total = len(file_names)) as pbar:
     for file_name in file_names: 
+        print('******'*10)
+        print(f'Processing {file_name}...')
         if not rolling:
             processor = SignalProcessor(image_path = f'{folder_path}/{file_name}', box_size = box_size)
         if rolling:
@@ -302,7 +304,8 @@ if group_names != ['']:
                                   'Ch2 Mean Width', 
                                   'Ch2 Mean Max', 
                                   'Ch2 Mean Min', 
-                                  'Ch2 Mean RelAmp'])
+                                  'Ch2 Mean RelAmp',
+                                  'Mean Shift'])
 
     # generate and save figures for each parameter
     for param in params_to_compare:
