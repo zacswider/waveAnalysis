@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import scipy.signal as sig
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 from tifffile import imread, imwrite, TiffFile
 
@@ -91,27 +92,29 @@ class SignalProcessor:
                     self.acf_results[f'Ch{channel+1}_ACF_box{box_num}'] = (delay, acf_curve)
 
         if self.roll: 
-                
-            for channel in range(self.num_channels):
-                for box_num in range(self.num_boxes):
-                    for subframe in range(self.num_subframes):
-                        # calculate full autocorrelation
-                        signal = self.box_means[box_num, channel, self.roll_by*subframe : self.roll_size + self.roll_by*subframe]
-                        acf_curve = np.correlate(signal - signal.mean(), signal - signal.mean(), mode='full')
-                        # normalize the curve
-                        acf_curve = acf_curve / (self.roll_size * signal.std() ** 2)
-                        peaks, _ = sig.find_peaks(acf_curve, prominence=peak_thresh)
-                        # absolute difference between each peak and zero
-                        peaks_abs = abs(peaks - acf_curve.shape[0]//2)
-                        # if peaks were identified, pick the one closest to the center
-                        if len(peaks) > 1:
-                            delay = np.min(peaks_abs[np.nonzero(peaks_abs)])
-                        # otherwise, return nans for both period and autocorrelation curve
-                        else:
-                            delay = np.nan
-                            acf_curve = np.full((self.num_frames*2-1), np.nan)
+            total_actions = self.num_channels*self.num_boxes*self.num_subframes
+            with tqdm(total = total_actions, miniters = total_actions / 100) as acf_pbar:  
+                for channel in range(self.num_channels):
+                    for box_num in range(self.num_boxes):
+                        for subframe in range(self.num_subframes):
+                            acf_pbar.update(1)
+                            # calculate full autocorrelation
+                            signal = self.box_means[box_num, channel, self.roll_by*subframe : self.roll_size + self.roll_by*subframe]
+                            acf_curve = np.correlate(signal - signal.mean(), signal - signal.mean(), mode='full')
+                            # normalize the curve
+                            acf_curve = acf_curve / (self.roll_size * signal.std() ** 2)
+                            peaks, _ = sig.find_peaks(acf_curve, prominence=peak_thresh)
+                            # absolute difference between each peak and zero
+                            peaks_abs = abs(peaks - acf_curve.shape[0]//2)
+                            # if peaks were identified, pick the one closest to the center
+                            if len(peaks) > 1:
+                                delay = np.min(peaks_abs[np.nonzero(peaks_abs)])
+                            # otherwise, return nans for both period and autocorrelation curve
+                            else:
+                                delay = np.nan
+                                acf_curve = np.full((self.num_frames*2-1), np.nan)
 
-                        self.acf_results[f'Ch{channel+1}_ACF_box{box_num}_subframe{subframe}_'] = (delay, acf_curve)
+                            self.acf_results[f'Ch{channel+1}_ACF_box{box_num}_subframe{subframe}_'] = (delay, acf_curve)
 
         return self.acf_results
                 
@@ -137,20 +140,23 @@ class SignalProcessor:
                 shift = delay_index - cc_curve.shape[0]//2
                 self.ccf_results[f'CCF_box{box_num}'] = (shift, cc_curve)
         if self.roll:
-            for subframe in range(self.num_subframes):
-                for box_num in range(self.num_boxes):
-                    # calculate full cross-correlation (channels, boxes, frames)
-                    signal_1 = self.box_means[box_num, 1, self.roll_by*subframe : self.roll_size + self.roll_by*subframe]
-                    signal_2 = self.box_means[box_num, 0, self.roll_by*subframe : self.roll_size + self.roll_by*subframe]
-                    cc_curve = np.correlate(signal_1 - signal_1.mean(), signal_2 - signal_2.mean(), mode='full')
-                    # normalize the curve
-                    cc_curve = cc_curve / (self.num_frames * signal_1.std() * signal_2.std())
-                    # find the peak closes to zero
-                    peaks, _ = sig.find_peaks(cc_curve)
-                    peaks_abs = abs(peaks - cc_curve.shape[0]//2)
-                    delay_index = peaks[np.argmin(peaks_abs)]
-                    shift = delay_index - cc_curve.shape[0]//2
-                    self.ccf_results[f'CCF_box{box_num}_subframe{subframe}_'] = (shift, cc_curve)
+            total_action = self.num_subframes*self.num_boxes
+            with tqdm(total = total_action, miniters=total_action/100) as ccf_pbar:
+                for subframe in range(self.num_subframes):
+                    for box_num in range(self.num_boxes):
+                        ccf_pbar.update(1)
+                        # calculate full cross-correlation (channels, boxes, frames)
+                        signal_1 = self.box_means[box_num, 1, self.roll_by*subframe : self.roll_size + self.roll_by*subframe]
+                        signal_2 = self.box_means[box_num, 0, self.roll_by*subframe : self.roll_size + self.roll_by*subframe]
+                        cc_curve = np.correlate(signal_1 - signal_1.mean(), signal_2 - signal_2.mean(), mode='full')
+                        # normalize the curve
+                        cc_curve = cc_curve / (self.num_frames * signal_1.std() * signal_2.std())
+                        # find the peak closes to zero
+                        peaks, _ = sig.find_peaks(cc_curve)
+                        peaks_abs = abs(peaks - cc_curve.shape[0]//2)
+                        delay_index = peaks[np.argmin(peaks_abs)]
+                        shift = delay_index - cc_curve.shape[0]//2
+                        self.ccf_results[f'CCF_box{box_num}_subframe{subframe}_'] = (shift, cc_curve)
 
         return self.ccf_results
 
@@ -180,24 +186,26 @@ class SignalProcessor:
                         self.peak_results[f'Ch{channel+1}_box{box_num}'] = (np.nan, np.nan, np.nan, np.nan, np.nan)
         
         if self.roll:
-            for subframe in range(self.num_subframes):
-                for channel in range(self.num_channels):
-                    for box_num in range(self.num_boxes):
-                        signal = sig.savgol_filter(self.box_means[box_num, channel, self.roll_by*subframe : self.roll_size + self.roll_by*subframe], window_length = 11, polyorder = 2)
-                        peaks, _ = sig.find_peaks(signal, prominence=(np.max(signal)-np.min(signal))*0.1)
-
-                        # if peaks detected, calculate properties and return property averages. Otherwise return nans
-                        if len(peaks) > 0:
-                            proms, _, _ = sig.peak_prominences(signal, peaks)
-                            widths, _, _, _ = sig.peak_widths(signal, peaks, rel_height=0.5)
-                            mean_width = np.mean(widths, axis=0)
-                            mean_max = np.mean(signal[peaks], axis = 0)
-                            mean_min = np.mean(signal[peaks]-proms, axis = 0)
-                            mean_amp = mean_max - mean_min
-                            mean_rel_amp = mean_amp / mean_min
-                            self.peak_results[f'Ch{channel+1}_box{box_num}_subframe{subframe}_'] = (mean_width, mean_max, mean_min, mean_amp, mean_rel_amp)
-                        else:
-                            self.peak_results[f'Ch{channel+1}_box{box_num}_subframe{subframe}_'] = (np.nan, np.nan, np.nan, np.nan, np.nan)
+            total_action = self.num_subframes*self.num_channels*self.num_boxes
+            with tqdm(total = total_action, miniters=total_action/100) as peaks_pbar:
+                for subframe in range(self.num_subframes):
+                    for channel in range(self.num_channels):
+                        for box_num in range(self.num_boxes):
+                            signal = sig.savgol_filter(self.box_means[box_num, channel, self.roll_by*subframe : self.roll_size + self.roll_by*subframe], window_length = 11, polyorder = 2)
+                            peaks, _ = sig.find_peaks(signal, prominence=(np.max(signal)-np.min(signal))*0.1)
+                            peaks_pbar.update(1)
+                            # if peaks detected, calculate properties and return property averages. Otherwise return nans
+                            if len(peaks) > 0:
+                                proms, _, _ = sig.peak_prominences(signal, peaks)
+                                widths, _, _, _ = sig.peak_widths(signal, peaks, rel_height=0.5)
+                                mean_width = np.mean(widths, axis=0)
+                                mean_max = np.mean(signal[peaks], axis = 0)
+                                mean_min = np.mean(signal[peaks]-proms, axis = 0)
+                                mean_amp = mean_max - mean_min
+                                mean_rel_amp = mean_amp / mean_min
+                                self.peak_results[f'Ch{channel+1}_box{box_num}_subframe{subframe}_'] = (mean_width, mean_max, mean_min, mean_amp, mean_rel_amp)
+                            else:
+                                self.peak_results[f'Ch{channel+1}_box{box_num}_subframe{subframe}_'] = (np.nan, np.nan, np.nan, np.nan, np.nan)
         return self.peak_results
 
     # function to summarize measurments statistics by appending them to the beginning of the measurement list
@@ -730,10 +738,10 @@ class SignalProcessor:
         
             if len(self.ccf_results) > 0:
                 subframe_summary['Subframe'] = subframe
-                subframe_summary[f'Shift Mean'] = np.nanmean(shift_measurements[subframe][5:])
-                subframe_summary[f'Shift Median'] = np.nanmedian(shift_measurements[subframe][5:])
-                subframe_summary[f'Shift StdDev'] = np.nanstd(shift_measurements[subframe][5:])
-                subframe_summary[f'Shift SEM'] = np.nanstd(shift_measurements[subframe][5:]) / np.sqrt(len(shift_measurements[subframe][5:]))
+                subframe_summary[f'Mean Shift'] = np.nanmean(shift_measurements[subframe][5:])
+                subframe_summary[f'Median Shift'] = np.nanmedian(shift_measurements[subframe][5:])
+                subframe_summary[f'StdDev Shift'] = np.nanstd(shift_measurements[subframe][5:])
+                subframe_summary[f'SEM Shift'] = np.nanstd(shift_measurements[subframe][5:]) / np.sqrt(len(shift_measurements[subframe][5:]))
             
             if len(self.peak_results) > 0:
                 subframe_summary['Subframe'] = subframe
@@ -797,3 +805,52 @@ class SignalProcessor:
 
         return self.im_measurements, self.file_data_summary
 
+    # function to plot the date from the self.dile_data_summary dataframe
+    def plot_rolling_summary(self):
+        '''
+        This function plots the data from the self.file_data_summary dataframe.
+        '''
+        def return_plot(independent_variable, dependent_variable, dependent_error, y_label):
+            '''
+            This function returns plot objects to its parent fuction
+            '''                
+            fig, ax = plt.subplots()
+            # plot the dataframe
+            ax.plot(self.file_data_summary[independent_variable], 
+                         self.file_data_summary[dependent_variable])
+            # fill between the ± standard deviatio of the dependent variable
+            ax.fill_between(x = self.file_data_summary[independent_variable],
+                            y1 = self.file_data_summary[dependent_variable] - self.file_data_summary[dependent_error],
+                            y2 = self.file_data_summary[dependent_variable] + self.file_data_summary[dependent_error],
+                            color = 'blue',
+                            alpha = 0.25)
+
+            ax.set_xlabel('Frame Number')
+            ax.set_ylabel(y_label)
+            ax.set_title(f'{y_label} over time')
+            plt.close(fig)
+            return fig
+
+        # empty list to fill with plots
+        self.plot_list = {}
+        if len(self.acf_results) > 0:
+            self.plot_list['Ch1 Mean Period'] = return_plot('Subframe', 'Ch1 Mean Period', 'Ch1 StdDev Period', 'Ch1 Mean ± StdDev Period (frames)')
+            if self.num_channels == 2:
+                self.plot_list['Ch2 Mean Period'] = return_plot('Subframe', 'Ch2 Mean Period', 'Ch2 StdDev Period', 'Ch2 Mean ± StdDev Period (frames)')
+        if len(self.ccf_results) > 0:
+            self.plot_list['Mean Shift'] = return_plot('Subframe', 'Mean Shift', 'StdDev Shift', 'Mean ± StdDev Shift (frames)')
+        if len(self.peak_results) > 0:
+            self.plot_list['Ch1 Mean Width'] = return_plot('Subframe', 'Ch1 Mean Width', 'Ch1 StdDev Width', 'Ch1 Mean ± StdDev Width (frames)')
+            self.plot_list['Ch1 Mean Max'] = return_plot('Subframe', 'Ch1 Mean Max', 'Ch1 StdDev Max', 'Ch1 Mean ± StdDev Wave Max (AU)')
+            self.plot_list['Ch1 Mean Min'] = return_plot('Subframe', 'Ch1 Mean Min', 'Ch1 StdDev Min', 'Ch1 Mean ± StdDev Wave Min (AU)')
+            self.plot_list['Ch1 Mean Amp'] = return_plot('Subframe', 'Ch1 Mean Amp', 'Ch1 StdDev Amp', 'Ch1 Mean ± StdDev Wave Amp (AU)')
+            self.plot_list['Ch1 Mean RelAmp'] = return_plot('Subframe', 'Ch1 Mean RelAmp', 'Ch1 StdDev RelAmp', 'Ch1 Mean ± StdDev Wave RelAmp (AU)')
+
+            if self.num_channels == 2:
+                self.plot_list['Ch2 Mean Width'] = return_plot('Subframe', 'Ch2 Mean Width', 'Ch2 StdDev Width', 'Ch2 Mean ± StdDev Width (frames)')
+                self.plot_list['Ch2 Mean Max'] = return_plot('Subframe', 'Ch2 Mean Max', 'Ch2 StdDev Max', 'Ch2 Mean ± StdDev Wave Max (AU)')
+                self.plot_list['Ch2 Mean Min'] = return_plot('Subframe', 'Ch2 Mean Min', 'Ch2 StdDev Min', 'Ch2 Mean ± StdDev Wave Min (AU)')
+                self.plot_list['Ch2 Mean Amp'] = return_plot('Subframe', 'Ch2 Mean Amp', 'Ch2 StdDev Amp', 'Ch2 Mean ± StdDev Wave Amp (AU)')
+                self.plot_list['Ch2 Mean RelAmp'] = return_plot('Subframe', 'Ch2 Mean RelAmp', 'Ch2 StdDev RelAmp', 'Ch2 Mean ± StdDev Wave RelAmp (AU)')
+
+        return self.plot_list
