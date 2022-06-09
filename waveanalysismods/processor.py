@@ -54,7 +54,7 @@ class SignalProcessor:
         for channel in range(self.num_channels):
             for x in range(self.x_boxes):
                 for y in range(self.y_boxes):
-                    self.box_means[x, y, channel, :] = np.mean(self.image[:, 0, channel, (x*self.box_size):(x*self.box_size+self.box_size), (y*self.box_size):(y*self.box_size+self.box_size)], axis=(1,2))
+                    self.box_means[x, y, channel, :] = np.mean(self.image[:, 0, channel, (y*self.box_size):(y*self.box_size+self.box_size), (x*self.box_size):(x*self.box_size+self.box_size)], axis=(1,2))
         # reshape into 2D array. Shape is (channels, boxes, frames)
         self.box_means = self.box_means.reshape((self.num_boxes, self.num_channels, self.num_frames))
 
@@ -238,10 +238,12 @@ class SignalProcessor:
             Space saving function for plotting the mean autocorrelation or crosscorrelation curve.
             Returns a figure object.
             '''
-            fig, ax = plt.subplot_mosaic(mosaic = '''AA
-                                                     BC''')
-            arr_mean = np.mean(arr, axis = 0)
-            arr_std = np.std(arr, axis = 0)
+            fig, ax = plt.subplot_mosaic(mosaic = '''
+                                                  AA
+                                                  BC
+                                                  ''')
+            arr_mean = np.nanmean(arr, axis = 0)
+            arr_std = np.nanstd(arr, axis = 0)
             ax['A'].plot(arr_mean, color='blue')
             ax['A'].fill_between(np.arange(num_points), 
                                             arr_mean - arr_std, 
@@ -250,6 +252,7 @@ class SignalProcessor:
                                             alpha=0.2)
             ax['A'].set_title(f'{channel} Mean {type_of_plot} Curve ± Standard Deviation') 
             ax['B'].hist(shifts_or_periods)
+            shifts_or_periods = shifts_or_periods[~np.isnan(shifts_or_periods)]
             ax['B'].set_xlabel(f'Histogram of {type_of_measurement} values (frames)')
             ax['B'].set_ylabel('Occurances')
             ax['C'].boxplot(shifts_or_periods)
@@ -305,6 +308,11 @@ class SignalProcessor:
         '''
         def return_figure(min_array: np.ndarray, max_array: np.ndarray, amp_array: np.ndarray, width_array: np.ndarray, Ch_name: str):
             fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
+            # filter nans out of arrays
+            min_array = min_array[~np.isnan(min_array)]
+            max_array = max_array[~np.isnan(max_array)]
+            amp_array = amp_array[~np.isnan(amp_array)]
+            width_array = width_array[~np.isnan(width_array)]
 
             labels = ["amp", "min", "max"]                                                  # labels to use
             colors = ['tab:purple', 'tab:orange', 'tab:blue']                               # colors to use
