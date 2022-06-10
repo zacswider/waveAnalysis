@@ -15,7 +15,7 @@ class SignalProcessor:
         self.roll_size = roll_size
         self.roll_by = roll_by
 
-
+        # start new dev branch
         # standardize image dimensions
         with TiffFile(self.image_path) as tif_file:
             metadata = tif_file.imagej_metadata
