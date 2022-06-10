@@ -561,9 +561,6 @@ class SignalProcessor:
         sub-movie as a dataframe, and returns a list of dataframes. Also generates and returns a summary dataframe 
         for the entire movie.
         '''
-        # initial column names
-        col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]
-        col_names.extend([f'Box {box}' for box in range(self.num_boxes)])
             
         # initialize lists to fill with measurements for each box and summary statistics
         if len(self.acf_results) > 0:
@@ -622,11 +619,12 @@ class SignalProcessor:
                 subframe_ch1_pcnt_nopeaks = ((self.num_boxes-len(subframe_ch1_peaks_nonan))/self.num_boxes)*100
                 ch1_pcnt_nopeaks.append(subframe_ch1_pcnt_nopeaks)
 
-                subframe_ch1_width_measurements = [val[0] for key, val in self.peak_results.items() if f'subframe{sub_frame}_' in key and 'Ch1' in key]
-                subframe_ch1_max_measurements = [val[1] for key, val in self.peak_results.items() if f'subframe{sub_frame}_' in key and 'Ch2' in key]
-                subframe_ch1_min_measurements = [val[2] for key, val in self.peak_results.items() if f'subframe{sub_frame}_' in key and 'Ch2' in key]
-                subframe_ch1_amp_measurements = [val[3] for key, val in self.peak_results.items() if f'subframe{sub_frame}_' in key and 'Ch2' in key]
-                subframe_ch1_relAmp_measurements = [val[4] for key, val in self.peak_results.items() if f'subframe{sub_frame}_' in key and 'Ch2' in key]
+                #separate out specific measurements
+                subframe_ch1_width_measurements = [val[0] for val in subframe_ch1_peaks]
+                subframe_ch1_max_measurements = [val[1] for val in subframe_ch1_peaks]
+                subframe_ch1_min_measurements = [val[2] for val in subframe_ch1_peaks]
+                subframe_ch1_amp_measurements = [val[3] for val in subframe_ch1_peaks]
+                subframe_ch1_relAmp_measurements = [val[4] for val in subframe_ch1_peaks]
 
                 if self.num_channels == 2:
                     # calculate the percent of boxes that didn't return any peak information
@@ -635,15 +633,12 @@ class SignalProcessor:
                     subframe_ch2_pcnt_nopeaks = ((self.num_boxes-len(subframe_ch2_peaks_nonan))/self.num_boxes)*100
                     ch2_pcnt_nopeaks.append(subframe_ch2_pcnt_nopeaks)
 
-                    subframe_ch2_width_measurements = [val[0] for key, val in self.peak_results.items() if f'subframe{sub_frame}_' in key and 'Ch2' in key]
-                    subframe_ch2_max_measurements = [val[1] for key, val in self.peak_results.items() if f'subframe{sub_frame}_' in key and 'Ch2' in key]
-                    subframe_ch2_min_measurements = [val[2] for key, val in self.peak_results.items() if f'subframe{sub_frame}_' in key and 'Ch2' in key]
-                    subframe_ch2_amp_measurements = [val[3] for key, val in self.peak_results.items() if f'subframe{sub_frame}_' in key and 'Ch2' in key]
-                    subframe_ch2_relAmp_measurements = [val[4] for key, val in self.peak_results.items() if f'subframe{sub_frame}_' in key and 'Ch2' in key]
-
-                
-
-
+                    #separate out specific measurements 
+                    subframe_ch2_width_measurements = [val[0] for val in subframe_ch2_peaks]
+                    subframe_ch2_max_measurements = [val[1] for val in subframe_ch2_peaks]
+                    subframe_ch2_min_measurements = [val[2] for val in subframe_ch2_peaks]
+                    subframe_ch2_amp_measurements = [val[3] for val in subframe_ch2_peaks]
+                    subframe_ch2_relAmp_measurements = [val[4] for val in subframe_ch2_peaks]
 
 
                 # append to growing list
@@ -721,6 +716,10 @@ class SignalProcessor:
 
             subframe_measurements.append(subframe_data)
 
+        # initial column names
+        col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]
+        col_names.extend([f'Box {box}' for box in range(self.num_boxes)])
+
         for subframe in range(self.num_subframes):
             self.im_measurements[f'subframe{subframe}'] = pd.DataFrame(np.array(subframe_measurements[subframe]).tolist(), columns = col_names)
 
@@ -754,6 +753,7 @@ class SignalProcessor:
             
             if len(self.peak_results) > 0:
                 subframe_summary['Subframe'] = subframe
+                subframe_summary['Ch1 pcnt boxes with no peak data'] = ch1_pcnt_nopeaks
                 subframe_summary['Ch1 Mean Width'] = np.nanmean(ch1_width_measurements[subframe][5:])
                 subframe_summary['Ch1 Median Width'] = np.nanmedian(ch1_width_measurements[subframe][5:])
                 subframe_summary['Ch1 StdDev Width'] = np.nanstd(ch1_width_measurements[subframe][5:])
@@ -776,6 +776,7 @@ class SignalProcessor:
                 subframe_summary['Ch1 SEM RelAmp'] = np.nanstd(ch1_relAmp_measurements[subframe][5:]) / np.sqrt(len(ch1_relAmp_measurements[subframe][5:]))
 
                 if self.num_channels == 2:
+                    subframe_summary['Ch2 pcnt boxes with no peak data'] = ch2_pcnt_nopeaks
                     subframe_summary['Ch2 Mean Width'] = np.nanmean(ch2_width_measurements[subframe][5:])
                     subframe_summary['Ch2 Median Width'] = np.nanmedian(ch2_width_measurements[subframe][5:])
                     subframe_summary['Ch2 StdDev Width'] = np.nanstd(ch2_width_measurements[subframe][5:])
