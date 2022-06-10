@@ -135,10 +135,13 @@ class SignalProcessor:
                 cc_curve = cc_curve / (self.num_frames * signal_1.std() * signal_2.std())
                 # find the peak closes to zero
                 peaks, _ = sig.find_peaks(cc_curve)
-                peaks_abs = abs(peaks - cc_curve.shape[0]//2)
-                delay_index = peaks[np.argmin(peaks_abs)]
-                shift = delay_index - cc_curve.shape[0]//2
-                self.ccf_results[f'CCF_box{box_num}'] = (shift, cc_curve)
+                if len(peaks) > 0:
+                    peaks_abs = abs(peaks - cc_curve.shape[0]//2)
+                    delay_index = peaks[np.argmin(peaks_abs)]
+                    shift = delay_index - cc_curve.shape[0]//2
+                    self.ccf_results[f'CCF_box{box_num}'] = (shift, cc_curve)
+                else:
+                    self.ccf_results[f'CCF_box{box_num}'] = (np.nan, np.full((self.num_frames*2-1), np.nan))
         if self.roll:
             total_action = self.num_subframes*self.num_boxes
             with tqdm(total = total_action, miniters=total_action/100) as ccf_pbar:
@@ -153,10 +156,13 @@ class SignalProcessor:
                         cc_curve = cc_curve / (self.num_frames * signal_1.std() * signal_2.std())
                         # find the peak closes to zero
                         peaks, _ = sig.find_peaks(cc_curve)
-                        peaks_abs = abs(peaks - cc_curve.shape[0]//2)
-                        delay_index = peaks[np.argmin(peaks_abs)]
-                        shift = delay_index - cc_curve.shape[0]//2
-                        self.ccf_results[f'CCF_box{box_num}_subframe{subframe}_'] = (shift, cc_curve)
+                        if len(peaks) > 0:
+                            peaks_abs = abs(peaks - cc_curve.shape[0]//2)
+                            delay_index = peaks[np.argmin(peaks_abs)]
+                            shift = delay_index - cc_curve.shape[0]//2
+                            self.ccf_results[f'CCF_box{box_num}_subframe{subframe}_'] = (shift, cc_curve)
+                        else:
+                            self.ccf_results[f'CCF_box{box_num}_subframe{subframe}_'] = (np.nan, np.full((self.num_frames*2-1), np.nan))
 
         return self.ccf_results
 
@@ -252,7 +258,7 @@ class SignalProcessor:
                                             alpha=0.2)
             ax['A'].set_title(f'{channel} Mean {type_of_plot} Curve ± Standard Deviation') 
             ax['B'].hist(shifts_or_periods)
-            shifts_or_periods = shifts_or_periods[~np.isnan(shifts_or_periods)]
+            shifts_or_periods = [val for val in shifts_or_periods if not np.isnan(val)]
             ax['B'].set_xlabel(f'Histogram of {type_of_measurement} values (frames)')
             ax['B'].set_ylabel('Occurances')
             ax['C'].boxplot(shifts_or_periods)
@@ -309,22 +315,23 @@ class SignalProcessor:
         def return_figure(min_array: np.ndarray, max_array: np.ndarray, amp_array: np.ndarray, width_array: np.ndarray, Ch_name: str):
             fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
             # filter nans out of arrays
-            min_array = min_array[~np.isnan(min_array)]
-            max_array = max_array[~np.isnan(max_array)]
-            amp_array = amp_array[~np.isnan(amp_array)]
-            width_array = width_array[~np.isnan(width_array)]
+            min_array = [val for val in min_array if not np.isnan(val)]
+            max_array = [val for val in max_array if not np.isnan(val)]
+            amp_array = [val for val in amp_array if not np.isnan(val)]
+            width_array = [val for val in width_array if not np.isnan(val)]
 
-            labels = ["amp", "min", "max"]                                                  # labels to use
-            colors = ['tab:purple', 'tab:orange', 'tab:blue']                               # colors to use
-            plot_this = [min_array, max_array, amp_array]                                       # list of lists to plot
-            for label, color, item in zip(labels, colors, plot_this):
-                ax1.hist(item, color = color, label = label, alpha = 0.75)
+            plot_params = { 'min' : (min_array, 'tab:purple'),
+                            'max' : (max_array, 'tab:orange'),
+                            'amp' : (amp_array, 'tab:blue')}                                  # dict of params to plot
+            for labels, (arr, arr_color) in plot_params.items():
+                ax1.hist(arr, color = arr_color, label = labels, alpha = 0.75)
+                bp = ax2.boxplot(arr, patch_artist=True, label = labels)
             ax1.legend(loc='upper right', fontsize = 'small', ncol = 1)
             ax1.set_xlabel(f'{Ch_name} histogram of peak values')
             ax1.set_ylabel('Occurances')
-            bplot = ax2.boxplot(plot_this, vert=True, patch_artist=True, labels=labels)      # boxplot object
-            for patch, color in zip(bplot['boxes'], colors):                                
-                patch.set_facecolor(color) 
+           # bplot = ax2.boxplot(plot_this, vert=True, patch_artist=True, labels=labels)      # boxplot object
+           # for patch, color in zip(bplot['boxes'], colors):                                
+           #     patch.set_facecolor(color) 
             ax2.set_xlabel(f'{Ch_name} boxplot of peak values')
             
             ax3.hist(width_array, color = 'tab:orange', alpha = 0.75)
@@ -376,62 +383,47 @@ class SignalProcessor:
         '''
         Takes the results from the calc_ACF, calc_CCF, and calc_peaks functions and returns a dataframe.
         '''
-        # initial column names
-        col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]
-        for box in range(self.num_boxes):
-            # add box number to column names
-            col_names.append(f"Box {box}")
 
-        # initialize lists to fill with measurements for each box and summary statistics
+        # if ACF results have been calculated, sort out the measurements into a list and calculate the percent of
+        # the total number of boxes that didn't return a period for each channel
         if len(self.acf_results) > 0:
-            ch1_period_measurements = []
-            for key, value in self.acf_results.items():
-                if 'Ch1' in key:
-                    ch1_period_measurements.append(value[0])
-            # calculate the number of boxes that didn't return a period
-            periods_ch1 = [x for x in ch1_period_measurements if np.isnan(x) != True]
-            ch1_pcnt_no_period = ((self.num_boxes-len(periods_ch1))/self.num_boxes)*100
+            ch1_period_measurements = [val[0] for key, val in self.acf_results.items() if 'Ch1' in key]
+            # filter nans out of ch1_period_measurments
+            periods_ch1_nonan = [x for x in ch1_period_measurements if np.isnan(x) != True]
+            ch1_pcnt_no_period = ((self.num_boxes-len(periods_ch1_nonan))/self.num_boxes)*100
 
             if self.num_channels == 2:
-                ch2_period_measurements = []
-                for key, value in self.acf_results.items():
-                    if 'Ch2' in key:
-                        ch2_period_measurements.append(value[0])
-                # calculate the number of boxes that didn't return a period
-                periods_ch2 = [x for x in ch2_period_measurements if np.isnan(x) != True]
-                ch2_pcnt_no_period = ((self.num_boxes-len(periods_ch2))/self.num_boxes)*100
-        
+                ch2_period_measurements = [val[0] for key, val in self.acf_results.items() if 'Ch2' in key]
+                periods_ch2_nonan = [x for x in ch2_period_measurements if np.isnan(x) != True]
+                ch2_pcnt_no_period = ((self.num_boxes-len(periods_ch2_nonan))/self.num_boxes)*100
+                     
+        # if CCF results have been calculated, sort out the measurements into a list and calculate the percent of
+        # the total number of boxes that didn't return a shift
         if len(self.ccf_results) > 0:
-            shift_measurements = []
-            for key, value in self.ccf_results.items():
-                shift_measurements.append(value[0])
+            shift_measurements = [val[0] for val in self.ccf_results.values()]
+            shifts_nonan = [x for x in shift_measurements if np.isnan(x) != True]
+            pcnt_no_shift = ((self.num_boxes-len(shifts_nonan))/self.num_boxes)*100
 
+        # if peak properties have been calculated, sort out the measurements into a list and calculate the percent of
+        # the total number of boxes that didn't find any peaks for each channel
         if len(self.peak_results) > 0:
-            ch1_width_measurements = []
-            ch1_max_measurements = []
-            ch1_min_measurements = []
-            ch1_amp_measurements = []
-            ch1_relAmp_measurements = []
-            for key, value in self.peak_results.items():
-                if 'Ch1' in key:
-                    ch1_width_measurements.append(value[0])
-                    ch1_max_measurements.append(value[1])
-                    ch1_min_measurements.append(value[2])
-                    ch1_amp_measurements.append(value[3])
-                    ch1_relAmp_measurements.append(value[4])
+            ch1_peak_measurements = [val for key, val in self.peak_results.items() if 'Ch1' in key]
+            ch1_peak_meas_nonan = [x for x in ch1_peak_measurements if not np.nan in x]
+            ch1_pcnt_no_peak = ((self.num_boxes-len(ch1_peak_meas_nonan))/self.num_boxes)*100
+            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+            ch1_width_measurements = [val[0] for key, val in self.peak_results.items() if 'Ch1' in key]
+            ch1_max_measurements = [val[1] for key, val in self.peak_results.items() if 'Ch1' in key]
+            ch1_min_measurements = [val[2] for key, val in self.peak_results.items() if 'Ch1' in key]
+            ch1_amp_measurements = [val[3] for key, val in self.peak_results.items() if 'Ch1' in key]
+            ch1_relAmp_measurements = [val[4] for key, val in self.peak_results.items() if 'Ch1' in key]
+
             if self.num_channels == 2:
-                ch2_width_measurements = []
-                ch2_max_measurements = []
-                ch2_min_measurements = []
-                ch2_amp_measurements = []
-                ch2_relAmp_measurements = []
-                for key, value in self.peak_results.items():
-                    if 'Ch2' in key:
-                        ch2_width_measurements.append(value[0])
-                        ch2_max_measurements.append(value[1])
-                        ch2_min_measurements.append(value[2])
-                        ch2_amp_measurements.append(value[3])
-                        ch2_relAmp_measurements.append(value[4])
+                ch2_width_measurements = [val[0] for key, val in self.peak_results.items() if 'Ch2' in key]
+                ch2_max_measurements = [val[1] for key, val in self.peak_results.items() if 'Ch2' in key]
+                ch2_min_measurements = [val[2] for key, val in self.peak_results.items() if 'Ch2' in key]
+                ch2_amp_measurements = [val[3] for key, val in self.peak_results.items() if 'Ch2' in key]
+                ch2_relAmp_measurements = [val[4] for key, val in self.peak_results.items() if 'Ch2' in key]
 
         # insert Mean, Median, StdDev, and SEM into the beginning of each  list
         if len(self.acf_results) > 0:
@@ -454,6 +446,10 @@ class SignalProcessor:
                 ch2_max_measurements = self.add_stats(ch2_max_measurements, "Ch2 Max")
                 ch2_min_measurements = self.add_stats(ch2_min_measurements, "Ch2 Min")
                 ch2_relAmp_measurements = self.add_stats(ch2_relAmp_measurements, "Ch2 Relative Amplitude")
+
+        # column names for the dataframe summarizing the box results
+        col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]
+        col_names.extend([f'Box{i}' for i in range(self.num_boxes)])
 
         # append the lists to the dictionary, if they exist
         self.im_measurements = pd.DataFrame(columns = col_names)
@@ -484,14 +480,15 @@ class SignalProcessor:
             self.file_data_summary['Group Name'] = group_name
         self.file_data_summary['Num Boxes'] = self.num_boxes
         if len(self.acf_results) > 0:
-            self.file_data_summary['Ch1 % Zero Boxes'] = ch1_pcnt_no_period
+            self.file_data_summary['Ch1 % No Period'] = ch1_pcnt_no_period
             self.file_data_summary['Ch1 Mean Period'] = np.nanmean(ch1_period_measurements[5:])
             self.file_data_summary['Ch1 Median Period'] = np.nanmedian(ch1_period_measurements[5:])
             self.file_data_summary['Ch1 StdDev Period'] = np.nanstd(ch1_period_measurements[5:])
             self.file_data_summary['Ch1 SEM Period'] = np.nanstd(ch1_period_measurements[5:]) / np.sqrt(len(ch1_period_measurements[5:]))
 
             if self.num_channels == 2:
-                self.file_data_summary['Ch2 % Zero Boxes'] = ch2_pcnt_no_period
+                self.file_data_summary['Ch2 % No Period'] = ch2_pcnt_no_period
+                self.file_data_summary['% No Shift'] = pcnt_no_shift
                 self.file_data_summary['Ch2 Mean Period'] = np.nanmean(ch2_period_measurements[5:])
                 self.file_data_summary['Ch2 Median Period'] = np.nanmedian(ch2_period_measurements[5:])
                 self.file_data_summary['Ch2 StdDev Period'] = np.nanstd(ch2_period_measurements[5:])
@@ -578,8 +575,8 @@ class SignalProcessor:
                 # append to growing list
                 ch1_period_measurements.append(subframe_ch1_period_measurements)
                 # calculate the number of boxes that didn't return a period
-                periods_ch1 = [x for x in subframe_ch1_period_measurements if np.isnan(x) != True]
-                ch1_pcnt_no_period = ((self.num_boxes-len(periods_ch1))/self.num_boxes)*100
+                periods_ch1_nonan = [x for x in subframe_ch1_period_measurements if np.isnan(x) != True]
+                ch1_pcnt_no_period = ((self.num_boxes-len(periods_ch1_nonan))/self.num_boxes)*100
                 ch1_pcnt_zero_measurements.append(ch1_pcnt_no_period)
 
                 if self.num_channels == 2:
@@ -591,8 +588,8 @@ class SignalProcessor:
                     # append to growing list
                     ch2_period_measurements.append(subframe_ch2_period_measurements)
                     # calculate the number of boxes that didn't return a period
-                    periods_ch2 = [x for x in subframe_ch2_period_measurements if np.isnan(x) != True]
-                    ch2_pcnt_no_period = ((self.num_boxes-len(periods_ch2))/self.num_boxes)*100
+                    periods_ch2_nonan = [x for x in subframe_ch2_period_measurements if np.isnan(x) != True]
+                    ch2_pcnt_no_period = ((self.num_boxes-len(periods_ch2_nonan))/self.num_boxes)*100
                     ch2_pcnt_zero_measurements.append(ch2_pcnt_no_period)
         
         if len(self.ccf_results) > 0:
