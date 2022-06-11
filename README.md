@@ -2,16 +2,44 @@
 signalProcessing2C.py is written to batch analyze excitable / oscillatory dynamics in both 1-channel and 2-channel time lapse datasets. This workflow was conceptually based off of a MATLAB framework written by Marcin Leda and Andrew Goryachev (published in Bement _et al.,_ 2015; PMID 26479320), and was reimagined here in Python form to increase speed, accuracy, and access. This script analyzes signal period, amplitude, temporal duration, and (if applicable) the temporal shift between signals in short time lapse datasets (tens of frames, typically). We have also incorporated the ability to analyze these metrics across extended timelapse datasets (hundreds - thousands of frames).
 
 ## Overview
-A population of waves (or similar repetetive signals) can be quantified by individually measuring 
+
+In this workflow, each channel is broken up in n boxes (the box size will depend on the size of the features of interest):
+
+![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/boxes_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/boxes_light.jpg#gh-light-mode-only)
+
+And each box is measured independently as follows:
+
+The mean pixel intensity in each box, when viewed over time, is a readout for the oscillatory dynamics in that region. For each channel, the period of the oscillatory signal can be estimated by calculating the autocorrelation of that signal.
+
+![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/autocorrelation_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/autocorrelation_light.jpg#gh-light-mode-only)
+
+For 2-channel datasets, the temporal shift (if any) between the two signals is estimated by calculating the crosscorrelation of the two channels. 
+
+![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/crosscorrelation_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/crosscorrelation_light.jpg#gh-light-mode-only)
 
 
+Oscillation properties (e.g., signal peak, signal trough, signal amplitude, temporal duration) can be determined from each waveform. As a precaution for noisy data, which real-world data are more often than not, the signal are smoothed using a Savitzky–Golay filter to avoid quantifying spurious peaks.
 
+![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/peaks_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/peaks_light.jpg#gh-light-mode-only)
 
+Once each box has been independently quantified, they can be combined to estimate properties of the wave population. For example, in the example above we measured a period of 12 frames, is that measurement representative of the whole sample? By looking at the distribution of all period measurements, we can see that it is. 
+
+![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/meanACF_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/meanACF_light.jpg#gh-light-mode-only)
+
+Similarly, we can assess the population of signal shift measurements, and oscillation/wave properties.
+
+![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/meanPeaks_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/meanPeaks_light.jpg#gh-light-mode-only)
+
+If we choose to compare different groups, we will get file full of plots comparing each signal metric between groups.
+
+![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/comparisons_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/comparisons_light.jpg#gh-light-mode-only)
+
+### Rolling analysis
+The above workflow describes the analysis of datasets over the totality of their time axis. This is perfectly suitable for data containing only a few wave (or oscillation) periods. However, if your data instead contains tens, hundreds, or thousands of wave periods this analysis will be insufficient. Instead, we can calculate the dynamics within short and overlapping sub-sections of the dataset to track the changes in wave/oscillation properties over time.
+
+![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/rollingOutput_light.jpg#gh-light-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/rollingOutput_dark.jpg#gh-dark-mode-only)
 
 The primary dependencies are numpy, seaborn, tqdm, tk, pandas, matplotlib, tifffile, scipy. See the environment.yml file to create your own environment. 
-
-
-
 
 
 ## Preparing data for analysis
@@ -56,86 +84,28 @@ Executing transaction: done
 
 <img src="https://github.com/zacswider/README_Images/blob/main/gui%201.png" width="800">
 
-1) This is the source directory for you analysis. Navigate to it using the "Select source directory button". This directory should have one or more time lapse datasets saved in standard standard `tzcyx` order. If the data are not max projected along the z-axis prior to analysis, they will be max projected by the processing script.
+1) This is the source directory for your analysis. Navigate to it using the "Select source directory button". This directory should have one or more time lapse datasets saved in standard standard `tzcyx` order. If the data are not max projected along the z-axis prior to analysis, they will be max projected by the processing script.
 2) This is the box size used for analysis. Boxes should be large enough to filter out noise, but small enough that they don't over-fill the structures being analyzed. A good way to empirically find the apppropriate box size is to open your data in [FIJI](https://imagej.net/software/fiji/), draw a box with the rectangle selection tool, open up the z-axis profile plotter `Image > Stacks > Plot Z-axis Profile`, click the "Live" button, and adjust the box dimensions to find a size that you feel like accurately captures the temporal dynamics.
 3) The is the minimum prominence in the autocorrelation curve to be considered a genuine period. Using the default parameter `0.1`, 
-4) If you want to compare the population measurements between different groups, enter the groups names in this space. These names *must* be present within the names of the file being processed. Box #8 must also be checked if group names are entered in this space.
-5) If you check this box, a graphical output of the autocorrelation for every box analyzed will be saved to the analysis folder.
-6) If you check this box, a graphical output of the crosscorrelation for every box analyzed will be saved to the analysis folder.
-7) If you check this box, a graphical output of the wave peak analalysis for every box analyzed will be saved to the analysis folder.
-8) Check this box if you want to export a comparison of the groups to the analysis folder. 
+4) If you want to compare the population measurements between different groups, enter the groups names in this space. These names *must* be present within the names of the file being processed. A single data set cannot match multiple groups.
+5) If you check this box, a graphical output of the population autocorrelation will be saved to the analysis folder.
+6) If you check this box, a graphical output of the population crosscorrelation will be saved to the analysis folder.
+7) If you check this box, a graphical output of the population wave peak analalysis will be saved to the analysis folder.
+8) Click this button to start the analysis.
+9) Click this button if you're not ready to start the analysis.
+10) Click this button if you want to launch the GUI for rolling analysis. 
 
-That's it! Just click start analysis, and the script will process and save the output to your analysis folder. 
+### Rolling analysis
 
+If you clicked button 10 in the previous GUI, the following window will appear:
 
-## Expected Output:
+<img src="https://github.com/zacswider/README_Images/blob/main/gui%202.png" width="800">
 
-
-
-Here we will walk through the analysis of the following dataset: starfish cells treated with the drug Latrunculin B for consecutively longer periods of time. The example on the left (Group 1) is untreated, the example in the middle (Group 2) was treated for ~15 minutes, the example on the right (Group 3) was treated for ~50 minutes. Small cropped examples from each group can be found in the testDatasets folder of this repository. 
-
-![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/groups_dark.gif#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/groups_light.gif#gh-light-mode-only)
-
-In this example, we will be processing a 2-channel dataset, however, 1-channel datasets are also accepted. If a 1-channel dataset is detected it will be processed in the same manner as a 2-channel dataset, they just won't produce a crosscorrelation, which requires two channels. 
-
-In this workflow, each channel is broken up in n boxes (the box size will depend on the size of the features of interest).
-
-![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/boxes_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/boxes_light.jpg#gh-light-mode-only)
-
-And each box is measured independently as follows:
-
-The mean pixel intensity in each box, when viewed over time, is a readout for the oscillatory dynamics in that region. For each channel, the period of the oscillatory signal can be estimated by calculating the autocorrelation of that signal.
-
-![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/autocorrelation_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/autocorrelation_light.jpg#gh-light-mode-only)
-
-For 2-channel datasets, the temporal shift (if any) between the two signals is estimated by calculating the crosscorrelation of the two channels. 
-
-![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/crosscorrelation_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/crosscorrelation_light.jpg#gh-light-mode-only)
-
-
-Oscillation properties (e.g., signal peak, signal trough, signal amplitude, temporal duration) can be determined from each waveform. As a precaution for noisy data, which real-world data are more often than not, the signal are smoothed using a Savitzky–Golay filter to avoid quantifying spurious peaks.
-
-![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/peaks_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/peaks_light.jpg#gh-light-mode-only)
-
-Once each box has been independently quantified, they can be combined to estimate properties of the wave population. For example, in the example above we measured a period of 12 frames, is that measurement representative of the whole sample? By looking at the distribution of all period measurements, we can see that it is. 
-
-![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/meanACF_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/meanACF_light.jpg#gh-light-mode-only)
-
-Similarly, we can assess the population of signal shift measurements, and oscillation/wave properties.
-
-![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/meanPeaks_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/meanPeaks_light.jpg#gh-light-mode-only)
-
-Finally, if we choose to compare different groups, we will get file full of plots comparing each signal metric between groups.
-
-![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/comparisons_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/comparisons_light.jpg#gh-light-mode-only)
-
-
-## Running the scripts
-
-1) If it's not already open, open the terminal by pushing `Command–Space bar`, typing "terminal", and hitting enter.
-2) If you haven't restarted the terminal since installing your environment, you're already in the correct directory. If you aren't sure, type `cd` into the terminal and hit enter. Next, type `cd Desktop/signalProcessing-main` into the terminal and hit enter to navigate to the unzipped flder.
-3) Activate the newly installed environment by typing `conda activate waves` into the terminal and hitting enter. 
-4) Type `python3 signalprocessing2c.py` into the terminal and hit enter to run the script.
-5) It may take a second to connect to the correct environment the first time you run, but next a window will appear asking you for some parameters to adjust:
-
-
-![alt text](https://github.com/zacswider/README_Images/blob/main/GUI.jpg)
-### Setting parameters:
-1) This is the source directory for you analysis. Navigate to it using the "Select source directory button". This directory should have one or more 1 or 2-channel time lapse datasets saved in standard standard `tzcyx` order. 
+1) This is the source directory for your analysis. Navigate to it using the "Select source directory button". 
 2) This is the box size used for analysis. Boxes should be large enough to filter out noise, but small enough that they don't over-fill the structures being analyzed. A good way to empirically find the apppropriate box size is to open your data in [FIJI](https://imagej.net/software/fiji/), draw a box with the rectangle selection tool, open up the z-axis profile plotter `Image > Stacks > Plot Z-axis Profile`, click the "Live" button, and adjust the box dimensions to find a size that you feel like accurately captures the temporal dynamics.
-3) The is the minimum prominence in the autocorrelation curve to be considered a genuine period. Using the default parameter `0.1`, 
-4) If you want to compare the population measurements between different groups, enter the groups names in this space. These names *must* be present within the names of the file being processed. Box #8 must also be checked if group names are entered in this space.
-5) If you check this box, a graphical output of the autocorrelation for every box analyzed will be saved to the analysis folder.
-6) If you check this box, a graphical output of the crosscorrelation for every box analyzed will be saved to the analysis folder.
-7) If you check this box, a graphical output of the wave peak analalysis for every box analyzed will be saved to the analysis folder.
-8) Check this box if you want to export a comparison of the groups to the analysis folder. 
-
-
-
-
-
-
-
-
-
+3) This is the number of frames in each sub-movie. This should cover at least a few wave periods to ensure accurate period measurements.
+4) This is the number of frames to roll forward each sub-movie. The smaller the number, the more finely you will samples the waves over time.
+5) The is the minimum prominence in the autocorrelation curve to be considered a genuine period. Using the default parameter `0.1`, 
+6) Click this button to start the analysis.
+7) Click this button if you're not ready to start the analysis.
 
