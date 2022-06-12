@@ -4,6 +4,131 @@ import scipy.signal as sig
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from tifffile import imread, imwrite, TiffFile
+import scipy.ndimage as nd
+
+class SignalProcessor_new:
+    
+    def __init__(self, image_path, kern, step, roll = False, roll_size = 0, roll_by = 0):
+        self.image_path = image_path
+        self.kernel_size = kern
+        self.image = imread(self.image_path)
+        self.roll = roll
+        self.roll_size = roll_size
+        self.roll_by = roll_by
+        self.step  = step
+
+        # standardize image dimensions
+        with TiffFile(self.image_path) as tif_file:
+            metadata = tif_file.imagej_metadata
+        self.num_channels = metadata.get('channels', 1)
+        self.num_slices = metadata.get('slices', 1)
+        self.num_frames = metadata.get('frames', 1)
+        self.image = self.image.reshape(self.num_frames, 
+                                        self.num_slices, 
+                                        self.num_channels, 
+                                        self.image.shape[-2], 
+                                        self.image.shape[-1])
+
+        # max project image stack if num_slices > 1
+        if self.num_slices > 1:
+            print(f'Max projecting image stack')
+            self.image = np.max(self.image, axis = 1)
+            self.num_slices = 1
+            self.image = self.image.reshape(self.num_frames, 
+                                            self.num_slices, 
+                                            self.num_channels, 
+                                            self.image.shape[-2], 
+                                            self.image.shape[-1])
+
+        # for rolling datasets, specify the number of submovies to analyze
+        if self.roll and not roll_by == 0:
+            self.num_submovies = (self.num_frames - roll_size) // roll_by
+
+        # return the time-axis means for each channel
+        ind = kern // 2
+        self.means = nd.uniform_filter(self.image[:,0,:,:,:], size = (1,1,kern,kern))[:,:,ind:-ind:step, ind:-ind:step]
+        self.xpix = self.means.shape[-2]
+        self.ypix = self.means.shape[-1]
+        self.num_boxes = self.xpix*self.ypix
+        self.means = self.means.reshape(self.means.shape[0], self.means.shape[1], self.num_boxes)
+
+        # empty dictionary to fill with measurements. These will subsequently be populated by the functions
+        # below and returned to the user. They will also be used by the summarizing and plotting functions.
+        self.acf_results = {}
+        self.ccf_results = {}
+        self.peak_results = {}
+
+    # function to return the autocorrelation of each box in the image stack for each channel
+    def calc_ACF(self, peak_thresh=0.1):
+        '''
+        Returns a dictionary containing the channel identify and box number as keys and the
+        calculated period and autocorrelation curve as a values in a tuple.
+        '''
+        if not self.roll:
+            # make empty arrays to populate with 1) period measurements and 2) acf curves
+            self.periods = np.zeros(shape=(self.num_channels, self.num_boxes))
+            self.acfs = np.zeros(shape=(self.num_channels, self.num_boxes, self.num_frames*2-1))
+
+            for channel in range(self.num_channels):
+                for box in range(self.num_boxes):
+                    # calculate full autocorrelation
+                    signal = self.means[:,channel, box]
+                    corr_signal = signal - signal.mean()
+                    acf_curve = np.correlate(corr_signal, corr_signal, mode='full')
+                    # normalize the curve
+                    acf_curve = acf_curve / (self.num_frames * signal.std() ** 2)
+                    peaks, _ = sig.find_peaks(acf_curve, prominence=peak_thresh)
+                    # absolute difference between each peak and zero
+                    peaks_abs = abs(peaks - acf_curve.shape[0]//2)
+                    # if peaks were identified, pick the one closest to the center
+                    if len(peaks) > 1:
+                        delay = np.min(peaks_abs[np.nonzero(peaks_abs)])
+                    # otherwise, return nans for both period and autocorrelation curve
+                    else:
+                        delay = np.nan
+                        acf_curve = np.full((self.num_frames*2-1), np.nan)
+                    self.periods[channel, box] = delay
+                    self.acfs[channel, box] = acf_curve
+        if self.roll:
+            # make empty arrays to populate with 1) period measurements and 2) acf curves
+            self.periods = np.zeros(shape=(self.num_submovies, self.num_channels, self.num_boxes))
+            self.acfs = np.zeros(shape = (self.num_submovies, self.num_channels, self.num_boxes, self.roll_size*2-1))
+
+            with tqdm(total = self.num_submovies*self.num_channels*self.xpix*self.ypix) as pbar:
+                for submovie in range(self.num_submovies):
+                    for channel in range(self.num_channels):
+                        for box in range(self.num_boxes):
+                            pbar.update(1)
+                            # calculate full autocorrelation
+                            signal = self.means[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, channel, box]
+                            corr_signal = signal - signal.mean()
+                            acf_curve = np.correlate(corr_signal, corr_signal, mode='full')
+                            # normalize the curve
+                            acf_curve = acf_curve / (self.num_frames * signal.std() ** 2)
+                            peaks, _ = sig.find_peaks(acf_curve, prominence=peak_thresh)
+                            # absolute difference between each peak and zero
+                            peaks_abs = abs(peaks - acf_curve.shape[0]//2)
+                            # if peaks were identified, pick the one closest to the center
+                            if len(peaks) > 1:
+                                delay = np.min(peaks_abs[np.nonzero(peaks_abs)])
+                            # otherwise, return nans for both period and autocorrelation curve
+                            else:
+                                delay = np.nan
+                                acf_curve = np.full((self.num_frames*2-1), np.nan)
+                            self.periods[submovie, channel, box] = delay
+                            self.acfs[submovie, channel, box] = acf_curve
+
+        return self.periods, self.acfs
+
+
+
+
+
+
+
+
+
+
 
 class SignalProcessor:
     
