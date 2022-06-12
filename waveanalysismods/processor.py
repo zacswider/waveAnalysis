@@ -121,21 +121,24 @@ class TotalSignalProcessor:
             return fig
 
         # empty dict to fill with figures, in the event that we make more than one
-        self.acf_figs = {}
+        self.cf_figs = {}
         
         # make a separate plot for each channel
         for channel in range(self.num_channels):
-            self.acf_figs[f'Ch{channel + 1} Mean ACF'] = return_figure(self.num_frames*2 - 1, 
+            self.cf_figs[f'Ch{channel + 1} Mean ACF'] = return_figure(self.num_frames*2 - 1, 
                                                                     self.acfs[channel], 
                                                                     self.periods[channel], 
                                                                     f'Ch{channel + 1}', 
                                                                     'Autocorrelation', 
                                                                     'period')        
 
-        return self.acf_figs
+        '''
+        ADD PLOTTING FOR CROSSCORR HERE
+        '''
+        return self.cf_figs
 
     # function to summarize the results in the acf_results, ccf_results, and peak_results dictionaries as a dataframe
-    def summarize_images(self):
+    def organize_measurements(self):
         '''
         Takes the results from the calc_ACF, calc_CCF, and calc_peaks functions and returns a dataframe.
         If the analysis is rolling, it returns a list of dataframes, one with raw box measurements and 
@@ -183,7 +186,7 @@ class TotalSignalProcessor:
 
         return self.im_measurements
 
-    def summarize_files(self, file_name = None, group_name = None):
+    def summarize_image(self, file_name = None, group_name = None):
         '''
         !!!!!!
         '''
@@ -204,6 +207,16 @@ class TotalSignalProcessor:
             self.file_data_summary[f'Ch {channel + 1} SEM Period'] = self.periods_with_stats[channel][4]
                 
         return self.file_data_summary
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -362,12 +375,12 @@ class RollingSignalProcessor:
             return fig
 
         # empty dict to fill with figures, in the event that we make more than one
-        self.acf_figs = {}
+        self.cf_figs = {}
         
         # make a separate plot for each channel
         if not self.roll:
             for channel in range(self.num_channels):
-                self.acf_figs[f'Ch{channel + 1} Mean ACF'] = return_figure(self.num_frames*2 - 1, 
+                self.cf_figs[f'Ch{channel + 1} Mean ACF'] = return_figure(self.num_frames*2 - 1, 
                                                                         self.acfs[channel], 
                                                                         self.periods[channel], 
                                                                         f'Ch{channel + 1}', 
@@ -377,7 +390,7 @@ class RollingSignalProcessor:
             
             for submovie in range(self.num_submovies):
                 for channel in range(self.num_channels):
-                    self.acf_figs[f'Submovie{submovie + 1} Ch{channel + 1} Mean ACF'] = return_figure(self.roll_size*2 - 1, 
+                    self.cf_figs[f'Submovie{submovie + 1} Ch{channel + 1} Mean ACF'] = return_figure(self.roll_size*2 - 1, 
                                                                                                     self.acfs[submovie, channel], 
                                                                                                     self.periods[submovie, channel], 
                                                                                                     f'Submovie{submovie + 1} Ch{channel + 1}', 
@@ -393,10 +406,10 @@ class RollingSignalProcessor:
                 box_shifts[box] = self.ccf_results[f'CCF_box{box}'][0]
             
             fig3 = return_figure(x_axis_points, mean_ccfs, box_shifts, 'Mean', 'Cross-correlation', 'shift')
-            self.acf_figs['Mean CCF'] = fig3
+            self.cf_figs['Mean CCF'] = fig3
         '''
 
-        return self.acf_figs
+        return self.cf_figs
 
     # function to summarize the results in the acf_results, ccf_results, and peak_results dictionaries as a dataframe
     def summarize_images(self):
@@ -806,7 +819,7 @@ class SignalProcessor:
         # num points on x-axis
         x_axis_points = self.num_frames*2 - 1
         # empty dict to fill with figures, in the event that we make more than one
-        self.acf_figs = {}
+        self.cf_figs = {}
         
         # populate the ACF data from each box into a single array
         if len(self.acf_results) > 0:
@@ -824,11 +837,11 @@ class SignalProcessor:
                     ch2_box_periods[box] = self.acf_results[f'Ch2_ACF_box{box}'][0]
                 
                 fig2 = return_figure(x_axis_points, ch2_acfs, ch2_box_periods, 'Ch2', 'Autocorrelation', 'period')
-                self.acf_figs['Ch2 ACF'] = fig2
+                self.cf_figs['Ch2 ACF'] = fig2
                 
         
         fig1 = return_figure(x_axis_points, ch1_acfs, ch1_box_periods, 'Ch1', 'Autocorrelation', 'period')
-        self.acf_figs['Ch1 ACF'] = fig1
+        self.cf_figs['Ch1 ACF'] = fig1
 
         if len(self.ccf_results) > 0:
             mean_ccfs = np.zeros(shape=(self.num_boxes, x_axis_points))
@@ -838,9 +851,9 @@ class SignalProcessor:
                 box_shifts[box] = self.ccf_results[f'CCF_box{box}'][0]
             
             fig3 = return_figure(x_axis_points, mean_ccfs, box_shifts, 'Mean', 'Cross-correlation', 'shift')
-            self.acf_figs['Mean CCF'] = fig3
+            self.cf_figs['Mean CCF'] = fig3
         
-        return self.acf_figs
+        return self.cf_figs
 
     # function to plot a summary of the peak measurements
     def plot_peak_props(self):
