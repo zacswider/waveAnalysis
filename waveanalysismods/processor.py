@@ -168,6 +168,16 @@ class SignalProcessor_new:
                                                                         f'Ch{channel + 1}', 
                                                                         'Autocorrelation', 
                                                                         'period')        
+        if self.roll:
+            for submovie in range(self.num_submovies):
+                for channel in range(self.num_channels):
+                    self.acf_figs[f'Submovie{submovie + 1} Ch{channel + 1} Mean ACF'] = return_figure(self.num_frames*2 - 1, 
+                                                        self.acfs[channel], 
+                                                        self.periods[channel], 
+                                                        f'Ch{channel + 1}', 
+                                                        'Autocorrelation', 
+                                                        'period')  
+
         ''''
         if len(self.ccf_results) > 0:
             mean_ccfs = np.zeros(shape=(self.num_boxes, x_axis_points))
@@ -213,6 +223,25 @@ class SignalProcessor_new:
                     meas_list.insert(3, meas_sem)
                     meas_list.insert(0, f'Ch {channel +1} {measurement_name}')
                     statified.append(meas_list)
+            
+            if self.roll:
+                statified = []
+                for submovie in range(self.num_submovies):
+                    submovie_statified = []
+                    for channel in range(self.num_channels):
+                        meas_mean = np.nanmean(measurements[submovie, channel])
+                        meas_median = np.nanmedian(measurements[submovie, channel])
+                        meas_std = np.nanstd(measurements[submovie, channel])
+                        meas_sem = meas_std / np.sqrt(len(measurements[submovie, channel]))
+                        meas_list = list(measurements[submovie, channel])
+                        meas_list.insert(0, meas_mean)
+                        meas_list.insert(1, meas_median)
+                        meas_list.insert(2, meas_std)
+                        meas_list.insert(3, meas_sem)
+                        meas_list.insert(0, f'Submovie{submovie + 1} Ch {channel +1} {measurement_name}')
+                        submovie_statified.append(meas_list)
+                    statified.append(submovie_statified)
+
             return(statified)
 
         # insert Mean, Median, StdDev, and SEM into the beginning of each  list
