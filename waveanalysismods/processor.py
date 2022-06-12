@@ -16,7 +16,201 @@ There will be quite a bit of duplicate code, but that's okay because
 it's a module and I'm not going to see it anyway.
 '''
 
-class SignalProcessor_new:
+class TotalSignalProcessor:
+    
+    def __init__(self, image_path, kern, step):
+        self.image_path = image_path
+        self.kernel_size = kern
+        self.image = imread(self.image_path)
+        self.step  = step
+
+        # standardize image dimensions
+        with TiffFile(self.image_path) as tif_file:
+            metadata = tif_file.imagej_metadata
+        self.num_channels = metadata.get('channels', 1)
+        self.num_slices = metadata.get('slices', 1)
+        self.num_frames = metadata.get('frames', 1)
+        self.image = self.image.reshape(self.num_frames, 
+                                        self.num_slices, 
+                                        self.num_channels, 
+                                        self.image.shape[-2], 
+                                        self.image.shape[-1])
+
+        # max project image stack if num_slices > 1
+        if self.num_slices > 1:
+            print(f'Max projecting image stack')
+            self.image = np.max(self.image, axis = 1)
+            self.num_slices = 1
+            self.image = self.image.reshape(self.num_frames, 
+                                            self.num_slices, 
+                                            self.num_channels, 
+                                            self.image.shape[-2], 
+                                            self.image.shape[-1])
+
+        # return the time-axis means for each channel
+        ind = kern // 2
+        self.means = nd.uniform_filter(self.image[:,0,:,:,:], size = (1,1,kern,kern))[:,:,ind:-ind:step, ind:-ind:step]
+        self.xpix = self.means.shape[-2]
+        self.ypix = self.means.shape[-1]
+        self.num_boxes = self.xpix*self.ypix
+        self.means = self.means.reshape(self.means.shape[0], self.means.shape[1], self.num_boxes)
+
+    # function to return the autocorrelation of each box in the image stack for each channel
+    def calc_ACF(self, peak_thresh=0.1):
+        '''
+        !!!!!!!!!!!!!!!
+        '''
+        # make empty arrays to populate with 1) period measurements and 2) acf curves
+        self.periods = np.zeros(shape=(self.num_channels, self.num_boxes))
+        self.acfs = np.zeros(shape=(self.num_channels, self.num_boxes, self.num_frames*2-1))
+
+        for channel in range(self.num_channels):
+            for box in range(self.num_boxes):
+                # calculate full autocorrelation
+                signal = self.means[:,channel, box]
+                corr_signal = signal - signal.mean()
+                acf_curve = np.correlate(corr_signal, corr_signal, mode='full')
+                # normalize the curve
+                acf_curve = acf_curve / (self.num_frames * signal.std() ** 2)
+                peaks, _ = sig.find_peaks(acf_curve, prominence=peak_thresh)
+                # absolute difference between each peak and zero
+                peaks_abs = abs(peaks - acf_curve.shape[0]//2)
+                # if peaks were identified, pick the one closest to the center
+                if len(peaks) > 1:
+                    delay = np.min(peaks_abs[np.nonzero(peaks_abs)])
+                # otherwise, return nans for both period and autocorrelation curve
+                else:
+                    delay = np.nan
+                    acf_curve = np.full((self.num_frames*2-1), np.nan)
+                self.periods[channel, box] = delay
+                self.acfs[channel, box] = acf_curve
+
+        return self.periods, self.acfs
+
+    # function to plot a summary of the period measurements
+    def plot_mean_CF(self):
+        '''
+        !!!!!!!!!!!!!
+        '''
+        def return_figure(num_points: int, arr: np.ndarray, shifts_or_periods: np.ndarray, channel: str, type_of_plot: str, type_of_measurement: str):
+            '''
+            Space saving function for plotting the mean autocorrelation or crosscorrelation curve. Returns a figure object.
+            '''
+            fig, ax = plt.subplot_mosaic(mosaic = '''
+                                                  AA
+                                                  BC
+                                                  ''')
+            arr_mean = np.nanmean(arr, axis = 0)
+            arr_std = np.nanstd(arr, axis = 0)
+            ax['A'].plot(arr_mean, color='blue')
+            ax['A'].fill_between(np.arange(num_points), 
+                                            arr_mean - arr_std, 
+                                            arr_mean + arr_std, 
+                                            color='blue', 
+                                            alpha=0.2)
+            ax['A'].set_title(f'{channel} Mean {type_of_plot} Curve ± Standard Deviation') 
+            ax['B'].hist(shifts_or_periods)
+            shifts_or_periods = [val for val in shifts_or_periods if not np.isnan(val)]
+            ax['B'].set_xlabel(f'Histogram of {type_of_measurement} values (frames)')
+            ax['B'].set_ylabel('Occurances')
+            ax['C'].boxplot(shifts_or_periods)
+            ax['C'].set_xlabel(f'Boxplot of {type_of_measurement} values')
+            ax['C'].set_ylabel(f'Measured {type_of_measurement} (frames)')
+            fig.subplots_adjust(hspace=0.25, wspace=0.5)   
+            plt.close(fig)
+            return fig
+
+        # empty dict to fill with figures, in the event that we make more than one
+        self.acf_figs = {}
+        
+        # make a separate plot for each channel
+        for channel in range(self.num_channels):
+            self.acf_figs[f'Ch{channel + 1} Mean ACF'] = return_figure(self.num_frames*2 - 1, 
+                                                                    self.acfs[channel], 
+                                                                    self.periods[channel], 
+                                                                    f'Ch{channel + 1}', 
+                                                                    'Autocorrelation', 
+                                                                    'period')        
+
+        return self.acf_figs
+
+    # function to summarize the results in the acf_results, ccf_results, and peak_results dictionaries as a dataframe
+    def summarize_images(self):
+        '''
+        Takes the results from the calc_ACF, calc_CCF, and calc_peaks functions and returns a dataframe.
+        If the analysis is rolling, it returns a list of dataframes, one with raw box measurements and 
+        summary statistics for each submovie.
+        '''
+        
+        # function to summarize measurments statistics by appending them to the beginning of the measurement list
+        def add_stats(measurements: np.ndarray, measurement_name: str):
+            '''
+            Accepts a list of measurements. Calculates the mean, median, standard deviation, and SEM,
+            and append them to the beginning of the list in that order. Finally, appends the name of
+            the measurement of the beginning of the list.
+            '''
+
+            statified = []
+            for channel in range(self.num_channels):
+                meas_mean = np.nanmean(measurements[channel])
+                meas_median = np.nanmedian(measurements[channel])
+                meas_std = np.nanstd(measurements[channel])
+                meas_sem = meas_std / np.sqrt(len(measurements[channel]))
+                meas_list = list(measurements[channel])
+                meas_list.insert(0, meas_mean)
+                meas_list.insert(1, meas_median)
+                meas_list.insert(2, meas_std)
+                meas_list.insert(3, meas_sem)
+                meas_list.insert(0, f'Ch {channel +1} {measurement_name}')
+                statified.append(meas_list)
+            return(statified)
+
+        # insert Mean, Median, StdDev, and SEM into the beginning of each  list
+        self.periods_with_stats = add_stats(self.periods, 'Mean Period')
+        
+        # column names for the dataframe summarizing the box results
+        col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]
+        col_names.extend([f'Box{i}' for i in range(self.num_boxes)])
+
+
+        # combine all the statified measurements into a single list
+        statified_measurements = []
+        for channel in range(self.num_channels):
+            statified_measurements.append(self.periods_with_stats[channel])
+            '''!!!! append more measurements here'''
+        # and turn it into a dataframe
+        self.im_measurements = pd.DataFrame(statified_measurements, columns = col_names)
+
+        return self.im_measurements
+
+    def summarize_files(self, file_name = None, group_name = None):
+        '''
+        !!!!!!
+        '''
+
+        self.file_data_summary = {}
+        pcnt_no_period = [np.count_nonzero(np.isnan(self.periods[channel])) / self.periods[channel].shape[0] * 100 for channel in range(self.num_channels)]
+
+        if file_name:
+            self.file_data_summary['File Name'] = file_name
+        if group_name:
+            self.file_data_summary['Group Name'] = group_name
+        self.file_data_summary['Num Boxes'] = self.num_boxes
+        for channel in range(self.num_channels):
+            self.file_data_summary[f'Ch {channel + 1} Pcnt No Periods'] = pcnt_no_period[channel]
+            self.file_data_summary[f'Ch {channel + 1} Mean Period'] = self.periods_with_stats[channel][1]
+            self.file_data_summary[f'Ch {channel + 1} Median Period'] = self.periods_with_stats[channel][2]
+            self.file_data_summary[f'Ch {channel + 1} StdDev Period'] = self.periods_with_stats[channel][3]
+            self.file_data_summary[f'Ch {channel + 1} SEM Period'] = self.periods_with_stats[channel][4]
+                
+        return self.file_data_summary
+
+
+
+
+
+class RollingSignalProcessor: 
+    '''!!!!!!!! LEFT OFF HERE !!!!!!!!!'''
     
     def __init__(self, image_path, kern, step, roll = False, roll_size = 0, roll_by = 0):
         self.image_path = image_path
@@ -330,12 +524,6 @@ class SignalProcessor_new:
             self.file_data_summary = pd.DataFrame(file_summary, columns = col_names)
                 
         return self.file_data_summary
-
-
-
-
-
-
 
 
 
