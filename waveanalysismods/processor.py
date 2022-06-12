@@ -6,6 +6,16 @@ import matplotlib.pyplot as plt
 from tifffile import imread, imwrite, TiffFile
 import scipy.ndimage as nd
 
+'''
+Thoughts:
+Make a "TotalSignalProcessor" class and a "RollingSignalProcessor" class
+
+This will simplify the readability of the code dramatically.
+
+There will be quite a bit of duplicate code, but that's okay because
+it's a module and I'm not going to see it anyway.
+'''
+
 class SignalProcessor_new:
     
     def __init__(self, image_path, kern, step, roll = False, roll_size = 0, roll_by = 0):
@@ -89,6 +99,7 @@ class SignalProcessor_new:
                         acf_curve = np.full((self.num_frames*2-1), np.nan)
                     self.periods[channel, box] = delay
                     self.acfs[channel, box] = acf_curve
+    
         if self.roll:
             # make empty arrays to populate with 1) period measurements and 2) acf curves
             self.periods = np.zeros(shape=(self.num_submovies, self.num_channels, self.num_boxes))
@@ -169,14 +180,15 @@ class SignalProcessor_new:
                                                                         'Autocorrelation', 
                                                                         'period')        
         if self.roll:
+            
             for submovie in range(self.num_submovies):
                 for channel in range(self.num_channels):
-                    self.acf_figs[f'Submovie{submovie + 1} Ch{channel + 1} Mean ACF'] = return_figure(self.num_frames*2 - 1, 
-                                                        self.acfs[channel], 
-                                                        self.periods[channel], 
-                                                        f'Ch{channel + 1}', 
-                                                        'Autocorrelation', 
-                                                        'period')  
+                    self.acf_figs[f'Submovie{submovie + 1} Ch{channel + 1} Mean ACF'] = return_figure(self.roll_size*2 - 1, 
+                                                                                                    self.acfs[submovie, channel], 
+                                                                                                    self.periods[submovie, channel], 
+                                                                                                    f'Submovie{submovie + 1} Ch{channel + 1}', 
+                                                                                                    'Autocorrelation', 
+                                                                                                    'period')  
 
         ''''
         if len(self.ccf_results) > 0:
@@ -190,15 +202,14 @@ class SignalProcessor_new:
             self.acf_figs['Mean CCF'] = fig3
         '''
 
-        if self.roll:
-            print('not currently supported')
-
         return self.acf_figs
 
     # function to summarize the results in the acf_results, ccf_results, and peak_results dictionaries as a dataframe
-    def summarize_results(self, file_name = None, group_name = None):
+    def summarize_images(self):
         '''
         Takes the results from the calc_ACF, calc_CCF, and calc_peaks functions and returns a dataframe.
+        If the analysis is rolling, it returns a list of dataframes, one with raw box measurements and 
+        summary statistics for each submovie.
         '''
         
         # function to summarize measurments statistics by appending them to the beginning of the measurement list
@@ -224,6 +235,7 @@ class SignalProcessor_new:
                     meas_list.insert(0, f'Ch {channel +1} {measurement_name}')
                     statified.append(meas_list)
             
+            ################################################################################################################
             if self.roll:
                 statified = []
                 for submovie in range(self.num_submovies):
@@ -238,44 +250,86 @@ class SignalProcessor_new:
                         meas_list.insert(1, meas_median)
                         meas_list.insert(2, meas_std)
                         meas_list.insert(3, meas_sem)
-                        meas_list.insert(0, f'Submovie{submovie + 1} Ch {channel +1} {measurement_name}')
+                        meas_list.insert(0, f'Ch {channel +1} {measurement_name}')
                         submovie_statified.append(meas_list)
                     statified.append(submovie_statified)
 
             return(statified)
 
         # insert Mean, Median, StdDev, and SEM into the beginning of each  list
-        periods_with_stats = add_stats(self.periods, 'Mean Period')
-        print(periods_with_stats)
+        self.periods_with_stats = add_stats(self.periods, 'Mean Period')
         
         # column names for the dataframe summarizing the box results
         col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]
         col_names.extend([f'Box{i}' for i in range(self.num_boxes)])
 
         # summarize all of the relevant statistics first
-        statified_measurements = []
-        for channel in range(self.num_channels):
-            statified_measurements.append(periods_with_stats[channel])
+        if not self.roll:
+            # combine all the statified measurements into a single list
+            statified_measurements = []
+            for channel in range(self.num_channels):
+                statified_measurements.append(self.periods_with_stats[channel])
+            # and turn it into a dataframe
+            self.im_measurements = pd.DataFrame(statified_measurements, columns = col_names)
 
-        # append the lists to the dictionary, if they exist
-        self.im_measurements = pd.DataFrame(statified_measurements, columns = col_names)
+        ################################################################################################################
+        if self.roll:
+            self.im_measurements = []
+            for submovie in range(self.num_submovies):
+                statified_measurements = []
+                for channel in range(self.num_channels):
+                    statified_measurements.append(self.periods_with_stats[submovie][channel])
+                submovie_meas_df = pd.DataFrame(statified_measurements, columns = col_names)
+                self.im_measurements.append(submovie_meas_df)
 
-        self.file_data_summary = {}
-        pcnt_no_period = [np.count_nonzero(np.isnan(self.periods[channel])) / self.periods[channel].shape[0] * 100 for channel in range(self.num_channels)]
+        return self.im_measurements
 
-        if file_name:
-            self.file_data_summary['File Name'] = file_name
-        if group_name:
-            self.file_data_summary['Group Name'] = group_name
-        self.file_data_summary['Num Boxes'] = self.num_boxes
-        for channel in range(self.num_channels):
-            self.file_data_summary[f'Ch {channel + 1} Pcnt No Periods'] = pcnt_no_period[channel]
-            self.file_data_summary[f'Ch {channel + 1} Mean Period'] = periods_with_stats[channel][1]
-            self.file_data_summary[f'Ch {channel + 1} Median Period'] = periods_with_stats[channel][2]
-            self.file_data_summary[f'Ch {channel + 1} StdDev Period'] = periods_with_stats[channel][3]
-            self.file_data_summary[f'Ch {channel + 1} SEM Period'] = periods_with_stats[channel][4]
 
-        return self.im_measurements, self.file_data_summary
+
+    def summarize_files(self, file_name = None, group_name = None):
+        '''
+        Summarizes the results of period, shift (if applicable) and peak analyses. If the analysis is not rolling, it returns 
+        a dictionary summarizing each of the relevant measurements for each channel. If the analysis is rolling, it returns a
+        a single dataframe summarizing each of the relevant measurements for each submovie.
+        '''
+        if not self.roll:
+            self.file_data_summary = {}
+            pcnt_no_period = [np.count_nonzero(np.isnan(self.periods[channel])) / self.periods[channel].shape[0] * 100 for channel in range(self.num_channels)]
+
+            if file_name:
+                self.file_data_summary['File Name'] = file_name
+            if group_name:
+                self.file_data_summary['Group Name'] = group_name
+            self.file_data_summary['Num Boxes'] = self.num_boxes
+            for channel in range(self.num_channels):
+                self.file_data_summary[f'Ch {channel + 1} Pcnt No Periods'] = pcnt_no_period[channel]
+                self.file_data_summary[f'Ch {channel + 1} Mean Period'] = self.periods_with_stats[channel][1]
+                self.file_data_summary[f'Ch {channel + 1} Median Period'] = self.periods_with_stats[channel][2]
+                self.file_data_summary[f'Ch {channel + 1} StdDev Period'] = self.periods_with_stats[channel][3]
+                self.file_data_summary[f'Ch {channel + 1} SEM Period'] = self.periods_with_stats[channel][4]
+
+        ########################################################################################################################
+        if self.roll:
+            pcnt_no_period = []
+            for submovie in range(self.num_submovies):
+                pcnt_no_period.append([np.count_nonzero(np.isnan(self.periods[submovie, channel])) / self.periods[submovie, channel].shape[0] * 100 for channel in range(self.num_channels)])
+            
+            file_summary = []
+            for submovie in range(self.num_submovies):
+                submovie_summary = {}
+                submovie_summary['Submovie'] = submovie
+                for channel in range(self.num_channels):
+                    submovie_summary[f'Ch {channel + 1} Pcnt No Periods'] = pcnt_no_period[submovie][channel]
+                    submovie_summary[f'Ch {channel + 1} Mean Period'] = self.periods_with_stats[submovie][channel][1]
+                    submovie_summary[f'Ch {channel + 1} Median Period'] = self.periods_with_stats[submovie][channel][2]
+                    submovie_summary[f'Ch {channel + 1} StdDev Period'] = self.periods_with_stats[submovie][channel][3]
+                    submovie_summary[f'Ch {channel + 1} SEM Period'] = self.periods_with_stats[submovie][channel][4]
+                file_summary.append(submovie_summary)
+            
+            col_names = [key for key in file_summary[0].keys()]
+            self.file_data_summary = pd.DataFrame(file_summary, columns = col_names)
+                
+        return self.file_data_summary
 
 
 
