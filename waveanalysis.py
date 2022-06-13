@@ -8,8 +8,7 @@ import seaborn as sns
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from waveanalysismods.customgui import BaseGUI, RollingGUI
-from waveanalysismods.processor import TotalSignalProcessor
-from waveanalysismods.rollingprocessor import RollingSignalProcessor
+from waveanalysismods.processor import TotalSignalProcessor, RollingSignalProcessor
 
 np.seterr(divide='ignore', invalid='ignore')
 
