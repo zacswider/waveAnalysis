@@ -8,7 +8,8 @@ import seaborn as sns
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from waveanalysismods.customgui import BaseGUI, RollingGUI
-from waveanalysismods.processor import TotalSignalProcessor, RollingSignalProcessor
+from waveanalysismods.processor import TotalSignalProcessor
+from waveanalysismods.rollingprocessor import RollingSignalProcessor
 
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -22,8 +23,7 @@ box_size = gui.box_size
 folder_path = gui.folder_path
 group_names = gui.group_names
 acf_peak_thresh = gui.acf_peak_thresh
-plot_summary_ACFs = gui.plot_summary_ACFs
-plot_summary_CCFs = gui.plot_summary_CCFs
+plot_summary_CFs = gui.plot_summary_CFs
 plot_summary_peaks = gui.plot_summary_peaks
 # if rolling GUI specified, make rolling GUI object and display the window
 if gui.roll:
@@ -65,8 +65,7 @@ log_params = {  "Box Size(px)" : box_size,
                 "Base Directory" : folder_path,
                 "ACF Peak Prominence" : acf_peak_thresh,
                 "Group Names" : group_names,
-                "Plot Individual ACFs" : plot_summary_ACFs,
-                "Plot Individual CCFs" : plot_summary_CCFs,
+                "Plot Individual CFs" : plot_summary_CFs,
                 "Plot Individual Peaks" : plot_summary_peaks,
                 "Group Matching Errors" : [],
                 "Files Processed" : [],
@@ -82,7 +81,7 @@ if rolling:
                     "Plot movie Peaks" : plot_sf_peaks,
                     "Files Processed" : [],
                     "Files Not Processed" : [],
-                    'Subframes Used' : []
+                    'Submovies Used' : []
              } 
 
 ''' ** housekeeping functions ** '''
@@ -167,7 +166,7 @@ if not rolling:
             processor = TotalSignalProcessor(image_path = f'{folder_path}/{file_name}', kern = box_size, step = box_size)
             ''' WILL WANT TO CHANGE BOX TO KERN SIZE AND ADD STEP AS AN OPTION TO THE GUI'''
 
-            # log error and skip image if frames < 2 or channels >2
+            # log error and skip image if frames < 2 
             if processor.num_frames < 2:
                 print(f"****** ERROR ******",
                     f"\n{file_name} has less than 2 frames",
@@ -192,13 +191,28 @@ if not rolling:
             # calculate the number of boxes used for analysis
             num_meas = processor.xpix * processor.ypix
 
-            # calculate the period of the signal
-            acf_results = processor.calc_ACF(peak_thresh = acf_peak_thresh)
-
+            # calculate the population signal properties
+            processor.calc_ACF(peak_thresh = acf_peak_thresh)
+            processor.calc_peak_props()
+            if processor.num_channels > 1:
+                processor.calc_CCF()
+            
             # create a subfolder within the main save path with the same name as the image file
             im_save_path = os.path.join(main_save_path, name_wo_ext)
             if not os.path.exists(im_save_path):
                 os.makedirs(im_save_path)
+
+            # plot and save the population autocorrelation results for each channel
+            if plot_summary_CFs:
+                acf_plots = processor.plot_mean_CF()
+                for plot_name, plot in acf_plots.items():
+                    plot.savefig(f'{im_save_path}/{plot_name}.png')
+                    
+            # plot and save the population peak properties for each channel
+            if plot_summary_peaks:
+                peak_plots = processor.plot_peak_props()
+                for plot_name, plot in peak_plots.items():
+                    plot.savefig(f'{im_save_path}/{plot_name}.png')
 
             # Summarize the data for current image as dataframe, and save as .csv
             im_measurements_df = processor.organize_measurements()
@@ -215,14 +229,6 @@ if not rolling:
             # append summary data to the summary list
             summary_list.append(im_summary_dict)
 
-            # plot and save the population autocorrelation results for each channel
-            if plot_summary_ACFs:
-                acf_plots = processor.plot_mean_CF()
-                for plot_name, plot in acf_plots.items():
-                    plot.savefig(f'{im_save_path}/{plot_name}.png')
-            
-            ''' DO I WANT A SEPARATE PLOTTING FUNCTION FOR CROSS CORRELATIONS?'''
-
             pbar.update(1)
 
          # create dataframe from summary list    
@@ -238,19 +244,17 @@ if not rolling:
                 os.makedirs(group_save_path)
             
             # make a list of parameters to compare
-            params_to_compare = ['Ch1 Mean Period', 
-                                'Ch1 Mean Amp', 
-                                'Ch1 Mean Width', 
-                                'Ch1 Mean Max', 
-                                'Ch1 Mean Min', 
-                                'Ch1 Mean RelAmp',
-                                'Ch2 Mean Period', 
-                                'Ch2 Mean Amp', 
-                                'Ch2 Mean Width', 
-                                'Ch2 Mean Max', 
-                                'Ch2 Mean Min', 
-                                'Ch2 Mean RelAmp',
-                                'Mean Shift']
+            stats_to_compare = ['Mean']
+            channels_to_compare = [f'Ch {i+1}' for i in range(processor.num_channels)]
+            measurments_to_compare = ['Period', 'Shift', 'Peak Width', 'Peak Max', 'Peak Min', 'Peak Amp', 'Peak Rel Amp']
+            params_to_compare = []
+            for channel in channels_to_compare:
+                for stat in stats_to_compare:
+                    for measurment in measurments_to_compare:
+                        params_to_compare.append(f'{channel} {stat} {measurment}')
+
+            shifts_to_compare = [f'Ch{combo[0]+1}-Ch{combo[1]+1} Mean Shift' for combo in processor.channel_combos]
+            params_to_compare.extend(shifts_to_compare)
 
             # generate and save figures for each parameter
             for param in params_to_compare:
@@ -268,17 +272,14 @@ if not rolling:
         print('Done!')
 
 
-
-
-
 if rolling:
     with tqdm(total = len(file_names)) as pbar:
         for file_name in file_names: 
             print('******'*10)
             print(f'Processing {file_name}...')
-            processor = RollingSignalProcessor(image_path = f'{folder_path}/{file_name}', box_size = box_size, roll = rolling, roll_size = subframe_size, roll_by = subframe_roll)
+            processor = RollingSignalProcessor(image_path = f'{folder_path}/{file_name}', kern = box_size, step = box_size, roll_size = subframe_size, roll_by = subframe_roll)
 
-            # log error and skip image if frames < 2 or channels >2
+            # log error and skip image if frames < 2 
             if processor.num_frames < 2:
                 print(f"****** ERROR ******",
                     f"\n{file_name} has less than 2 frames",
@@ -295,80 +296,45 @@ if rolling:
             # calculate the number of boxes used for analysis
             num_meas = processor.xpix * processor.ypix
 
-        # for rolling analyis, calculate the numbe of subframes used
-        if rolling:
-            num_subframes = processor.num_subframes
-            log_params['Subframes Used'].append(num_subframes)
+            # calculate the numbe of subframes used
+            num_submovies = processor.num_submovies
+            log_params['Submovies Used'].append(num_submovies)
 
-        # calculate autocorrelation for each channel for each box (for each subframe, if applicable)
-        acf_results = processor.calc_ACF(peak_thresh = acf_peak_thresh)
-
-        # if applicable, calculate the cross correlation between channels for each box
-        if processor.num_channels == 2:
-            ccf_results = processor.calc_CCF()
-
-        # calculate the peak properties (width, max, min, amp, relAmp) for each channel for each box
-        peak_properties = processor.calc_peaks()
+            # calculate the population signal properties
+            processor.calc_ACF(peak_thresh = acf_peak_thresh)
+            processor.calc_peak_props()
+            if processor.num_channels > 1:
+                processor.calc_CCF()
         
-        # create a subfolder within the main save path with the same name as the image file
-        im_save_path = os.path.join(main_save_path, name_wo_ext)
-        if not os.path.exists(im_save_path):
-            os.makedirs(im_save_path)
+            # create a subfolder within the main save path with the same name as the image file
+            im_save_path = os.path.join(main_save_path, name_wo_ext)
+            if not os.path.exists(im_save_path):
+                os.makedirs(im_save_path)
 
-        # for standard analysis, summarize the data for current image as dataframe, and save as .csv
-        if not rolling:
-            im_measurements_df, im_summary_dict = processor.summarize_results(file_name = file_name, group_name = group_name)
-            im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)
-        # for rolling analysis, summarize the data for each subframe as dataframe, and save as .csv
-        if rolling:
-            im_measurements_dfs, im_summary_df = processor.summarize_rolling_results(file_name = file_name)
+            # summarize the data for each subframe as individual dataframes, and save as .csv
+            submovie_meas_list = processor.get_submovie_measurements()
             csv_save_path = os.path.join(im_save_path, 'rolling_measurements')
             if not os.path.exists(csv_save_path):
                 os.makedirs(csv_save_path)
-            for measurement_index, measurment in enumerate(im_measurements_dfs.values()):
-                # save as csv
-                measurment.to_csv(f'{csv_save_path}/{name_wo_ext}_subframe{measurement_index}_measurements.csv', index = False)
-            # save summary dataframe as csv
-            im_summary_df.to_csv(f'{im_save_path}/{name_wo_ext}_summary.csv', index = False)
+            for measurement_index, submovie_meas_df in enumerate(submovie_meas_list):
+                submovie_meas_df.to_csv(f'{csv_save_path}/{name_wo_ext}_subframe{measurement_index}_measurements.csv', index = False)
+            
+            # summarize the data for each subframe as a single dataframe, and save as .csv
+            summary_df = processor.summarize_file()
+            summary_df.to_csv(f'{im_save_path}/{name_wo_ext}_summary.csv', index = False)
 
-        # populate column headers list with keys from the measurements dictionary
-        if not rolling:
-            for key in im_summary_dict.keys(): 
-                if key not in col_headers: 
-                    col_headers.append(key) 
-        
-            # append summary data to the summary list
-            summary_list.append(im_summary_dict)
+            pbar.update(1)
 
-        # plot and save the population autocorrelation results for each channel
-        if plot_summary_ACFs:
-            acf_plots = processor.plot_mean_CF()
-            ch1_acf_plot = acf_plots['Ch1 ACF']
-            ch1_acf_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch1_ACF.png')
-            if processor.num_channels == 2:
-                ch2_acf_plot = acf_plots['Ch2 ACF']
-                ch2_acf_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch2_ACF.png')
-                ccf_plot = acf_plots['Mean CCF']
-                ccf_plot.savefig(f'{im_save_path}/{name_wo_ext}_CCF.png')
-        
+        '''
         # make and save the summary plot for rolling data
-        if rolling:
-            summary_plots = processor.plot_rolling_summary()
-            plot_save_path = os.path.join(im_save_path, 'summary_plots')
-            if not os.path.exists(plot_save_path):
-                os.makedirs(plot_save_path)
-            for title, plot in summary_plots.items():
-                plot.savefig(f'{plot_save_path}/{name_wo_ext}_{title}.png')
-
-        # plot and save the population peak properties for each channel
-        if plot_summary_peaks:
-            peak_plots = processor.plot_peak_props()
-            ch1_peak_plot = peak_plots['Ch1']
-            ch1_peak_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch1_Peaks.png')
-            if processor.num_channels == 2:
-                ch2_peak_plot = peak_plots['Ch2']
-                ch2_peak_plot.savefig(f'{im_save_path}/{name_wo_ext}_Ch2_Peaks.png')
-        pbar.update(1)
+        summary_plots = processor.plot_rolling_summary()
+        plot_save_path = os.path.join(im_save_path, 'summary_plots')
+        if not os.path.exists(plot_save_path):
+            os.makedirs(plot_save_path)
+        for title, plot in summary_plots.items():
+            plot.savefig(f'{plot_save_path}/{name_wo_ext}_{title}.png')
+        '''
+        
 
 
 
