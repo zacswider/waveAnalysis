@@ -19,12 +19,10 @@ class BaseGUI(tk.Tk):
         # define variable types for the different widget field
         self.box_size = tk.IntVar()
         self.box_size.set(20)
-        self.plot_ind_ACFs = tk.BooleanVar()
-        self.plot_ind_ACFs.set(True)
-        self.plot_ind_CCFs = tk.BooleanVar()
-        self.plot_ind_CCFs.set(True)
-        self.plot_ind_peaks = tk.BooleanVar()
-        self.plot_ind_peaks.set(True)
+        self.plot_summary_CFs = tk.BooleanVar()
+        self.plot_summary_CFs.set(True)
+        self.plot_summary_peaks = tk.BooleanVar()
+        self.plot_summary_peaks.set(True)
         self.acf_peak_thresh = tk.DoubleVar()
         self.acf_peak_thresh.set(0.1)
         self.group_names = tk.StringVar()
@@ -61,23 +59,17 @@ class BaseGUI(tk.Tk):
         self.group_names_label = ttk.Label(self, text = 'Group names')
         self.group_names_label.grid(row = 3, column = 1, padx = 10, sticky = 'W')
 
-        # create checkbox for plotting individual ACFs
-        self.plot_ind_ACFs_checkbox = ttk.Checkbutton(self, variable = self.plot_ind_ACFs)
-        self.plot_ind_ACFs_checkbox.grid(row = 4, column = 0, padx = 10, sticky = 'E')
-        self.plot_ind_ACFs_label = ttk.Label(self, text = 'Plot summary ACFs')
-        self.plot_ind_ACFs_label.grid(row = 4, column = 1, padx = 10, sticky = 'W')
-
-        # create checkbox for plotting individual CCFs
-        self.plot_ind_CCFs_checkbox = ttk.Checkbutton(self, variable = self.plot_ind_CCFs)
-        self.plot_ind_CCFs_checkbox.grid(row = 5, column = 0, padx = 10, sticky = 'E')
-        self.plot_ind_CCFs_label = ttk.Label(self, text = 'Plot summary CCFs')
-        self.plot_ind_CCFs_label.grid(row = 5, column = 1, padx = 10, sticky = 'W')
+        # create checkbox for plotting individual CFs
+        self.plot_summary_CFs_checkbox = ttk.Checkbutton(self, variable = self.plot_summary_CFs)
+        self.plot_summary_CFs_checkbox.grid(row = 4, column = 0, padx = 10, sticky = 'E')
+        self.plot_summary_CFs_label = ttk.Label(self, text = 'Plot summary CFs')
+        self.plot_summary_CFs_label.grid(row = 4, column = 1, padx = 10, sticky = 'W')
 
         # create checkbox for plotting individual peaks
-        self.plot_ind_peaks_checkbox = ttk.Checkbutton(self, variable = self.plot_ind_peaks)
-        self.plot_ind_peaks_checkbox.grid(row = 6, column = 0, padx = 10, sticky = 'E')
-        self.plot_ind_peaks_label = ttk.Label(self, text = 'Plot summary peaks')
-        self.plot_ind_peaks_label.grid(row = 6, column = 1, padx = 10, sticky = 'W')
+        self.plot_summary_peaks_checkbox = ttk.Checkbutton(self, variable = self.plot_summary_peaks)
+        self.plot_summary_peaks_checkbox.grid(row = 6, column = 0, padx = 10, sticky = 'E')
+        self.plot_summary_peaks_label = ttk.Label(self, text = 'Plot summary peaks')
+        self.plot_summary_peaks_label.grid(row = 6, column = 1, padx = 10, sticky = 'W')
         
         # create start button
         self.start_button = ttk.Button(self, text = 'Start analysis')
@@ -109,9 +101,8 @@ class BaseGUI(tk.Tk):
         self.box_size = self.box_size.get()
         self.acf_peak_thresh = self.acf_peak_thresh.get()
         self.group_names = self.group_names.get()
-        self.plot_ind_ACFs = self.plot_ind_ACFs.get()
-        self.plot_ind_CCFs = self.plot_ind_CCFs.get()
-        self.plot_ind_peaks = self.plot_ind_peaks.get()
+        self.plot_summary_CFs = self.plot_summary_CFs.get()
+        self.plot_summary_peaks = self.plot_summary_peaks.get()
         self.folder_path = self.folder_path.get()
         
         # convert group names to list of strings
