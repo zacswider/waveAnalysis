@@ -323,18 +323,11 @@ if rolling:
             summary_df = processor.summarize_file()
             summary_df.to_csv(f'{im_save_path}/{name_wo_ext}_summary.csv', index = False)
 
+            # make and save the summary plot for rolling data
+            summary_plots = processor.plot_rolling_summary()
+            plot_save_path = os.path.join(im_save_path, 'summary_plots')
+            if not os.path.exists(plot_save_path):
+                os.makedirs(plot_save_path)
+            for title, plot in summary_plots.items():
+                plot.savefig(f'{plot_save_path}/{name_wo_ext}_{title}.png')
             pbar.update(1)
-
-        '''
-        # make and save the summary plot for rolling data
-        summary_plots = processor.plot_rolling_summary()
-        plot_save_path = os.path.join(im_save_path, 'summary_plots')
-        if not os.path.exists(plot_save_path):
-            os.makedirs(plot_save_path)
-        for title, plot in summary_plots.items():
-            plot.savefig(f'{plot_save_path}/{name_wo_ext}_{title}.png')
-        '''
-        
-
-
-
