@@ -49,7 +49,13 @@ class TotalSignalProcessor:
     # function to return the autocorrelation of each box in the image stack for each channel
     def calc_ACF(self, peak_thresh=0.1):
         '''
+        Calculate the autocorrelation of each box in the mean image stack for each channel.
+        The period is calculated by find the first non-zero peak in the autocorrelation curve 
+        that has a higher prominence than the peak_thresh parameter.
 
+        Returns two objects: 
+        self.periods is an array of shape (channels, boxes) containing the period of each box (units = frames)
+        self.acfs is an array of shape (channels, boxes, frames*2-1) containing the autocorrelation curve for each box
         '''
         # make empty arrays to populate with 1) period measurements and 2) acf curves
         self.periods = np.zeros(shape=(self.num_channels, self.num_boxes))
@@ -80,7 +86,13 @@ class TotalSignalProcessor:
 
     def calc_CCF(self):
         '''
+        Calculate the crosscorrelation of each box in the mean image stack for each unique combinations
+        of channels. The shift between signals is calculated by find the first non-zero peak in the 
+        crosscorrelation curve that has a higher prominence than 10% of the range of curve values.
         
+        Returns two objects: 
+        self.shifts is an array of shape (channel combinations, boxes) containing the period of each box (units = frames)
+        self.ccfs is an array of shape (channel combinations, boxes, frames*2-1) containing the crosscorrelation curve for each box
         '''
         # make a list of unique channel combinations to calculate CCF for
         channels = list(range(self.num_channels))
@@ -121,7 +133,18 @@ class TotalSignalProcessor:
 
     def calc_peak_props(self):
         '''
-        
+        Calculate the peak properties of each box in the mean image stack for each channel.
+        The signal within each box is smoothed using a Savitzky-Golay filter with a window size 11
+        and polynomial order 2. The peak properties are calculated by finding peaks in the smoothed
+        signal, and then calculating the properties of each peak. Returns the average of all peaks
+        in each box.
+
+        Returns five objects. All objects are arrays of shape (channels, boxes). 
+        self.peak_widths contains the average peak width of each box in each channel (units = frames)
+        self.peak_maxs contains the average peak height of each box in each channel (units = gray values)
+        self.peak_mins contains the average peak trough of each box in each channel (units = gray values)
+        self.peak_amps contains the average peak amplitude of each box in each channel (max - min; units = gray values)
+        self.peak_rel_amps contains the average relative peak height of each box in each channel ((max - min) / min; units = gray values)
         '''
         # make empty arrays to fill with peak measurements for each channel
         self.peak_widths = np.zeros(shape=(self.num_channels, self.num_boxes))
@@ -157,7 +180,12 @@ class TotalSignalProcessor:
     # function to plot a summary of the period measurements
     def plot_mean_CF(self):
         '''
+        Plots the mean auto or cross correlation curve ± the standard deviation of the curve for each channel combination.
+        Also plots a histogram and a boxplot showing the distribution of the measurements over all of the boxes measured.
 
+        Returns:
+        self.cf_figs is a dictionary object containing the plot names as keys and the figure objects as values. These can
+        be easily visualized by or saved to a file using the key value as a file name.
         '''
         def return_figure(arr: np.ndarray, shifts_or_periods: np.ndarray, channel: str, type_of_plot: str, type_of_measurement: str):
             '''
@@ -213,7 +241,11 @@ class TotalSignalProcessor:
 
     def plot_peak_props(self):
         '''
-        
+        Plots the distribution of peak properties for each channel.
+
+        Returns:
+        self.peak_figs is a dictionary object containing the plot names as keys and the figure objects as values. These can
+        be easily visualized by or saved to a file using the key value as a file name.
         '''
         def return_figure(min_array: np.ndarray, max_array: np.ndarray, amp_array: np.ndarray, width_array: np.ndarray, Ch_name: str):
             fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
@@ -267,7 +299,12 @@ class TotalSignalProcessor:
     # function to summarize the results in the acf_results, ccf_results, and peak_results dictionaries as a dataframe
     def organize_measurements(self):
         '''
+        Organizes the results of the ACF, CCF, and peak measurements into a dataframe. If any measurements were not
+        performed, they will be excluded from the summary. Returns a dataframe with every measured parameter summarized
+        by channel as well as the raw values measured for each box.
 
+        Returns:
+        self.im_measurements is a dataframe object containing the summarized results of the ACF, CCF, and peak measurements.
         '''
         
         # function to summarize measurments statistics by appending them to the beginning of the measurement list
@@ -346,7 +383,10 @@ class TotalSignalProcessor:
 
     def summarize_image(self, file_name = None, group_name = None):
         '''
-
+        Summarizes the results of all the measurements performed on the image.
+        Returns dictionary object:
+        self.file_data_summary contains the name of every summarized result for 
+        each channel or channel combination as a key and the summarized results as a value.
         '''
         # dictionary to store the summarized measurements for each image
         self.file_data_summary = {}
@@ -455,14 +495,21 @@ class RollingSignalProcessor:
     # function to return the autocorrelation of each box in the image stack for each channel
     def calc_ACF(self, peak_thresh=0.1):
         '''
-        
+        Calculate the autocorrelation of each box in the mean image stack for each submovie
+        and each channel. The period is calculated by find the first non-zero peak in the 
+        autocorrelation curve that has a higher prominence than the peak_thresh parameter.
+
+        Returns two objects: 
+        self.periods is an array of shape (submovies, channels, boxes) containing the period of each box (units = frames)
+        self.acfs is an array of shape (submovies, channels, boxes, frames*2-1) containing the autocorrelation curve for each box
         '''
     
         # make empty arrays to populate with 1) period measurements and 2) acf curves
         self.periods = np.zeros(shape=(self.num_submovies, self.num_channels, self.num_boxes))
         self.acfs = np.zeros(shape = (self.num_submovies, self.num_channels, self.num_boxes, self.roll_size*2-1))
 
-        with tqdm(total = self.num_submovies*self.num_channels*self.xpix*self.ypix) as pbar:
+        its = self.num_submovies*self.num_channels*self.xpix*self.ypix
+        with tqdm(total = its, miniters=its/100) as pbar:
             for submovie in range(self.num_submovies):
                 for channel in range(self.num_channels):
                     for box in range(self.num_boxes):
@@ -504,7 +551,8 @@ class RollingSignalProcessor:
         self.shifts = np.zeros(shape=(self.num_submovies, num_combos, self.num_boxes))
         self.ccfs = np.zeros(shape=(self.num_submovies, num_combos, self.num_boxes, self.roll_size*2-1))
 
-        with tqdm(total=self.num_submovies*num_combos*self.num_boxes) as pbar:
+        its = self.num_submovies*num_combos*self.num_boxes
+        with tqdm(total=its, miniters=its/100) as pbar:
             for submovie in range(self.num_submovies):
                 for combo_number, combo in enumerate(self.channel_combos):
                     for box in range(self.num_boxes):
@@ -535,14 +583,21 @@ class RollingSignalProcessor:
 
     def calc_peak_props(self):
         '''
-        
+        Calculate the crosscorrelation of each unique channel combination in the mean image 
+        stack for each submovie and each channel. The period is calculated by find the first
+        non-zero peak in the crosscorrelation curve that has a higher prominence than the peak_thresh parameter.
+
+        Returns two objects: 
+        self.shifts is an array of shape (submovies, channel combos, boxes) containing the shift of each box (units = frames)
+        self.ccfs is an array of shape (submovies, channel combos, boxes, frames*2-1) containing the crosscorrelation curve for each box
         '''
         # make empty arrays to fill with peak measurements for each channel
         self.peak_widths = np.zeros(shape=(self.num_submovies, self.num_channels, self.num_boxes))
         self.peak_maxs = np.zeros(shape=(self.num_submovies, self.num_channels, self.num_boxes))
         self.peak_mins = np.zeros(shape=(self.num_submovies, self.num_channels, self.num_boxes))
 
-        with tqdm(total = self.num_submovies*self.num_channels*self.xpix*self.ypix) as pbar:
+        its = self.num_submovies*self.num_channels*self.xpix*self.ypix
+        with tqdm(total = its, miniters=its/100) as pbar:
             for submovie in range(self.num_submovies):
                 for channel in range(self.num_channels):
                     for box in range(self.num_boxes):
@@ -576,6 +631,8 @@ class RollingSignalProcessor:
         '''
         Gathers period, shift, and peak properties measurments (if they exist), appends some simple statistics, 
         and returns a SEPARATE dataframe with raw and summarized measurments for each submovie in the dataset.
+        returns:
+        self.submovie_measurements is a list of dataframes, one for each submovie in the full sequence
         '''
         
         # function to summarize measurments statistics by appending them to the beginning of the measurement list
@@ -655,6 +712,9 @@ class RollingSignalProcessor:
         '''
         Summarizes the results of period, shift (if applicable) and peak analyses. Returns a
         SINGLE dataframe summarizing each of the relevant measurements for each submovie.
+
+        returns:
+        self.full_movie_summary is a dataframe summarizing the results of period, shift, and peak analyses for each submovie
         '''
         all_submovie_summary = []
 
@@ -702,6 +762,9 @@ class RollingSignalProcessor:
     def plot_rolling_summary(self):
         '''
         This function plots the data from the self.full_movie_summary dataframe.
+
+        Returns:
+        self.plot_list is a dictionary containing the names of the summary plos as keys and the fig object as values
         '''
         def return_plot(independent_variable, dependent_variable, dependent_error, y_label):
             '''
