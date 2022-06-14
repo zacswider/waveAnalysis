@@ -19,6 +19,8 @@ class BaseGUI(tk.Tk):
         # define variable types for the different widget field
         self.box_size = tk.IntVar()
         self.box_size.set(20)
+        self.box_shift = tk.IntVar()
+        self.box_shift.set(20)
         self.plot_summary_CFs = tk.BooleanVar()
         self.plot_summary_CFs.set(True)
         self.plot_summary_peaks = tk.BooleanVar()
@@ -45,25 +47,31 @@ class BaseGUI(tk.Tk):
         self.box_size_label = ttk.Label(self, text = 'Box size (pixels)')
         self.box_size_label.grid(row = 1, column = 1, padx = 10, sticky = 'W')
 
+        self.box_shift_entry = ttk.Entry(self, width = 3, textvariable = self.box_shift)
+        self.box_shift_entry.grid(row = 2, column = 0, padx = 10, sticky = 'E')
+        # create box size label text
+        self.box_shift_label = ttk.Label(self, text = 'Box shift (pixels)')
+        self.box_shift_label.grid(row = 2, column = 1, padx = 10, sticky = 'W')
+
         # create ACF peak threshold entry widget
         self.acf_peak_thresh_entry = ttk.Entry(self, width = 3, textvariable = self.acf_peak_thresh)
-        self.acf_peak_thresh_entry.grid(row = 2, column = 0, padx = 10, sticky = 'E')
+        self.acf_peak_thresh_entry.grid(row = 3, column = 0, padx = 10, sticky = 'E')
         # create ACF peak threshold label text
         self.acf_peak_thresh_label = ttk.Label(self, text = 'ACF peak threshold')
-        self.acf_peak_thresh_label.grid(row = 2, column = 1, padx = 10, sticky = 'W')
+        self.acf_peak_thresh_label.grid(row = 3, column = 1, padx = 10, sticky = 'W')
 
         # create group names entry widget
         self.group_names_entry = ttk.Entry(self, textvariable = self.group_names)
-        self.group_names_entry.grid(row = 3, column = 0, padx = 10, sticky = 'E')
+        self.group_names_entry.grid(row = 4, column = 0, padx = 10, sticky = 'E')
         # create group names label text
         self.group_names_label = ttk.Label(self, text = 'Group names')
-        self.group_names_label.grid(row = 3, column = 1, padx = 10, sticky = 'W')
+        self.group_names_label.grid(row = 4, column = 1, padx = 10, sticky = 'W')
 
         # create checkbox for plotting individual CFs
         self.plot_summary_CFs_checkbox = ttk.Checkbutton(self, variable = self.plot_summary_CFs)
-        self.plot_summary_CFs_checkbox.grid(row = 4, column = 0, padx = 10, sticky = 'E')
+        self.plot_summary_CFs_checkbox.grid(row = 5, column = 0, padx = 10, sticky = 'E')
         self.plot_summary_CFs_label = ttk.Label(self, text = 'Plot summary CFs')
-        self.plot_summary_CFs_label.grid(row = 4, column = 1, padx = 10, sticky = 'W')
+        self.plot_summary_CFs_label.grid(row = 5, column = 1, padx = 10, sticky = 'W')
 
         # create checkbox for plotting individual peaks
         self.plot_summary_peaks_checkbox = ttk.Checkbutton(self, variable = self.plot_summary_peaks)
@@ -99,6 +107,7 @@ class BaseGUI(tk.Tk):
     def start_analysis(self):
         # get the values stored in the widget
         self.box_size = self.box_size.get()
+        self.box_shift = self.box_shift.get()
         self.acf_peak_thresh = self.acf_peak_thresh.get()
         self.group_names = self.group_names.get()
         self.plot_summary_CFs = self.plot_summary_CFs.get()
@@ -127,6 +136,8 @@ class RollingGUI(tk.Tk):
         # define variable types for the different widget field
         self.box_size = tk.IntVar()
         self.box_size.set(20)
+        self.box_shift = tk.IntVar()
+        self.box_shift.set(20)
         self.subframe_size = tk.IntVar()
         self.subframe_size.set(50)
         self.subframe_roll = tk.IntVar()
@@ -153,26 +164,33 @@ class RollingGUI(tk.Tk):
         self.box_size_label = ttk.Label(self, text = 'Box size (pixels)')
         self.box_size_label.grid(row = 1, column = 1, padx = 10, sticky = 'W')
 
+        # box shift selection widget
+        self.box_shift_entry = ttk.Entry(self, width = 3, textvariable = self.box_shift)
+        self.box_shift_entry.grid(row = 2, column = 0, padx = 10, sticky = 'E')
+        # create box shift label text
+        self.box_shift_label = ttk.Label(self, text = 'Box shift (pixels)')
+        self.box_shift_label.grid(row = 2, column = 1, padx = 10, sticky = 'W')
+
         # subframe size selection widget
         self.subframe_size_entry = ttk.Entry(self, width = 3, textvariable = self.subframe_size)
-        self.subframe_size_entry.grid(row = 2, column = 0, padx = 10, sticky = 'E')
+        self.subframe_size_entry.grid(row = 3, column = 0, padx = 10, sticky = 'E')
         # create subframe size label text
         self.subframe_size_label = ttk.Label(self, text = 'Num frames per sub-movie')
-        self.subframe_size_label.grid(row = 2, column = 1, padx = 10, sticky = 'W')
+        self.subframe_size_label.grid(row = 3, column = 1, padx = 10, sticky = 'W')
 
         # subframe roll selection widget
         self.subframe_roll_entry = ttk.Entry(self, width = 3, textvariable = self.subframe_roll)
-        self.subframe_roll_entry.grid(row = 3, column = 0, padx = 10, sticky = 'E')
+        self.subframe_roll_entry.grid(row = 4, column = 0, padx = 10, sticky = 'E')
         # create subframe roll label text
         self.subframe_roll_label = ttk.Label(self, text = 'Num frames to roll by')
-        self.subframe_roll_label.grid(row = 3, column = 1, padx = 10, sticky = 'W')
+        self.subframe_roll_label.grid(row = 4, column = 1, padx = 10, sticky = 'W')
 
         # create ACF peak threshold entry widget
         self.acf_peak_thresh_entry = ttk.Entry(self, width = 3, textvariable = self.acf_peak_thresh)
-        self.acf_peak_thresh_entry.grid(row = 4, column = 0, padx = 10, sticky = 'E')
+        self.acf_peak_thresh_entry.grid(row = 5, column = 0, padx = 10, sticky = 'E')
         # create ACF peak threshold label text
         self.acf_peak_thresh_label = ttk.Label(self, text = 'ACF peak threshold')
-        self.acf_peak_thresh_label.grid(row = 4, column = 1, padx = 10, sticky = 'W')
+        self.acf_peak_thresh_label.grid(row = 5, column = 1, padx = 10, sticky = 'W')
         ''' # making this mandatory for the moment
         # create checkbox for plotting subframe ACFs
         self.plot_sf_ACFs_checkbox = ttk.Checkbutton(self, variable = self.plot_sf_ACFs)
@@ -215,6 +233,7 @@ class RollingGUI(tk.Tk):
     def start_analysis(self):
         # get the values stored in the widget
         self.box_size = self.box_size.get()
+        self.box_shift = self.box_shift.get()
         self.acf_peak_thresh = self.acf_peak_thresh.get()
         self.plot_sf_ACFs = self.plot_sf_ACFs.get()
         self.plot_sf_CCFs = self.plot_sf_CCFs.get()
