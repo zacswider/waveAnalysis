@@ -19,6 +19,7 @@ gui.mainloop()
 # get GUI parameters
 rolling = False
 box_size = gui.box_size
+box_shift = gui.box_shift
 folder_path = gui.folder_path
 group_names = gui.group_names
 acf_peak_thresh = gui.acf_peak_thresh
@@ -31,6 +32,7 @@ if gui.roll:
     gui.mainloop()
     # get GUI parameters
     box_size = gui.box_size
+    box_shift = gui.box_shift
     folder_path = gui.folder_path
     acf_peak_thresh = gui.acf_peak_thresh
     plot_sf_ACFs = gui.plot_sf_ACFs
@@ -61,6 +63,7 @@ if len(errors) >= 1 :
 
 #make dictionary of parameters for log file use
 log_params = {  "Box Size(px)" : box_size,
+                "Box Shift(px)" : box_shift,
                 "Base Directory" : folder_path,
                 "ACF Peak Prominence" : acf_peak_thresh,
                 "Group Names" : group_names,
@@ -73,6 +76,7 @@ log_params = {  "Box Size(px)" : box_size,
              } 
 if rolling:
     log_params = {  "Box Size(px)" : box_size,
+                    "Box Shift(px)" : box_shift,
                     "Base Directory" : folder_path,
                     "ACF Peak Prominence" : acf_peak_thresh,
                     "Plot sub-movie ACFs" : plot_sf_ACFs,
@@ -162,8 +166,7 @@ if not rolling:
         for file_name in file_names: 
             print('******'*10)
             print(f'Processing {file_name}...')
-            processor = TotalSignalProcessor(image_path = f'{folder_path}/{file_name}', kern = box_size, step = box_size)
-            ''' WILL WANT TO CHANGE BOX TO KERN SIZE AND ADD STEP AS AN OPTION TO THE GUI'''
+            processor = TotalSignalProcessor(image_path = f'{folder_path}/{file_name}', kern = box_size, step = box_shift)
 
             # log error and skip image if frames < 2 
             if processor.num_frames < 2:
@@ -276,7 +279,7 @@ if rolling:
         for file_name in file_names: 
             print('******'*10)
             print(f'Processing {file_name}...')
-            processor = RollingSignalProcessor(image_path = f'{folder_path}/{file_name}', kern = box_size, step = box_size, roll_size = subframe_size, roll_by = subframe_roll)
+            processor = RollingSignalProcessor(image_path = f'{folder_path}/{file_name}', kern = box_size, step = box_shift, roll_size = subframe_size, roll_by = subframe_roll)
 
             # log error and skip image if frames < 2 
             if processor.num_frames < 2:
