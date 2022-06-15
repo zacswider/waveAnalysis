@@ -177,8 +177,8 @@ class TotalSignalProcessor:
                 
                 # store the smoothed signal, peak locations, maxs, mins, and widths for each box in each channel
                 self.ind_peak_props[f'Ch {channel} Box {box_num}'] = {'smoothed': signal, 
+                                                         'peaks': peaks,
                                                          'proms': proms, 
-                                                         'widths': widths, 
                                                          'heights': heights, 
                                                          'leftIndex': leftIndex, 
                                                          'rightIndex': rightIndex}
@@ -316,12 +316,48 @@ class TotalSignalProcessor:
         be easily visualized by or saved to a file using the key value as a file name.
         '''
         def return_figure(box_signal: np.ndarray, prop_dict: dict, Ch_name: str):
-            fig, (ax1, ax2) = plt.subplots(2, 1)
-            
-            
-            smoothed =  prop_dict['smoothed']
-            ax1.plot(smoothed)
-            ax1.set_title(f'{Ch_name} smoothed signal')
+
+            smoothed_signal = prop_dict['smoothed']
+            peaks = prop_dict['peaks']
+            proms = prop_dict['proms']
+            heights = prop_dict['heights']
+            leftIndex = prop_dict['leftIndex']
+            rightIndex = prop_dict['rightIndex']
+
+            fig, ax = plt.subplots()
+            ax.plot(box_signal, color = 'tab:gray', label = 'raw signal')
+            ax.plot(smoothed_signal, color = 'tab:cyan', label = 'smoothed signal')
+
+            # plot all of the peak widths and amps in a loop
+            for i in range(peaks.shape[0]):
+                ax.hlines(heights[i], 
+                          leftIndex[i], 
+                          rightIndex[i], 
+                          color='tab:olive', 
+                          linestyle = '-')
+                ax.vlines(peaks[i], 
+                          smoothed_signal[peaks[i]]-proms[i],
+                          smoothed_signal[peaks[i]], 
+                          color='tab:purple', 
+                          linestyle = '-')
+            # plot the first peak width and amp again so we can add it to the legend
+            ax.hlines(heights[0], 
+                      leftIndex[0], 
+                      rightIndex[0], 
+                      color='tab:olive', 
+                      linestyle = '-',
+                      label='FWHM')
+            ax.vlines(peaks[0], 
+                      smoothed_signal[peaks[0]]-proms[0],
+                      smoothed_signal[peaks[0]], 
+                      color='tab:purple', 
+                      linestyle = '-',
+                      label = 'Peak amplitude')
+
+            ax.legend(loc='upper right', fontsize='small', ncol=1)
+            ax.set_xlabel('Time (frames)')
+            ax.set_ylabel('Signal (AU)')
+            ax.set_title(f'{Ch_name} peak properties')
             return fig
 
         # empty dictionary to fill with figures, in the event that we make more than one
@@ -338,15 +374,6 @@ class TotalSignalProcessor:
                                                                                                     f'Ch{channel + 1} Box{box + 1}')
 
         return self.ind_peak_figs
-
-        '''
-        self.ind_peak_props[f'Ch {channel} Box {box_num}'] = {'smoothed': signal, 
-                                                    'proms': proms, 
-                                                    'widths': widths, 
-                                                    'heights': heights, 
-                                                    'leftIndex': leftIndex, 
-                                                    'rightIndex': rightIndex}
-        '''
 
     # function to summarize the results in the acf_results, ccf_results, and peak_results dictionaries as a dataframe
     def organize_measurements(self):
