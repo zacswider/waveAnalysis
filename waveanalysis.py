@@ -25,6 +25,9 @@ group_names = gui.group_names
 acf_peak_thresh = gui.acf_peak_thresh
 plot_summary_CFs = gui.plot_summary_CFs
 plot_summary_peaks = gui.plot_summary_peaks
+plot_ind_CFs = gui.plot_ind_CFs
+plot_ind_peaks = gui.plot_ind_peaks
+
 # if rolling GUI specified, make rolling GUI object and display the window
 if gui.roll:
     rolling = True
@@ -212,9 +215,19 @@ if not rolling:
                     
             # plot and save the population peak properties for each channel
             if plot_summary_peaks:
-                peak_plots = processor.plot_peak_props()
-                for plot_name, plot in peak_plots.items():
+                summ_peak_plots = processor.plot_mean_peak_props()
+                for plot_name, plot in summ_peak_plots.items():
                     plot.savefig(f'{im_save_path}/{plot_name}.png')
+            
+            if plot_ind_peaks:
+                # make separate dir to save in the individual plots
+                ind_peak_path = os.path.join(im_save_path, 'Individual_box_plots')
+                if not os.path.exists(ind_peak_path):
+                    os.makedirs(ind_peak_path)
+                ind_peak_plots = processor.plot_ind_peak_props()
+                for plot_name, plot in ind_peak_plots.items():
+                    plot.savefig(f'{ind_peak_path}/{plot_name}.png')
+
 
             # Summarize the data for current image as dataframe, and save as .csv
             im_measurements_df = processor.organize_measurements()
