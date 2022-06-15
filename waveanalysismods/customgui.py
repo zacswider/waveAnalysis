@@ -9,7 +9,7 @@ class BaseGUI(tk.Tk):
 
         # configure root window
         self.title("Define your analysis parameters")
-        self.geometry("500x250")
+        self.geometry("500x275")
         
         #sets number of columns in the main window
         self.columnconfigure(0, weight = 1)
