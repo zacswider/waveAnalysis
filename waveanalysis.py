@@ -23,9 +23,11 @@ box_shift = gui.box_shift
 folder_path = gui.folder_path
 group_names = gui.group_names
 acf_peak_thresh = gui.acf_peak_thresh
-plot_summary_CFs = gui.plot_summary_CFs
+plot_summary_ACFs = gui.plot_summary_ACFs
+plot_summary_CCFs = gui.plot_summary_CCFs
 plot_summary_peaks = gui.plot_summary_peaks
-plot_ind_CFs = gui.plot_ind_CFs
+plot_ind_ACFs = gui.plot_ind_ACFs
+plot_ind_CCFs = gui.plot_ind_CCFs
 plot_ind_peaks = gui.plot_ind_peaks
 
 # if rolling GUI specified, make rolling GUI object and display the window
@@ -70,8 +72,12 @@ log_params = {  "Box Size(px)" : box_size,
                 "Base Directory" : folder_path,
                 "ACF Peak Prominence" : acf_peak_thresh,
                 "Group Names" : group_names,
-                "Plot Individual CFs" : plot_summary_CFs,
-                "Plot Individual Peaks" : plot_summary_peaks,
+                "Plot Summary ACFs" : plot_summary_ACFs,
+                "Plot Summary CCFs" : plot_summary_CCFs,
+                "Plot Summary Peaks" : plot_summary_peaks,
+                "Plot Indivdual ACFs" : plot_ind_ACFs,
+                "Plot Indivdual CCFs" : plot_ind_CCFs,
+                "Plot Indivdual Peaks" : plot_ind_peaks,
                 "Group Matching Errors" : [],
                 "Files Processed" : [],
                 "Files Not Processed" : [],
@@ -207,25 +213,33 @@ if not rolling:
             if not os.path.exists(im_save_path):
                 os.makedirs(im_save_path)
 
-            # plot and save the population autocorrelation results for each channel
-            if plot_summary_CFs:
-                acf_plots = processor.plot_mean_CF()
-                for plot_name, plot in acf_plots.items():
+            # plot and save the population autocorrelation, crosscorrelation, and peak properties for each channel
+            if plot_summary_ACFs:
+                summ_acf_plots = processor.plot_mean_ACF()
+                for plot_name, plot in summ_acf_plots.items():
                     plot.savefig(f'{im_save_path}/{plot_name}.png')
-                    
-            # plot and save the population peak properties for each channel
+            if plot_summary_CCFs:
+                summ_ccf_plots = processor.plot_mean_CCF()
+                for plot_name, plot in summ_ccf_plots.items():
+                    plot.savefig(f'{im_save_path}/{plot_name}.png')
             if plot_summary_peaks:
                 summ_peak_plots = processor.plot_mean_peak_props()
                 for plot_name, plot in summ_peak_plots.items():
                     plot.savefig(f'{im_save_path}/{plot_name}.png')
             
-            if plot_ind_peaks:
-                # make separate dir to save in the individual plots
+            # plot and save the individual autocorrelation, crosscorrelation, and peak properties for each box in channel
+            if any([plot_ind_ACFs, plot_ind_CCFs, plot_ind_peaks]):
                 ind_peak_path = os.path.join(im_save_path, 'Individual_box_plots')
                 if not os.path.exists(ind_peak_path):
                     os.makedirs(ind_peak_path)
+
+            if plot_ind_peaks:        
                 ind_peak_plots = processor.plot_ind_peak_props()
                 for plot_name, plot in ind_peak_plots.items():
+                    plot.savefig(f'{ind_peak_path}/{plot_name}.png')
+            if plot_ind_ACFs:
+                ind_acf_plots = processor.plot_ind_acfs()
+                for plot_name, plot in ind_acf_plots.items():
                     plot.savefig(f'{ind_peak_path}/{plot_name}.png')
 
 
