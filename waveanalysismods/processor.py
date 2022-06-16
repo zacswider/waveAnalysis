@@ -189,16 +189,16 @@ class TotalSignalProcessor:
         return self.peak_widths, self.peak_maxs, self.peak_mins, self.peak_amps, self.peak_rel_amps, self.ind_peak_props
 
     # function to plot a summary of the period measurements
-    def plot_mean_CF(self):
+    def plot_mean_ACF(self):
         '''
-        Plots the mean auto or cross correlation curve ± the standard deviation of the curve for each channel combination.
+        Plots the mean autocorrelation curve ± the standard deviation of the curve for each channel.
         Also plots a histogram and a boxplot showing the distribution of the measurements over all of the boxes measured.
 
         Returns:
-        self.cf_figs is a dictionary object containing the plot names as keys and the figure objects as values. These can
+        self.acf_figs is a dictionary object containing the plot names as keys and the figure objects as values. These can
         be easily visualized by or saved to a file using the key value as a file name.
         '''
-        def return_figure(arr: np.ndarray, shifts_or_periods: np.ndarray, channel: str, type_of_plot: str, type_of_measurement: str):
+        def return_figure(arr: np.ndarray, shifts_or_periods: np.ndarray, channel: str):
             '''
             Space saving function for plotting the mean autocorrelation or crosscorrelation curve. Returns a figure object.
             '''
@@ -215,14 +215,14 @@ class TotalSignalProcessor:
                                  arr_mean + arr_std, 
                                  color='blue', 
                                  alpha=0.2)
-            ax['A'].set_title(f'{channel} Mean {type_of_plot} Curve ± Standard Deviation') 
+            ax['A'].set_title(f'{channel} Mean Autocorrelation Curve ± Standard Deviation') 
             ax['B'].hist(shifts_or_periods)
             shifts_or_periods = [val for val in shifts_or_periods if not np.isnan(val)]
-            ax['B'].set_xlabel(f'Histogram of {type_of_measurement} values (frames)')
+            ax['B'].set_xlabel(f'Histogram of period values (frames)')
             ax['B'].set_ylabel('Occurances')
             ax['C'].boxplot(shifts_or_periods)
-            ax['C'].set_xlabel(f'Boxplot of {type_of_measurement} values')
-            ax['C'].set_ylabel(f'Measured {type_of_measurement} (frames)')
+            ax['C'].set_xlabel(f'Boxplot of period values')
+            ax['C'].set_ylabel(f'Measured period (frames)')
             fig.subplots_adjust(hspace=0.25, wspace=0.5)   
             plt.close(fig)
             return fig
@@ -235,20 +235,60 @@ class TotalSignalProcessor:
             for channel in range(self.num_channels):
                 self.cf_figs[f'Ch{channel + 1} Mean ACF'] = return_figure(self.acfs[channel], 
                                                                          self.periods[channel], 
-                                                                         f'Ch{channel + 1}', 
-                                                                         'Autocorrelation', 
-                                                                         'period')        
-        if hasattr(self, 'ccfs'):
-            if self.num_channels > 1:
-                for combo_number, combo in enumerate(self.channel_combos):
-                    self.cf_figs[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF'] = return_figure(self.ccfs[combo_number], 
-                                                                                                self.shifts[combo_number], 
-                                                                                                f'Ch{combo[0] + 1}-Ch{combo[1] + 1}', 
-                                                                                                'Crosscorrelation', 
-                                                                                                'shift')
+                                                                         f'Ch{channel + 1}')        
 
         return self.cf_figs
 
+    # function to plot a summary of the period measurements
+    def plot_mean_CCF(self):
+        '''
+        Plots the mean cross correlation curve ± the standard deviation of the curve for each channel combination.
+        Also plots a histogram and a boxplot showing the distribution of the measurements over all of the boxes measured.
+
+        Returns:
+        self.ccf_figs is a dictionary object containing the plot names as keys and the figure objects as values. These can
+        be easily visualized by or saved to a file using the key value as a file name.
+        '''
+        def return_figure(arr: np.ndarray, shifts_or_periods: np.ndarray, channel_combo: str):
+            '''
+            Space saving function for plotting the mean autocorrelation or crosscorrelation curve. Returns a figure object.
+            '''
+            fig, ax = plt.subplot_mosaic(mosaic = '''
+                                                  AA
+                                                  BC
+                                                  ''')
+            arr_mean = np.nanmean(arr, axis = 0)
+            arr_std = np.nanstd(arr, axis = 0)
+            x_axis = np.arange(-self.num_frames + 1, self.num_frames)
+            ax['A'].plot(x_axis, arr_mean, color='blue')
+            ax['A'].fill_between(x_axis, 
+                                 arr_mean - arr_std, 
+                                 arr_mean + arr_std, 
+                                 color='blue', 
+                                 alpha=0.2)
+            ax['A'].set_title(f'{channel_combo} Mean Crosscorrelation Curve ± Standard Deviation') 
+            ax['B'].hist(shifts_or_periods)
+            shifts_or_periods = [val for val in shifts_or_periods if not np.isnan(val)]
+            ax['B'].set_xlabel(f'Histogram of shift values (frames)')
+            ax['B'].set_ylabel('Occurances')
+            ax['C'].boxplot(shifts_or_periods)
+            ax['C'].set_xlabel(f'Boxplot of shift values')
+            ax['C'].set_ylabel(f'Measured shift (frames)')
+            fig.subplots_adjust(hspace=0.25, wspace=0.5)   
+            plt.close(fig)
+            return fig
+
+        # empty dict to fill with figures, in the event that we make more than one
+        self.ccf_figs = {}
+               
+        if hasattr(self, 'ccfs'):
+            if self.num_channels > 1:
+                for combo_number, combo in enumerate(self.channel_combos):
+                    self.ccf_figs[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF'] = return_figure(self.ccfs[combo_number], 
+                                                                                                self.shifts[combo_number], 
+                                                                                                f'Ch{combo[0] + 1}-Ch{combo[1] + 1}')
+
+        return self.ccf_figs
 
     def plot_mean_peak_props(self):
         '''
@@ -306,6 +346,56 @@ class TotalSignalProcessor:
                                                                               f'Ch{channel + 1}')
 
         return self.peak_figs
+
+    def plot_ind_acfs(self):
+        '''
+        Plot the raw signal and individual autocorrelation curve for each box in each channel. Annotates the first peak
+        identified to estimate the period. 
+        '''
+        def return_figure(raw_signal: np.ndarray, acf_curve: np.ndarray, Ch_name: str, period: int):
+            '''
+            space saving function to generate individual plots with variable input
+            '''
+            fig, (ax1, ax2) = plt.subplots(2, 1)
+            ax1.plot(raw_signal)
+            ax1.set_xlabel(f'{Ch_name} Raw Signal')
+            ax1.set_ylabel('Mean box px value')
+            ax2.plot(np.arange(-self.num_frames + 1, self.num_frames), acf_curve)
+            ax2.set_ylabel('Autocorrelation')
+            
+            if not period == np.nan:
+                color = 'red'
+                ax2.axvline(x = period, alpha = 0.5, c = color, linestyle = '--')
+                ax2.axvline(x = -period, alpha = 0.5, c = color, linestyle = '--')
+                ax2.set_xlabel(f'Period is {period} frames')
+            else:
+                ax2.set_xlabel(f'No period identified')
+
+            fig.subplots_adjust(hspace=0.5)
+            plt.close(fig)
+            return(fig)
+
+        # empty dictionary to fill with figures, in the event that we make more than one
+        self.ind_acf_plots = {}
+
+        for channel in range(self.num_channels):
+            for box in range(self.num_boxes):
+                self.ind_acf_plots[f'Ch{channel + 1} Box{box + 1} ACF'] = return_figure(self.means[:,channel, box], 
+                                                                                        self.acfs[channel, box], 
+                                                                                        f'Ch{channel + 1}', 
+                                                                                        self.periods[channel, box])
+        return self.ind_acf_plots
+
+    def plot_ind_ccfs(self):
+        '''
+        
+        '''
+        def return_figure():
+            '''
+            
+            '''
+            pass
+        pass
 
     def plot_ind_peak_props(self):
         '''
