@@ -228,19 +228,28 @@ if not rolling:
                     plot.savefig(f'{im_save_path}/{plot_name}.png')
             
             # plot and save the individual autocorrelation, crosscorrelation, and peak properties for each box in channel
-            if any([plot_ind_ACFs, plot_ind_CCFs, plot_ind_peaks]):
-                ind_peak_path = os.path.join(im_save_path, 'Individual_box_plots')
-                if not os.path.exists(ind_peak_path):
-                    os.makedirs(ind_peak_path)
 
             if plot_ind_peaks:        
                 ind_peak_plots = processor.plot_ind_peak_props()
+                ind_peak_path = os.path.join(im_save_path, 'Indidvidual_peak_plots')
+                if not os.path.exists(ind_peak_path):
+                    os.makedirs(ind_peak_path)
                 for plot_name, plot in ind_peak_plots.items():
                     plot.savefig(f'{ind_peak_path}/{plot_name}.png')
             if plot_ind_ACFs:
                 ind_acf_plots = processor.plot_ind_acfs()
+                ind_acf_path = os.path.join(im_save_path, 'Indidvidual_ACF_plots')
+                if not os.path.exists(ind_acf_path):
+                    os.makedirs(ind_acf_path)
                 for plot_name, plot in ind_acf_plots.items():
-                    plot.savefig(f'{ind_peak_path}/{plot_name}.png')
+                    plot.savefig(f'{ind_acf_path}/{plot_name}.png')
+            if plot_ind_CCFs:
+                ind_ccf_plots = processor.plot_ind_ccfs()
+                ind_ccf_path = os.path.join(im_save_path, 'Indidvidual_CCF_plots')
+                if not os.path.exists(ind_ccf_path):
+                    os.makedirs(ind_ccf_path)
+                for plot_name, plot in ind_ccf_plots.items():
+                    plot.savefig(f'{ind_ccf_path}/{plot_name}.png')
 
 
             # Summarize the data for current image as dataframe, and save as .csv
