@@ -798,12 +798,14 @@ class RollingSignalProcessor:
                         peaks_abs = abs(peaks - cc_curve.shape[0]//2)
                         # if peaks were identified, pick the one closest to the center
                         if len(peaks) > 1:
-                            delay = np.min(peaks_abs[np.nonzero(peaks_abs)])
+                            delay = np.argmin(peaks_abs[np.nonzero(peaks_abs)])
+                            delayIndex = peaks[delay]
+                            delay_frames = delayIndex - cc_curve.shape[0]//2
                         # otherwise, return nans for both period and autocorrelation curve
                         else:
-                            delay = np.nan
+                            delay_frames = np.nan
                             cc_curve = np.full((self.roll_size*2-1), np.nan)
-                        self.shifts[submovie, combo_number, box] = delay
+                        self.shifts[submovie, combo_number, box] = delay_frames
                         self.ccfs[submovie, combo_number, box] = cc_curve
 
         return self.shifts, self.ccfs
