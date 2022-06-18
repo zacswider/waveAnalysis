@@ -1,7 +1,9 @@
 # Wave analysis scripts
-signalProcessing2C.py is written to batch analyze excitable / oscillatory dynamics in both 1-channel and 2-channel time lapse datasets. This workflow was conceptually based off of a MATLAB framework written by Marcin Leda and Andrew Goryachev (published in Bement _et al.,_ 2015; PMID 26479320), and was reimagined here in Python form to increase speed, accuracy, and access. This script analyzes signal period, amplitude, temporal duration, and (if applicable) the temporal shift between signals in short time lapse datasets (tens of frames, typically). We have also incorporated the ability to analyze these metrics across extended timelapse datasets (hundreds - thousands of frames).
+signalProcessing2C.py is written to batch analyze excitable / oscillatory dynamics in multichannel time lapse datasets. This workflow was conceptually based off of a MATLAB framework written by Marcin Leda and Andrew Goryachev (published in Bement _et al.,_ 2015; PMID 26479320), and was reimagined here in Python form to increase speed, accuracy, and access. This script analyzes signal period, amplitude, temporal duration, and (if applicable) the temporal shift between signals in short time lapse datasets (tens of frames, typically). We have also incorporated the ability to analyze these metrics across extended timelapse datasets (hundreds - thousands of frames).
 
 ## Overview
+
+### Standard analysis
 
 In this workflow, each channel is broken up in n boxes (the box size will depend on the size of the features of interest):
 
@@ -30,7 +32,7 @@ Similarly, we can assess the population of signal shift measurements, and oscill
 
 ![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/meanPeaks_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/meanPeaks_light.jpg#gh-light-mode-only)
 
-If we choose to compare different groups, we will get file full of plots comparing each signal metric between groups.
+If different groups are specified within the GUI, the script will generate a folder full of plots comparing basic signal properties between groups.
 
 ![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/comparisons_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/comparisons_light.jpg#gh-light-mode-only)
 
@@ -45,14 +47,12 @@ The primary dependencies are numpy, seaborn, tqdm, tk, pandas, matplotlib, tifff
 ## Preparing data for analysis
 Before running any analysis on your data, be sure to complete all necessary pre-processing steps. Some thing to consider:
 - Any significant two-dimensional drift in your data will alter the detected wave dynamics. If drift is detectable, register your data ahead of time.
-- Black spaces (e.g. from drift correction, or true background) should be cropped out. The period detection functions will not return a value if no period is detected in a dark spaces, but the amplitude functions won't know the difference.
+- Black spaces (e.g. from drift correction, or true background) should be cropped out.
 - Bleaching or z-drift will both affect amplitude and width measurements. The best approach is to not have bleaching/drift to begin with as bleach correction algorithms can introduce their own artifacts. However, if desired, correct your data for bleaching before analyzing.
-
-## Limitation and future directions
-- This tool will currently reject any data containing 3 or more channels. In the future, I plan to incorporate the ability to analyze more than 2 channels at once.
+- The ideal dataset for standard analysis will include only a few wave periods which are consistent in character. The idea dataset for rolling analysis will include many wave periods (tens-thousands) which vary in character over time. 
 - This tool draws on imageJ metadata to determine which dimensions are time, channels, slices, etc. Be sure that your files are saved appropriately before analyzing.
 - If files with more than one z plane are analyzed, the tool will max project them along the z-axis before analyzing.
-- Currently, this tool agnostically analyzes the entire image. In the future, I plan to incorporate the ability to pass in a mask to specifically measure one or more sub-regions of the image (e.g., to separate out measurements from individual cells, or separate out background regions). 
+- Currently, this tool agnostically analyzes the entire image. If you wish to only analyze a specific region, crop it into a separe file. In the future, I plan to incorporate the ability to pass in a mask to specifically measure one or more sub-regions of the image (e.g., to separate out measurements from individual cells, or separate out background regions). 
 
 ## Downloading the scripts and setting up Python on your computer
 
@@ -78,31 +78,38 @@ Executing transaction: done
 
 ## Running the scripts 
 
-1) Activate the newly installed environment by typing `conda activate waves` into the terminal and hitting enter. 
+1) Activate the newly installed environment by typing `conda activate waveanalysis` into the terminal and hitting enter. 
 2) Type `python3 waveanalysis.py` into the terminal and hit enter to run the script.
 3) Next a window will appear asking you for some parameters to adjust:
 
-<img src="https://github.com/zacswider/README_Images/blob/main/gui%201.png" width="800">
+<img src="https://github.com/zacswider/README_Images/blob/main/gui1.png" width="800">
 
 1) This is the source directory for your analysis. Navigate to it using the "Select source directory button". This directory should have one or more time lapse datasets saved in standard standard `tzcyx` order. If the data are not max projected along the z-axis prior to analysis, they will be max projected by the processing script.
 2) This is the box size used for analysis. Boxes should be large enough to filter out noise, but small enough that they don't over-fill the structures being analyzed. A good way to empirically find the apppropriate box size is to open your data in [FIJI](https://imagej.net/software/fiji/), draw a box with the rectangle selection tool, open up the z-axis profile plotter `Image > Stacks > Plot Z-axis Profile`, click the "Live" button, and adjust the box dimensions to find a size that you feel like accurately captures the temporal dynamics.
-3) The is the minimum prominence in the autocorrelation curve to be considered a genuine period. Using the default parameter `0.1`, 
-4) If you want to compare the population measurements between different groups, enter the groups names in this space. These names *must* be present within the names of the file being processed. A single data set cannot match multiple groups.
-5) If you check this box, a graphical output of the population autocorrelation will be saved to the analysis folder.
-6) If you check this box, a graphical output of the population crosscorrelation will be saved to the analysis folder.
-7) If you check this box, a graphical output of the population wave peak analalysis will be saved to the analysis folder.
-8) Click this button to start the analysis.
-9) Click this button if you're not ready to start the analysis.
-10) Click this button if you want to launch the GUI for rolling analysis. 
+3) This is the spatial shift between boxes. If you want to analyze non-overlapping segments of your images, make this the same as the box size. If you want maximum overlap between boxes, set this to 1. If you want to sparsely quantify your images (e.g., for speed) set this to a value greater than your box size.
+4) The is the minimum prominence in the autocorrelation curve to be considered a genuine period. Using the default parameter `0.1`, 
+5) If you want to compare the population measurements between different groups, enter the groups names in this space. These names *must* be present within the names of the file being processed. A single data set cannot match multiple groups.
+6) If you check this box, a graphical output of the population autocorrelation will be saved to the analysis folder.
+7) If you check this box, a graphical output of the population crosscorrelation will be saved to the analysis folder.
+8) If you check this box, a graphical output of the population wave peak analalysis will be saved to the analysis folder.
+** Options 6-8 execute very quickly and are set on as a default. You can disable them if you reeeaally need to go fast. 
+9) If you check this box, a graphical output of the autocorrelation for _each box_ will be saved to the analysis folder.
+10) If you check this box, a graphical output of the crosscorrelation for _each box_ will be saved to the analysis folder.
+11) If you check this box, a graphical output of the wave peak properties for _each box_ will be saved to the analysis folder.
+** Options 9-11 can be very useful to see how accurately the script is identifying your signal properties. However, depending on how densely you sample your images, executing these options can be very slow. I recommend very sparsely analyzing your images (i.e., choose a large box shift) to avoid writing hundreds (or thousands) of individual graphs to your computer.
+12) Click this button to start the analysis.
+13) Click this button if you're not ready to start the analysis.
+14) Click this button if you want to launch the GUI for rolling analysis. 
 
 ### Rolling analysis
 
-If you clicked button 10 in the previous GUI, the following window will appear:
+If you clicked button 14 in the previous GUI, the following window will appear:
 
-<img src="https://github.com/zacswider/README_Images/blob/main/gui%202.png" width="800">
+<img src="https://github.com/zacswider/README_Images/blob/main/gui2.png" width="800">
 
-1) This is the source directory for your analysis. Navigate to it using the "Select source directory button". 
+1) This is the source directory for your analysis. Navigate to it using the "Select source directory button". This directory should have one or more time lapse datasets saved in standard standard `tzcyx` order. If the data are not max projected along the z-axis prior to analysis, they will be max projected by the processing script.
 2) This is the box size used for analysis. Boxes should be large enough to filter out noise, but small enough that they don't over-fill the structures being analyzed. A good way to empirically find the apppropriate box size is to open your data in [FIJI](https://imagej.net/software/fiji/), draw a box with the rectangle selection tool, open up the z-axis profile plotter `Image > Stacks > Plot Z-axis Profile`, click the "Live" button, and adjust the box dimensions to find a size that you feel like accurately captures the temporal dynamics.
+3) This is the spatial shift between boxes. If you want to analyze non-overlapping segments of your images, make this the same as the box size. If you want maximum overlap between boxes, set this to 1. If you want to sparsely quantify your images (e.g., for speed) set this to a value greater than your box size.
 3) This is the number of frames in each sub-movie. This should cover at least a few wave periods to ensure accurate period measurements.
 4) This is the number of frames to roll forward each sub-movie. The smaller the number, the more finely you will samples the waves over time.
 5) The is the minimum prominence in the autocorrelation curve to be considered a genuine period. Using the default parameter `0.1`, 
