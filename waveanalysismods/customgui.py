@@ -76,13 +76,13 @@ class BaseGUI(tk.Tk):
         # create checkbox for plotting summary ACFs
         self.plot_summary_ACFs_checkbox = ttk.Checkbutton(self, variable = self.plot_summary_ACFs)
         self.plot_summary_ACFs_checkbox.grid(row = 5, column = 0, padx = 10, sticky = 'E')
-        self.plot_summary_ACFs_label = ttk.Label(self, text = 'Plot summary CFs')
+        self.plot_summary_ACFs_label = ttk.Label(self, text = 'Plot summary ACFs')
         self.plot_summary_ACFs_label.grid(row = 5, column = 1, padx = 10, sticky = 'W')
 
         # create checkbox for plotting summary CCFs
         self.plot_summary_CCFs_checkbox = ttk.Checkbutton(self, variable = self.plot_summary_CCFs)
         self.plot_summary_CCFs_checkbox.grid(row = 6, column = 0, padx = 10, sticky = 'E')
-        self.plot_summary_CCFs_label = ttk.Label(self, text = 'Plot summary CFs')
+        self.plot_summary_CCFs_label = ttk.Label(self, text = 'Plot summary CCFs')
         self.plot_summary_CCFs_label.grid(row = 6, column = 1, padx = 10, sticky = 'W')
 
         # create checkbox for plotting summary peaks
