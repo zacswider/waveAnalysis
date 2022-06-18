@@ -20,7 +20,7 @@ class BaseGUI(tk.Tk):
         self.box_size = tk.IntVar()
         self.box_size.set(20)
         self.box_shift = tk.IntVar()
-        self.box_shift.set(30)
+        self.box_shift.set(20)
         self.plot_summary_ACFs = tk.BooleanVar()
         self.plot_summary_ACFs.set(True)
         self.plot_summary_CCFs = tk.BooleanVar()
@@ -28,11 +28,8 @@ class BaseGUI(tk.Tk):
         self.plot_summary_peaks = tk.BooleanVar()
         self.plot_summary_peaks.set(True)
         self.plot_ind_ACFs = tk.BooleanVar()
-        self.plot_ind_ACFs.set(True)
         self.plot_ind_CCFs = tk.BooleanVar()
-        self.plot_ind_CCFs.set(True)
         self.plot_ind_peaks = tk.BooleanVar()
-        self.plot_ind_peaks.set(True)
         self.acf_peak_thresh = tk.DoubleVar()
         self.acf_peak_thresh.set(0.1)
         self.group_names = tk.StringVar()
@@ -45,7 +42,7 @@ class BaseGUI(tk.Tk):
         self.file_path_entry.grid(row = 0, column = 0, padx = 10, sticky = 'E')
         self.file_path_button = ttk.Button(self, text = 'Select folder')
         # make a default path
-        self.folder_path.set('/Users/bementmbp/Desktop/Scripts/waveAnalysis/small_test')
+        #self.folder_path.set('/Users/bementmbp/Desktop/Scripts/waveAnalysis/small_test')
         self.file_path_button['command'] = self.get_folder_path
         self.file_path_button.grid(row = 0, column = 1, padx = 10, sticky = 'W')        
 
