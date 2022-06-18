@@ -381,12 +381,16 @@ class TotalSignalProcessor:
         # empty dictionary to fill with figures, in the event that we make more than one
         self.ind_acf_plots = {}
 
-        for channel in range(self.num_channels):
-            for box in range(self.num_boxes):
-                self.ind_acf_plots[f'Ch{channel + 1} Box{box + 1} ACF'] = return_figure(self.means[:,channel, box], 
-                                                                                        self.acfs[channel, box], 
-                                                                                        f'Ch{channel + 1}', 
-                                                                                        self.periods[channel, box])
+        its = self.num_channels*self.num_boxes
+        with tqdm(total=its, miniters=its/100) as pbar:
+            pbar.set_description('ind acfs')
+            for channel in range(self.num_channels):
+                for box in range(self.num_boxes):
+                    pbar.update(1)
+                    self.ind_acf_plots[f'Ch{channel + 1} Box{box + 1} ACF'] = return_figure(self.means[:,channel, box], 
+                                                                                            self.acfs[channel, box], 
+                                                                                            f'Ch{channel + 1}', 
+                                                                                            self.periods[channel, box])
         return self.ind_acf_plots
 
     def plot_ind_ccfs(self):
@@ -432,14 +436,19 @@ class TotalSignalProcessor:
         # empty dictionary to fill with figures, in the event that we make more than one
         self.ind_ccf_plots = {}
 
-        for combo_number, combo in enumerate(self.channel_combos):
-            for box in range(self.num_boxes):
-                self.ind_ccf_plots[f'Ch{combo[0]}-Ch{combo[1]} Box{box + 1} CCF'] = return_figure(ch1 = normalize(self.means[:, combo[0], box]),
-                                                                                                  ch2 = normalize(self.means[:, combo[1], box]),
-                                                                                                  ccf_curve = self.ccfs[combo_number, box],
-                                                                                                  ch1_name = f'Ch{combo[0] + 1}',
-                                                                                                  ch2_name = f'Ch{combo[1] + 1}',
-                                                                                                  shift = self.shifts[combo_number, box])
+        if self.num_channels > 1:
+            its = len(self.channel_combos)*self.num_boxes
+            with tqdm(total=its, miniters=its/100) as pbar:
+                pbar.set_description('ind ccfs')
+                for combo_number, combo in enumerate(self.channel_combos):
+                    for box in range(self.num_boxes):
+                        pbar.update(1)
+                        self.ind_ccf_plots[f'Ch{combo[0]}-Ch{combo[1]} Box{box + 1} CCF'] = return_figure(ch1 = normalize(self.means[:, combo[0], box]),
+                                                                                                        ch2 = normalize(self.means[:, combo[1], box]),
+                                                                                                        ccf_curve = self.ccfs[combo_number, box],
+                                                                                                        ch1_name = f'Ch{combo[0] + 1}',
+                                                                                                        ch2_name = f'Ch{combo[1] + 1}',
+                                                                                                        shift = self.shifts[combo_number, box])
         
         return self.ind_ccf_plots
 
@@ -502,6 +511,7 @@ class TotalSignalProcessor:
         if hasattr(self, 'peak_widths'):
             its = self.num_channels*self.num_boxes
             with tqdm(total=its, miniters=its/100) as pbar:
+                pbar.set_description('ind peaks')
                 for channel in range(self.num_channels):
                     for box in range(self.num_boxes):
                         pbar.update(1)
@@ -725,6 +735,7 @@ class RollingSignalProcessor:
 
         its = self.num_submovies*self.num_channels*self.xpix*self.ypix
         with tqdm(total = its, miniters=its/100) as pbar:
+            pbar.set_description('Periods:')
             for submovie in range(self.num_submovies):
                 for channel in range(self.num_channels):
                     for box in range(self.num_boxes):
@@ -768,6 +779,7 @@ class RollingSignalProcessor:
 
         its = self.num_submovies*num_combos*self.num_boxes
         with tqdm(total=its, miniters=its/100) as pbar:
+            pbar.set_description('Shifts:')
             for submovie in range(self.num_submovies):
                 for combo_number, combo in enumerate(self.channel_combos):
                     for box in range(self.num_boxes):
@@ -813,6 +825,7 @@ class RollingSignalProcessor:
 
         its = self.num_submovies*self.num_channels*self.xpix*self.ypix
         with tqdm(total = its, miniters=its/100) as pbar:
+            pbar.set_description('Peak props:')
             for submovie in range(self.num_submovies):
                 for channel in range(self.num_channels):
                     for box in range(self.num_boxes):
