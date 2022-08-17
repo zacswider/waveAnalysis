@@ -1,5 +1,5 @@
 # Wave analysis scripts
-signalProcessing2C.py is written to batch analyze excitable / oscillatory dynamics in multichannel time lapse datasets. This workflow was conceptually based off of a MATLAB framework written by Marcin Leda and Andrew Goryachev (published in Bement _et al.,_ 2015; PMID 26479320), and was reimagined here in Python form to increase speed, accuracy, and access. This script analyzes signal period, amplitude, temporal duration, and (if applicable) the temporal shift between signals in short time lapse datasets (tens of frames, typically). We have also incorporated the ability to analyze these metrics across extended timelapse datasets (hundreds - thousands of frames).
+waveanalysis.py is written to batch analyze excitable / oscillatory dynamics in multichannel time lapse datasets. This workflow was conceptually based off of a MATLAB framework written by Marcin Leda and Andrew Goryachev (published in Bement _et al.,_ 2015; PMID 26479320), and was reimagined here in Python form to increase speed, accuracy, and access. This script analyzes signal period, amplitude, temporal duration, and (if applicable) the temporal shift between signals in short time lapse datasets (tens of frames, typically). We have also incorporated the ability to analyze these metrics across extended timelapse datasets (hundreds - thousands of frames).
 
 ## Overview
 
