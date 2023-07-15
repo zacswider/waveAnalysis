@@ -1,5 +1,5 @@
 # Wave analysis scripts
-waveanalysis.py was written to batch analyze excitable / oscillatory dynamics in multichannel time lapse datasets. This workflow was conceptually based off of a MATLAB framework written by Marcin Leda and Andrew Goryachev (published in Bement _et al.,_ 2015; PMID 26479320), and was reimagined here in Python form to increase speed, accuracy, and access. This pipeline analyzes signal period, amplitude, temporal duration, and (if applicable) the temporal shift between signals in short time lapse datasets (tens of frames, typically). We have also incorporated the ability to analyze these metrics between arbitrary numbers of channels and across extended timelapse datasets (hundreds - thousands of frames).
+This workflow was written to batch analyze excitable / oscillatory dynamics in multichannel time lapse datasets. It was conceptually based off of a MATLAB framework written by Marcin Leda and Andrew Goryachev (published in Bement _et al.,_ 2015; PMID 26479320), and this version was reimagined in Python form to increase speed, accuracy, and access. This pipeline analyzes signal period, amplitude, temporal duration, and (if applicable) the temporal shift between signals in short time lapse datasets (tens of frames, typically). We have also extended the ability to analyze these metrics between arbitrary numbers of channels and across extended timelapse datasets (hundreds - thousands of frames).
 
 ## Overview
 
@@ -7,39 +7,39 @@ waveanalysis.py was written to batch analyze excitable / oscillatory dynamics in
 
 In this workflow, each channel is broken up in n boxes (the box size will depend on the size of the features of interest):
 
-![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/boxes_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/boxes_light.jpg#gh-light-mode-only)
+![GitHub-Mark-Light](assets/images/boxes_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](assets/images/boxes_light.jpg#gh-light-mode-only)
 
 And each box is measured independently as follows:
 
 The mean pixel intensity in each box, when viewed over time, is a readout for the oscillatory dynamics in that region. For each channel, the period of the oscillatory signal can be estimated by calculating the autocorrelation of that signal.
 
-![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/autocorrelation_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/autocorrelation_light.jpg#gh-light-mode-only)
+![GitHub-Mark-Light](assets/images/autocorrelation_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](assets/images/autocorrelation_light.jpg#gh-light-mode-only)
 
 For 2-channel datasets, the temporal shift (if any) between the two signals is estimated by calculating the crosscorrelation of the two channels. 
 
-![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/crosscorrelation_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/crosscorrelation_light.jpg#gh-light-mode-only)
+![GitHub-Mark-Light](assets/images/crosscorrelation_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](assets/images/crosscorrelation_light.jpg#gh-light-mode-only)
 
 
 Oscillation properties (e.g., signal peak, signal trough, signal amplitude, temporal duration) can be determined from each waveform. As a precaution for noisy data, which real-world data are more often than not, the signal are smoothed using a Savitzky–Golay filter to avoid quantifying spurious peaks.
 
-![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/peaks_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/peaks_light.jpg#gh-light-mode-only)
+![GitHub-Mark-Light](assets/images/peaks_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](assets/images/peaks_light.jpg#gh-light-mode-only)
 
 Once each box has been independently quantified, they can be combined to estimate properties of the wave population. For example, in the example above we measured a period of 12 frames, is that measurement representative of the whole sample? By looking at the distribution of all period measurements, we can see that it is. 
 
-![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/meanACF_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/meanACF_light.jpg#gh-light-mode-only)
+![GitHub-Mark-Light](assets/images/meanACF_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](assets/images/meanACF_light.jpg#gh-light-mode-only)
 
 Similarly, we can assess the population of signal shift measurements, and oscillation/wave properties.
 
-![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/meanPeaks_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/meanPeaks_light.jpg#gh-light-mode-only)
+![GitHub-Mark-Light](assets/images/meanPeaks_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](assets/images/meanPeaks_light.jpg#gh-light-mode-only)
 
 If different groups are specified within the GUI, the script will generate a folder full of plots comparing basic signal properties between groups.
 
-![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/comparisons_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/comparisons_light.jpg#gh-light-mode-only)
+![GitHub-Mark-Light](assets/images/comparisons_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](assets/images/comparisons_light.jpg#gh-light-mode-only)
 
 ### Rolling analysis
 The above workflow describes the analysis of datasets over the totality of their time axis. This is perfectly suitable for data containing only a few wave (or oscillation) periods. However, if your data instead contains tens, hundreds, or thousands of wave periods this analysis will be insufficient. Instead, we can calculate the dynamics within short and overlapping sub-sections of the dataset to track the changes in wave/oscillation properties over time.
 
-![GitHub-Mark-Light](https://github.com/zacswider/README_Images/blob/main/rollingOutput_light.jpg#gh-light-mode-only)![GitHub-Mark-Dark](https://github.com/zacswider/README_Images/blob/main/rollingOutput_dark.jpg#gh-dark-mode-only)
+![GitHub-Mark-Light](assets/images/rollingOutput_light.jpg#gh-light-mode-only)![GitHub-Mark-Dark](assets/images/rollingOutput_dark.jpg#gh-dark-mode-only)
 
 The primary dependencies are numpy, seaborn, tqdm, tk, pandas, matplotlib, tifffile, scipy. See the environment.yml file to create your own environment. 
 
@@ -82,7 +82,7 @@ Executing transaction: done
 2) Type `python3 waveanalysis.py` into the terminal and hit enter to run the script.
 3) Next a window will appear asking you for some parameters to adjust:
 
-<img src="https://github.com/zacswider/README_Images/blob/main/gui1.png" width="800">
+<img src="assets/images/gui1.png" width="800">
 
 1) This is the source directory for your analysis. Navigate to it using the "Select source directory button". This directory should have one or more time lapse datasets saved in standard standard `tzcyx` order. If the data are not max projected along the z-axis prior to analysis, they will be max projected by the processing script.
 2) This is the box size used for analysis. Boxes should be large enough to filter out noise, but small enough that they don't over-fill the structures being analyzed. A good way to empirically find the apppropriate box size is to open your data in [FIJI](https://imagej.net/software/fiji/), draw a box with the rectangle selection tool, open up the z-axis profile plotter `Image > Stacks > Plot Z-axis Profile`, click the "Live" button, and adjust the box dimensions to find a size that you feel like accurately captures the temporal dynamics.
@@ -105,7 +105,7 @@ Executing transaction: done
 
 If you clicked button 14 in the previous GUI, the following window will appear:
 
-<img src="https://github.com/zacswider/README_Images/blob/main/gui2.png" width="800">
+<img src="assets/images/gui2.png" width="800">
 
 1) This is the source directory for your analysis. Navigate to it using the "Select source directory button". This directory should have one or more time lapse datasets saved in standard standard `tzcyx` order. If the data are not max projected along the z-axis prior to analysis, they will be max projected by the processing script.
 2) This is the box size used for analysis. Boxes should be large enough to filter out noise, but small enough that they don't over-fill the structures being analyzed. A good way to empirically find the apppropriate box size is to open your data in [FIJI](https://imagej.net/software/fiji/), draw a box with the rectangle selection tool, open up the z-axis profile plotter `Image > Stacks > Plot Z-axis Profile`, click the "Live" button, and adjust the box dimensions to find a size that you feel like accurately captures the temporal dynamics.
