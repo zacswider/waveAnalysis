@@ -7,8 +7,8 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from waveanalysismods.customgui import BaseGUI, RollingGUI
-from waveanalysismods.processor import TotalSignalProcessor, RollingSignalProcessor
+from waveanalysis.waveanalysismods.customgui import BaseGUI, RollingGUI
+from waveanalysis.waveanalysismods.processor import TotalSignalProcessor, RollingSignalProcessor
 
 np.seterr(divide='ignore', invalid='ignore')
 
