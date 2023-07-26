@@ -49,7 +49,7 @@ Before running any analysis on your data, be sure to complete all necessary pre-
 - Any significant two-dimensional drift in your data will alter the detected wave dynamics. If drift is detectable, register your data ahead of time.
 - Black spaces (e.g. from drift correction, or true background) should be cropped out.
 - Bleaching or z-drift will both affect amplitude and width measurements. The best approach is to not have bleaching/drift to begin with as bleach correction algorithms can introduce their own artifacts. However, if desired, correct your data for bleaching before analyzing.
-- The ideal dataset for standard analysis will include only a few wave periods which are consistent in character. The idea dataset for rolling analysis will include many wave periods (tens-thousands) which vary in character over time. 
+- The ideal dataset for standard analysis will include only a few wave periods which are consistent in character. The ideal dataset for rolling analysis will include many wave periods (tens-thousands) which vary in character over time. 
 - This tool draws on imageJ metadata to determine which dimensions are time, channels, slices, etc. Be sure that your files are saved appropriately before analyzing.
 - If files with more than one z plane are analyzed, the tool will max project them along the z-axis before analyzing.
 - Currently, this tool agnostically analyzes the entire image. If you wish to only analyze a specific region, crop it into a separe file. In the future, I plan to incorporate the ability to pass in a mask to specifically measure one or more sub-regions of the image (e.g., to separate out measurements from individual cells, or separate out background regions). 
@@ -58,9 +58,11 @@ Before running any analysis on your data, be sure to complete all necessary pre-
 
 In this section I will assume that you have no idea what Python is, or how to use it. If you already know how to use Python and Conda, you can skip ahead. 
 
-1) Click the big green "Code" button in the upper right corner of this repository. Select "Download ZIP", and then unzip it to your desktop. You can also clone or fork this repository, but if you know that you probably don't need these instructions.
-2) Go to https://www.anaconda.com/products/individual and download/install Anaconda (a distribution of Python and a package manager). 
-3) Once installed, open the terminal (on a Mac) or the Anaconda Prompt (on a PC).
+1) Go to the mambaforge webside and download/install the appropriate distribution of [mambaforge](https://mamba.readthedocs.io/en/latest/installation.html) for your operating system. 
+2) Open the miniforge prompt.
+3) Make a new virtual environment with `mamba create -n myenv python=3.9 -y`
+4) Activate your new environment with `conda activate myenv`
+5) Install this repo with `pip install ...`
 4) Type `cd Desktop/waveAnalysis-main` into the terminal/prompt and hit enter to navigate to the unzipped flder.
 5) Type `conda env create -f environment.yml` into the terminal and hit enter. This will install a bunch of scientific computing/analysis packages into an environment call "waveanalysis". The script will need the packages in this environment to run correctly.
 6) When complete, the final lines in your terminal should say 
