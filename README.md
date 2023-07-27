@@ -1,5 +1,5 @@
 # Wave analysis scripts
-This workflow was written to batch analyze excitable / oscillatory dynamics in multichannel time lapse datasets. It was conceptually based off of a MATLAB framework written by Marcin Leda and Andrew Goryachev (published in Bement _et al.,_ 2015; PMID 26479320), and this version was reimagined in Python form to increase speed, accuracy, and access. This pipeline analyzes signal period, amplitude, temporal duration, and (if applicable) the temporal shift between signals in short time lapse datasets (tens of frames, typically). We have also extended the ability to analyze these metrics between arbitrary numbers of channels and across extended timelapse datasets (hundreds - thousands of frames).
+This workflow was written to batch analyze excitable / oscillatory dynamics in multichannel time lapse datasets. It was inspired by a MATLAB framework written by Marcin Leda and Andrew Goryachev (published in Bement _et al.,_ 2015; PMID 26479320) and was reimagined here to increase speed, accuracy, and access. This pipeline analyzes signal period, amplitude, temporal duration, and (if applicable) the temporal shift between signals in short time lapse datasets (tens of frames, typically). We have also extended the ability to analyze these metrics between arbitrary numbers of channels and across extended timelapse datasets (hundreds - thousands of frames).
 
 ## Overview
 
@@ -41,8 +41,6 @@ The above workflow describes the analysis of datasets over the totality of their
 
 ![GitHub-Mark-Light](assets/images/rollingOutput_light.jpg#gh-light-mode-only)![GitHub-Mark-Dark](assets/images/rollingOutput_dark.jpg#gh-dark-mode-only)
 
-The primary dependencies are numpy, seaborn, tqdm, tk, pandas, matplotlib, tifffile, scipy. See the environment.yml file to create your own environment. 
-
 
 ## Preparing data for analysis
 Before running any analysis on your data, be sure to complete all necessary pre-processing steps. Some thing to consider:
@@ -54,7 +52,7 @@ Before running any analysis on your data, be sure to complete all necessary pre-
 - If files with more than one z plane are analyzed, the tool will max project them along the z-axis before analyzing.
 - Currently, this tool agnostically analyzes the entire image. If you wish to only analyze a specific region, crop it into a separe file. In the future, I plan to incorporate the ability to pass in a mask to specifically measure one or more sub-regions of the image (e.g., to separate out measurements from individual cells, or separate out background regions). 
 
-## Downloading the scripts and setting up Python on your computer
+## Install and run code
 
 In this section I will assume that you have no idea what Python is, or how to use it. If you already know how to use Python and Conda, you can skip ahead. 
 
@@ -62,27 +60,9 @@ In this section I will assume that you have no idea what Python is, or how to us
 2) Open the miniforge prompt.
 3) Make a new virtual environment with `mamba create -n myenv python=3.9 -y`
 4) Activate your new environment with `conda activate myenv`
-5) Install this repo with `pip install ...`
-4) Type `cd Desktop/waveAnalysis-main` into the terminal/prompt and hit enter to navigate to the unzipped flder.
-5) Type `conda env create -f environment.yml` into the terminal and hit enter. This will install a bunch of scientific computing/analysis packages into an environment call "waveanalysis". The script will need the packages in this environment to run correctly.
-6) When complete, the final lines in your terminal should say 
-```
-Executing transaction: done
-#
-# To activate this environment, use
-#
-#     $ conda activate waveanalysis
-#
-# To deactivate an active environment, use
-#
-#     $ conda deactivate
-```
-
-## Running the scripts 
-
-1) Activate the newly installed environment by typing `conda activate waveanalysis` into the terminal and hitting enter. 
-2) Type `python3 waveanalysis.py` into the terminal and hit enter to run the script.
-3) Next a window will appear asking you for some parameters to adjust:
+5) Install this repo with `pip install git+https://github.com/zacswider/waveAnalysis.git`
+6) Launch the gui with `python3 -m waveanalysis` 
+7) Next a window will appear asking you for some parameters to adjust:
 
 <img src="assets/images/gui1.png" width="800">
 
