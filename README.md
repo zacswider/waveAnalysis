@@ -61,7 +61,7 @@ In this section I will assume that you have no idea what Python is, or how to us
 3) Make a new virtual environment with `mamba create -n myenv python=3.9 -y`
 4) Activate your new environment with `conda activate myenv`
 5) Install this repo with `pip install git+https://github.com/zacswider/waveAnalysis.git`
-6) Launch the gui with `python3 -m waveanalysis` 
+6) Launch the gui with `python -m waveanalysis` 
 7) Next a window will appear asking you for some parameters to adjust:
 
 <img src="assets/images/gui1.png" width="800">
