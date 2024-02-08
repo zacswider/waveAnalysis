@@ -321,6 +321,10 @@ def main():
                     for plot_name, plot in ind_ccf_plots.items():
                         plot.savefig(f'{ind_ccf_path}/{plot_name}.png')
 
+                # Summarize the data for current image as dataframe, and save as .csv
+                im_measurements_df = processor.organize_measurements()
+                im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)
+
             # if rolling analysis            
             else:
                 # calculate the number of subframes used
@@ -346,10 +350,6 @@ def main():
                     os.makedirs(plot_save_path)
                 for title, plot in summary_plots.items():
                     plot.savefig(f'{plot_save_path}/{name_wo_ext}_{title}.png')
-
-            # Summarize the data for current image as dataframe, and save as .csv
-            im_measurements_df = processor.organize_measurements()
-            im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)
 
             # generate summary data for current image
             im_summary_dict = processor.summarize_image(file_name = file_name, group_name = group_name)
