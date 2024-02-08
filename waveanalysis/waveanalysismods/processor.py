@@ -56,7 +56,6 @@ class TotalSignalProcessor:
             # the number of rows in a kymograph is equal to the number to number of frames, so just call frames for simplicity
             self.num_frames = self.image.shape[-2] 
             self.image = self.image.reshape(self.num_frames, self.num_channels, self.total_bins)
-            print(self.image.shape)
 
     def check_and_set_rolling_parameters(self):
         '''
