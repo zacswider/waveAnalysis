@@ -9,12 +9,9 @@ class BaseGUI(tk.Tk):
 
         # configure root window
         self.title("Define your analysis parameters")
-        self.geometry("630x265")
+        self.main_frame = ttk.Frame(self, padding="20")
+        self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        #sets number of columns in the main window
-        self.columnconfigure(0, weight = 1)
-        self.columnconfigure(1, weight = 1)
-        self.columnconfigure(2, weight = 1)
 
         # define variable types for the different widget field
         self.box_size = tk.IntVar()
@@ -176,7 +173,8 @@ class RollingGUI(tk.Tk):
 
         # configure root window
         self.title("Define your analysis parameters")
-        self.geometry("500x250")
+        self.main_frame = ttk.Frame(self, padding="20")
+        self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         #sets number of columns in the main window
         self.columnconfigure(0, weight = 1)
@@ -300,7 +298,9 @@ class KymographGUI(tk.Tk):
 
         # configure root window
         self.title("Define your analysis parameters")
-        self.geometry("600x225")
+        # Configure the main frame
+        self.main_frame = ttk.Frame(self, padding="20")
+        self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
         #sets number of columns in the main window
         self.columnconfigure(0, weight = 1)
