@@ -27,18 +27,18 @@ class TotalSignalProcessor:
             metadata = tif_file.imagej_metadata
         self.num_channels = metadata.get('channels', 1)
 
-        if analysis_type != "kymograph":
+        if self.analysis_type == "standard" or self.analysis_type == "rolling":
             self.num_frames = metadata.get('frames', 1)
             num_slices = metadata.get('slices', 1)
             self.image = image.reshape(self.num_frames, num_slices, self.num_channels, *self.image.shape[-2:])
 
-        if analysis_type == "kymograph":
-            self.total_bins = self.image.shape[-1]
-            self.num_frames = self.image.shape[-2]
-
         if self.analysis_type == "rolling":
             assert isinstance(self.roll_size, int) and isinstance(self.roll_by, int), 'Roll size and roll by must be integers'
             self.num_submovies = (self.num_frames - self.roll_size) // self.roll_by
+
+        if analysis_type == "kymograph":
+            self.total_bins = self.image.shape[-1]
+            self.num_frames = self.image.shape[-2]
 
         # calculate the bin (box or line) values for each movie
         self.bin_values = self.calculate_bin_values()        
@@ -48,7 +48,7 @@ class TotalSignalProcessor:
         Calculate the mean signal for the specified box or line size over the images.
         '''
         # Use boxes for the standard and rolling analysis
-        if self.analysis_type == "standard":
+        if self.analysis_type == "standard" or self.analysis_type == "rolling":
             # Calculate the index for the center of the kernel
             ind = self.kernel_size // 2
             # Apply uniform filter to calculate mean signal over specified box size
@@ -64,20 +64,23 @@ class TotalSignalProcessor:
         # Use lines for kymograph analysis
         else:
             line_values = np.full(shape=(self.num_channels, self.total_bins, self.num_frames), fill_value=np.nan)
-            
+
             for channel in range(self.num_channels):
                 for col_num in range(self.total_bins):
                     if self.line_width == 1:
-                        signal = sig.savgol_filter(self.image[channel, :, col_num], window_length=2, polyorder=1)
-                        line_values[channel, col_num] = signal
-                    elif self.line_width % 2 != 0:
-                        line_width_extra = (self.line_width - 1) // 2
-                        start_col = max(col_num - line_width_extra, 0)
-                        end_col = min(col_num + line_width_extra + 1, self.total_bins)
-                        signal = np.mean(self.image[channel, :, start_col:end_col], axis=1)
-                        signal = sig.savgol_filter(signal, window_length=2, polyorder=1)
-                        line_values[channel, col_num] = signal
+                        signal = sig.savgol_filter(self.image[channel, :, col_num], window_length=1, polyorder=0)
+                    else:
+                        line_width_extra = min(self.line_width - 1, self.total_bins - col_num)
+                        start_col = col_num
+                        end_col = col_num + line_width_extra + 1
+                        if line_width_extra > 0 and self.image[channel, :, start_col:end_col].shape == (self.num_frames, self.line_width):
+                            signal = np.mean(self.image[channel, :, start_col:end_col], axis=1)
+                            signal = sig.savgol_filter(signal, window_length=1, polyorder=0)
+                        else:
+                            signal = np.nan
 
+                    line_values[channel, col_num] = signal
+                    
             return line_values
         
 ############################################

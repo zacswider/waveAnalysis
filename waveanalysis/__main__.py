@@ -214,8 +214,8 @@ def main():
 
             if analysis_type == "kymograph":
                 image = image.reshape(num_channels, 
-                                        image.shape[-2],  # rows
-                                        image.shape[-1])  # cols
+                                        image.shape[-2],  # cols
+                                        image.shape[-1])  # rows
                 
             images[file_path.name] = image
 
