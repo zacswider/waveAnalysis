@@ -2,16 +2,19 @@ import os
 import sys 
 import csv
 import timeit
+import pathlib
 import datetime
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+import tifffile
 from waveanalysismods.customgui import BaseGUI, RollingGUI, KymographGUI
 from waveanalysismods.processor import TotalSignalProcessor
 
 np.seterr(divide='ignore', invalid='ignore')
+plt.rcParams['figure.max_open_warning'] = 0
 
 ####################################################################################################################################
 ####################################################################################################################################
@@ -178,6 +181,48 @@ def main():
         ax.set_xticklabels(ax.get_xticklabels(),rotation=45)
         fig = ax.get_figure()
         return fig
+    
+    def convert_images(folder_path, analysis_type):
+        """
+        Convert all TIF files in the specified directory to standardized numpy arrays.
+
+        Args:
+            directory (str or pathlib.Path): The path to the directory containing the TIF files.
+
+        Returns:
+            dict: A dictionary where the keys are the file names and the values are the numpy arrays of the images.
+        """
+        input_path = pathlib.Path(folder_path)
+        images = {}
+
+        for file_path in input_path.glob('*.tif'):
+            # Load the TIFF file into a numpy array
+            image = tifffile.imread(file_path)
+
+            with tifffile.TiffFile(file_path) as tif_file:
+                metadata = tif_file.imagej_metadata
+            num_channels = metadata.get('channels', 1)
+            num_frames = metadata.get('frames', 1)
+            num_slices = metadata.get('slices', 1)
+
+            # Max project if multiple slices
+            if num_slices > 1:
+                print('Max projecting image stack')
+                image = np.max(image, axis=1)
+                num_slices = 1
+                image = image.reshape(num_frames, num_slices, num_channels, *image.shape[-2:])
+
+            if analysis_type == "kymograph":
+                image = image.reshape(num_channels, 
+                                        image.shape[-2],  # rows
+                                        image.shape[-1])  # cols
+                
+            images[file_path.name] = image
+
+        # Sort the dictionary keys alphabetically
+        images = {key: images[key] for key in sorted(images)}
+
+        return images
 
     ''' ** error catching for group names ** '''
     # list of file names in specified directory
@@ -226,6 +271,9 @@ def main():
     # column headers to use with summary data during conversion to dataframe
     col_headers = []
 
+    # create a dictionary of the filename and corresponding images as mp arrays. 
+    all_images = convert_images(folder_path, analysis_type)
+
     print('Processing files...')
 
     with tqdm(total = len(file_names)) as pbar:
@@ -233,7 +281,14 @@ def main():
         for file_name in file_names: 
             print('******'*10)
             print(f'Processing {file_name}...')
-            processor = TotalSignalProcessor(analysis_type = analysis_type, image_path = f'{folder_path}/{file_name}', kern = box_size, step = box_shift, roll_size = subframe_size, roll_by = subframe_roll, line_width = line_width)
+            processor = TotalSignalProcessor(analysis_type = analysis_type, 
+                                             image_path = f'{folder_path}/{file_name}',
+                                             image = all_images[file_name], 
+                                             kern = box_size, 
+                                             step = box_shift, 
+                                             roll_size = subframe_size, 
+                                             roll_by = subframe_roll, 
+                                             line_width = line_width)
             # log error and skip image if frames < 2 
             if processor.num_frames < 2:
                 print(f"****** ERROR ******",
@@ -308,7 +363,7 @@ def main():
                     for plot_name, plot in ind_acf_plots.items():
                         plot.savefig(f'{ind_acf_path}/{plot_name}.png')
 
-                if plot_ind_CCFs:
+                if plot_ind_CCFs and processor.num_channels > 1:
                     if processor.num_channels == 1:
                         log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
                     ind_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')

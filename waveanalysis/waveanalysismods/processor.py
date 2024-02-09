@@ -1,5 +1,6 @@
 import os
 import csv
+import tifffile
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -7,70 +8,47 @@ import scipy.signal as sig
 import scipy.ndimage as nd
 import matplotlib.pyplot as plt
 from itertools import zip_longest
-from tifffile import imread, TiffFile
 
 np.seterr(divide='ignore', invalid='ignore')
 
 class TotalSignalProcessor:
-    def __init__(self, analysis_type, image_path, kern=None, step=None, roll_size=None, roll_by=None, line_width=None):
+    def __init__(self, analysis_type, image_path, image, kern=None, step=None, roll_size=None, roll_by=None, line_width=None):
         # Import variables
+        self.analysis_type = analysis_type
+        self.line_width = line_width
         self.roll_size = roll_size
         self.roll_by = roll_by
-        self.line_width = line_width
         self.kernel_size = kern
         self.step = step
-        self.analysis_type = analysis_type
-
-        # Image import
+        
         self.image_path = image_path
-        self.image = imread(self.image_path)
-        with TiffFile(self.image_path) as tif_file:
+        self.image = image
+        with tifffile.TiffFile(self.image_path) as tif_file:
             metadata = tif_file.imagej_metadata
         self.num_channels = metadata.get('channels', 1)
-        self.standardize_image_dimensions(metadata)
 
-        # Specific functions for rolling analysis
-        self.check_and_set_rolling_parameters()
-
-        # calculate the bin (box or line) values for each movie
-        self.bin_values = self.calculate_bin_values()
-
-    def standardize_image_dimensions(self, metadata):
-        '''
-        Extract metadata, and reshape the image
-        '''
-        if self.analysis_type != "kymograph":
+        if analysis_type != "kymograph":
             self.num_frames = metadata.get('frames', 1)
-            self.num_slices = metadata.get('slices', 1)
-            self.image = self.image.reshape(self.num_frames, self.num_slices, self.num_channels, *self.image.shape[-2:])
+            num_slices = metadata.get('slices', 1)
+            self.image = image.reshape(self.num_frames, num_slices, self.num_channels, *self.image.shape[-2:])
 
-            # Max project if multiple slices
-            if self.num_slices > 1:
-                print('Max projecting image stack')
-                self.image = np.max(self.image, axis=1)
-                self.num_slices = 1
-                self.image = self.image.reshape(self.num_frames, self.num_slices, self.num_channels, *self.image.shape[-2:])
-        else:
-            # we are either binning the image into boxes (standard) or columns (kymographs), so just call bins for simplicity
-            self.total_bins = self.image.shape[-1] 
-            # the number of rows in a kymograph is equal to the number to number of frames, so just call frames for simplicity
-            self.num_frames = self.image.shape[-2] 
-            self.image = self.image.reshape(self.num_frames, self.num_channels, self.total_bins)
+        if analysis_type == "kymograph":
+            self.total_bins = self.image.shape[-1]
+            self.num_frames = self.image.shape[-2]
 
-    def check_and_set_rolling_parameters(self):
-        '''
-        Specific parameters that are only set in the rolling analysis
-        '''
         if self.analysis_type == "rolling":
             assert isinstance(self.roll_size, int) and isinstance(self.roll_by, int), 'Roll size and roll by must be integers'
             self.num_submovies = (self.num_frames - self.roll_size) // self.roll_by
+
+        # calculate the bin (box or line) values for each movie
+        self.bin_values = self.calculate_bin_values()        
 
     def calculate_bin_values(self):
         '''
         Calculate the mean signal for the specified box or line size over the images.
         '''
         # Use boxes for the standard and rolling analysis
-        if self.analysis_type != "kymograph":
+        if self.analysis_type == "standard":
             # Calculate the index for the center of the kernel
             ind = self.kernel_size // 2
             # Apply uniform filter to calculate mean signal over specified box size
@@ -85,29 +63,120 @@ class TotalSignalProcessor:
 
         # Use lines for kymograph analysis
         else:
-            line_values = np.zeros(shape=(self.num_frames, self.num_channels, self.total_bins))
-
+            line_values = np.full(shape=(self.num_channels, self.total_bins, self.num_frames), fill_value=np.nan)
+            
             for channel in range(self.num_channels):
-                for frame_num in range(self.num_frames):
-                    for line_num in range(self.total_bins):
-                        if self.line_width == 1:
-                            pixel = self.image[frame_num, channel, line_num]
-                            line_values[frame_num, channel, line_num] = pixel
-                        elif self.line_width % 2 != 0:
-                            line_width_extra = (self.line_width - 1) // 2
-                            left_bound = max(0, line_num - line_width_extra)
-                            right_bound = min(self.total_bins, line_num + line_width_extra + 1)
-                            line_slice = self.image[frame_num, channel, left_bound:right_bound]
-                            pixel = np.mean(line_slice)
-                            line_values[frame_num, channel, line_num] = pixel
-                        else:
-                            raise ValueError("Line width must be odd!")
+                for col_num in range(self.total_bins):
+                    if self.line_width == 1:
+                        signal = sig.savgol_filter(self.image[channel, :, col_num], window_length=2, polyorder=1)
+                        line_values[channel, col_num] = signal
+                    elif self.line_width % 2 != 0:
+                        line_width_extra = (self.line_width - 1) // 2
+                        start_col = max(col_num - line_width_extra, 0)
+                        end_col = min(col_num + line_width_extra + 1, self.total_bins)
+                        signal = np.mean(self.image[channel, :, start_col:end_col], axis=1)
+                        signal = sig.savgol_filter(signal, window_length=2, polyorder=1)
+                        line_values[channel, col_num] = signal
 
             return line_values
-
+        
 ############################################
 ######## INDIVIDUAL BIN CALCULATION ########
 ############################################
+    
+    def calc_indv_peak_props(self):
+        """
+        This method computes various peak properties for each channel and bin of the analyzed data.
+
+        Returns:
+            - ind_peak_widths (numpy.ndarray): Array of peak widths.
+            - ind_peak_maxs (numpy.ndarray): Array of peak maximum values.
+            - ind_peak_mins (numpy.ndarray): Array of peak minimum values.
+            - ind_peak_amps (numpy.ndarray): Array of peak amplitudes.
+            - ind_peak_rel_amps (numpy.ndarray): Array of relative peak amplitudes.
+            - ind_peak_props (dict): Dictionary containing additional peak properties.
+        """
+        def indv_props(signal, bin, submovie = None):
+            """
+            This function calculates various peak properties for a given signal.
+
+            Parameters:
+                - signal (numpy.ndarray): Input signal.
+                - bin (int): Index of the bin.
+                - submovie (int): Index of the submovie. Defaults to None.
+            """
+            peaks, _ = sig.find_peaks(signal, prominence=(np.max(signal)-np.min(signal))*0.1)
+
+            # If peaks detected, calculate properties, otherwise return NaNs
+            if len(peaks) > 0:
+                proms, _, _ = sig.peak_prominences(signal, peaks)
+                widths, heights, leftIndex, rightIndex = sig.peak_widths(signal, peaks, rel_height=0.5)
+                mean_width = np.mean(widths, axis=0)
+                mean_max = np.mean(signal[peaks], axis = 0)
+                mean_min = np.mean(signal[peaks]-proms, axis = 0)
+            else:
+                mean_width = np.nan
+                mean_max = np.nan
+                mean_min = np.nan
+                peaks = np.nan
+                proms = np.nan 
+                heights = np.nan
+                leftIndex = np.nan
+                rightIndex = np.nan
+
+            # If rolling analysis
+            if submovie != None:
+                # Store peak measurements for each bin in each channel of a submovie
+                self.ind_peak_widths[submovie, channel, bin] = mean_width
+                self.ind_peak_maxs[submovie, channel, bin] = mean_max
+                self.ind_peak_mins[submovie, channel, bin] = mean_min
+            
+            else:
+                # Store peak measurements for each bin in each channel
+                self.ind_peak_widths[channel, bin] = mean_width
+                self.ind_peak_maxs[channel, bin] = mean_max
+                self.ind_peak_mins[channel, bin] = mean_min
+                self.ind_peak_props[f'Ch {channel} Bin {bin}'] = {'smoothed': signal, 
+                                                        'peaks': peaks,
+                                                        'proms': proms, 
+                                                        'heights': heights, 
+                                                        'leftIndex': leftIndex, 
+                                                        'rightIndex': rightIndex}
+
+        # Initialize arrays/dictionary to store peak measurements
+        self.ind_peak_widths = np.zeros(shape=(self.num_channels, self.total_bins))
+        self.ind_peak_maxs = np.zeros(shape=(self.num_channels, self.total_bins))
+        self.ind_peak_mins = np.zeros(shape=(self.num_channels, self.total_bins))
+        self.ind_peak_props = {}
+
+        # Loop through channels and bins for standard or kymograph analysis
+        if self.analysis_type != "rolling":
+            for channel in range(self.num_channels):
+                for bin in range(self.total_bins):
+                    if self.analysis_type == "standard":
+                        signal = sig.savgol_filter(self.bin_values[:,channel, bin], window_length = 11, polyorder = 2)   
+                    else:                     
+                        signal = sig.savgol_filter(self.bin_values[channel, bin], window_length = 11, polyorder = 2)   
+                    indv_props(signal, bin)
+
+        # If rolling analysis
+        elif self.analysis_type == "rolling":
+            self.ind_peak_widths = np.zeros(shape=(self.num_submovies, self.num_channels, self.total_bins))
+            self.ind_peak_maxs = np.zeros(shape=(self.num_submovies, self.num_channels, self.total_bins))
+            self.ind_peak_mins = np.zeros(shape=(self.num_submovies, self.num_channels, self.total_bins))
+
+            for submovie in range(self.num_submovies):
+                for channel in range(self.num_channels):
+                    for bin in range(self.total_bins):
+                        signal = sig.savgol_filter(self.bin_values[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, channel, bin], window_length=11, polyorder=2)
+                        indv_props(signal, bin, submovie = submovie)
+
+        # Calculate additional peak properties
+        self.ind_peak_amps = self.ind_peak_maxs - self.ind_peak_mins
+        self.ind_peak_rel_amps = self.ind_peak_amps / self.ind_peak_mins
+
+      
+        return self.ind_peak_widths, self.ind_peak_maxs, self.ind_peak_mins, self.ind_peak_amps, self.ind_peak_rel_amps, self.ind_peak_props
 
     def calc_indv_ACFs(self, peak_thresh=0.1):
         """
@@ -159,7 +228,7 @@ class TotalSignalProcessor:
         if self.analysis_type != "rolling":
             for channel in range(self.num_channels):
                 for bin in range(self.total_bins):
-                    signal = self.bin_values[:, channel, bin]
+                    signal = self.bin_values[:, channel, bin] if self.analysis_type == "standard" else self.bin_values[channel, bin, :]
                     delay, acf_curve = norm_and_calc_shifts(signal, num_frames_or_rollsize=self.num_frames)
                     self.periods[channel, bin] = delay
                     self.acfs[channel, bin] = acf_curve
@@ -255,8 +324,12 @@ class TotalSignalProcessor:
         if self.analysis_type != "rolling":
             for combo_number, combo in enumerate(self.channel_combos):
                 for bin in range(self.total_bins):
-                    signal1 = self.bin_values[:, combo[0], bin]
-                    signal2 = self.bin_values[:, combo[1], bin]
+                    if self.analysis_type == "standard":
+                        signal1 = self.bin_values[:, combo[0], bin]
+                        signal2 = self.bin_values[:, combo[1], bin]
+                    else:
+                        signal1 = self.bin_values[combo[0], bin]
+                        signal2 = self.bin_values[combo[1], bin]
      
                     delay_frames, cc_curve = calc_shifts(signal1, signal2, prominence=0.1)
 
@@ -290,230 +363,10 @@ class TotalSignalProcessor:
 
         return self.indv_shifts, self.indv_ccfs, self.channel_combos
 
-    def calc_indv_peak_props(self):
-        """
-        This method computes various peak properties for each channel and bin of the analyzed data.
-
-        Returns:
-            - ind_peak_widths (numpy.ndarray): Array of peak widths.
-            - ind_peak_maxs (numpy.ndarray): Array of peak maximum values.
-            - ind_peak_mins (numpy.ndarray): Array of peak minimum values.
-            - ind_peak_amps (numpy.ndarray): Array of peak amplitudes.
-            - ind_peak_rel_amps (numpy.ndarray): Array of relative peak amplitudes.
-            - ind_peak_props (dict): Dictionary containing additional peak properties.
-        """
-        def indv_props(signal, bin, submovie = None):
-            """
-            This function calculates various peak properties for a given signal.
-
-            Parameters:
-                - signal (numpy.ndarray): Input signal.
-                - bin (int): Index of the bin.
-                - submovie (int): Index of the submovie. Defaults to None.
-            """
-            peaks, _ = sig.find_peaks(signal, prominence=(np.max(signal)-np.min(signal))*0.1)
-
-            # If peaks detected, calculate properties, otherwise return NaNs
-            if len(peaks) > 0:
-                proms, _, _ = sig.peak_prominences(signal, peaks)
-                widths, heights, leftIndex, rightIndex = sig.peak_widths(signal, peaks, rel_height=0.5)
-                mean_width = np.mean(widths, axis=0)
-                mean_max = np.mean(signal[peaks], axis = 0)
-                mean_min = np.mean(signal[peaks]-proms, axis = 0)
-            else:
-                mean_width = np.nan
-                mean_max = np.nan
-                mean_min = np.nan
-                peaks = np.nan
-                proms = np.nan 
-                heights = np.nan
-                leftIndex = np.nan
-                rightIndex = np.nan
-
-            # If rolling analysis
-            if submovie != None:
-                # Store peak measurements for each bin in each channel of a submovie
-                self.ind_peak_widths[submovie, channel, bin] = mean_width
-                self.ind_peak_maxs[submovie, channel, bin] = mean_max
-                self.ind_peak_mins[submovie, channel, bin] = mean_min
-            
-            else:
-                # Store peak measurements for each bin in each channel
-                self.ind_peak_widths[channel, bin] = mean_width
-                self.ind_peak_maxs[channel, bin] = mean_max
-                self.ind_peak_mins[channel, bin] = mean_min
-                self.ind_peak_props[f'Ch {channel} Bin {bin}'] = {'smoothed': signal, 
-                                                        'peaks': peaks,
-                                                        'proms': proms, 
-                                                        'heights': heights, 
-                                                        'leftIndex': leftIndex, 
-                                                        'rightIndex': rightIndex}
-
-        # Initialize arrays/dictionary to store peak measurements
-        self.ind_peak_widths = np.zeros(shape=(self.num_channels, self.total_bins))
-        self.ind_peak_maxs = np.zeros(shape=(self.num_channels, self.total_bins))
-        self.ind_peak_mins = np.zeros(shape=(self.num_channels, self.total_bins))
-        self.ind_peak_props = {}
-
-        # Loop through channels and bins for standard or kymograph analysis
-        if self.analysis_type != "rolling":
-            for channel in range(self.num_channels):
-                for bin in range(self.total_bins):
-                    signal = sig.savgol_filter(self.bin_values[:,channel, bin], window_length = 11, polyorder = 2)                       
-                    indv_props(signal, bin)
-
-        # If rolling analysis
-        elif self.analysis_type == "rolling":
-            self.ind_peak_widths = np.zeros(shape=(self.num_submovies, self.num_channels, self.total_bins))
-            self.ind_peak_maxs = np.zeros(shape=(self.num_submovies, self.num_channels, self.total_bins))
-            self.ind_peak_mins = np.zeros(shape=(self.num_submovies, self.num_channels, self.total_bins))
-
-            for submovie in range(self.num_submovies):
-                for channel in range(self.num_channels):
-                    for bin in range(self.total_bins):
-                        signal = sig.savgol_filter(self.bin_values[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, channel, bin], window_length=11, polyorder=2)
-                        indv_props(signal, bin, submovie = submovie)
-
-        # Calculate additional peak properties
-        self.ind_peak_amps = self.ind_peak_maxs - self.ind_peak_mins
-        self.ind_peak_rel_amps = self.ind_peak_amps / self.ind_peak_mins
-
-      
-        return self.ind_peak_widths, self.ind_peak_maxs, self.ind_peak_mins, self.ind_peak_amps, self.ind_peak_rel_amps, self.ind_peak_props
-
 ############################################
 ########### INDIVIDUAL BIN PLOTS ###########
 ############################################
     
-    def plot_indv_acfs(self):
-        """
-        This method generates and plots individual autocorrelation functions (ACFs) for each channel and bin.
-
-        Returns:
-            - dict: Dictionary containing generated figures of individual ACF plots.
-        """
-        def return_figure(raw_signal: np.ndarray, acf_curve: np.ndarray, Ch_name: str, period: int):
-            '''
-            Space saving function to generate the plots for the individual ACF plots
-            '''
-            # Create subplots for raw signal and autocorrelation curve
-            fig, (ax1, ax2) = plt.subplots(2, 1)
-            ax1.plot(raw_signal)
-            ax1.set_xlabel(f'{Ch_name} Raw Signal')
-            ax1.set_ylabel('Mean bin px value')
-            ax2.plot(np.arange(-self.num_frames + 1, self.num_frames), acf_curve)
-            ax2.set_ylabel('Autocorrelation')
-            
-            # Annotate the first peak identified as the period if available
-            if not period == np.nan:
-                color = 'red'
-                ax2.axvline(x = period, alpha = 0.5, c = color, linestyle = '--')
-                ax2.axvline(x = -period, alpha = 0.5, c = color, linestyle = '--')
-                ax2.set_xlabel(f'Period is {period} frames')
-            else:
-                ax2.set_xlabel(f'No period identified')
-
-            fig.subplots_adjust(hspace=0.5)
-            plt.close(fig)
-            return(fig)
-
-        # Empty dictionary to store generated figures
-        self.indv_acf_plots = {}
-
-        # Iterate through channels and bins to plot individual autocorrelation curves
-        its = self.num_channels*self.total_bins
-        with tqdm(total=its, miniters=its/100) as pbar:
-            pbar.set_description('ind acfs')
-            for channel in range(self.num_channels):
-                for bin in range(self.total_bins):
-                    pbar.update(1) 
-                    # Generate and store the figure for the current channel and bin
-                    self.indv_acf_plots[f'Ch{channel + 1} Bin {bin + 1} ACF'] = return_figure(self.bin_values[:,channel, bin], 
-                                                                                            self.acfs[channel, bin], 
-                                                                                            f'Ch{channel + 1}', 
-                                                                                            self.periods[channel, bin])
-        return self.indv_acf_plots
-
-    def plot_indv_ccfs(self, save_folder):
-        """
-        This method generates and plots individual cross-correlation functions (CCFs) for each channel and bin.
-
-        It then saves the measurements to CSV files for each channel combination and bin.
-
-        Parameters:
-            - save_folder (str): Path to the folder where CSV files will be saved.
-
-        Returns:
-            - dict: Dictionary containing generated figures of individual CCF plots.
-        """
-        # Create subplots for raw signals and cross-correlation curve
-        def return_figure(ch1: np.ndarray, ch2: np.ndarray, ccf_curve: np.ndarray, ch1_name: str, ch2_name: str, shift: int):
-            '''
-            Space saving function to generate the plots for the individual CCF plots
-            '''
-            fig, (ax1, ax2) = plt.subplots(2, 1)
-            ax1.plot(ch1, color = 'tab:blue', label = ch1_name)
-            ax1.plot(ch2, color = 'tab:orange', label = ch2_name)
-            ax1.set_xlabel('time (frames)')
-            ax1.set_ylabel('Mean bin px value')
-            ax1.legend(loc='upper right', fontsize = 'small', ncol = 1)
-            ax2.plot(np.arange(-self.num_frames + 1, self.num_frames), ccf_curve)
-            ax2.set_ylabel('Crosscorrelation')
-            
-            # Annotate the first peak identified as the shift if available
-            if not shift == np.nan:
-                color = 'red'
-                ax2.axvline(x = shift, alpha = 0.5, c = color, linestyle = '--')
-                if shift < 1:
-                    ax2.set_xlabel(f'{ch1_name} leads by {int(abs(shift))} frames')
-                elif shift > 1:
-                    ax2.set_xlabel(f'{ch2_name} leads by {int(abs(shift))} frames')
-                else:
-                    ax2.set_xlabel('no shift detected')
-            else:
-                ax2.set_xlabel(f'No peaks identified')
-            
-            fig.subplots_adjust(hspace=0.5)
-            plt.close(fig)
-            return(fig)
-        
-        def normalize(signal: np.ndarray):
-            # Normalize between 0 and 1
-            return (signal - np.min(signal)) / (np.max(signal) - np.min(signal))
-        
-        # Empty dictionary to store generated figures
-        self.indv_ccf_plots = {}
-
-        # Iterate through channel combinations and bins to plot individual cross-correlation curves
-        if self.num_channels > 1:
-            its = len(self.channel_combos)*self.total_bins
-            with tqdm(total=its, miniters=its/100) as pbar:
-                pbar.set_description('ind ccfs')
-                for combo_number, combo in enumerate(self.channel_combos):
-                    for bin in range(self.total_bins):
-                        pbar.update(1)
-                        # Generate and store the figure for the current channel combination and bin
-                        self.indv_ccf_plots[f'Ch{combo[0]}-Ch{combo[1]} Bin {bin + 1} CCF'] = return_figure(ch1 = normalize(self.bin_values[:, combo[0], bin]),
-                                                                                                        ch2 = normalize(self.bin_values[:, combo[1], bin]),
-                                                                                                        ccf_curve = self.indv_ccfs[combo_number, bin],
-                                                                                                        ch1_name = f'Ch{combo[0] + 1}',
-                                                                                                        ch2_name = f'Ch{combo[1] + 1}',
-                                                                                                        shift = self.indv_shifts[combo_number, bin])
-                        
-                        # Save the individual bin values
-                        ccf_curve = self.indv_ccfs[combo_number, bin]
-                        measurements = list(zip_longest(range(1, len(ccf_curve) + 1),  normalize(self.bin_values[:, combo[0], bin]), normalize(self.bin_values[:, combo[1], bin]), ccf_curve, fillvalue=None))
-                        indv_ccfs_filename = os.path.join(save_folder, f'Bin {bin + 1}_CCF_values.csv')
-                    
-                        # Write measurements to CSV file
-                        with open(indv_ccfs_filename, 'w', newline='') as csvfile:
-                            writer = csv.writer(csvfile)
-                            writer.writerow(['Time', 'Ch1_Value', 'Ch2_Value', 'CCF_Value'])
-                            for time, ch1_val, ch2_val, ccf_val in measurements:
-                                writer.writerow([time, ch1_val, ch2_val, ccf_val])
-        
-        return self.indv_ccf_plots
-
     def plot_indv_peak_props(self):
         """
         This method generates and plots individual peak properties for each channel and bin.
@@ -583,17 +436,221 @@ class TotalSignalProcessor:
                 for channel in range(self.num_channels):
                     for bin in range(self.total_bins):
                         pbar.update(1)
+                        to_plot = self.bin_values[:,channel, bin] if self.analysis_type == "standard" else self.bin_values[channel,bin, :]
                         # Generate and store the figure for the current channel and bin
-                        self.indv_peak_figs[f'Ch{channel + 1} Bin {bin + 1} Peak Props'] = return_figure(self.bin_values[:,channel, bin],
+                        self.indv_peak_figs[f'Ch{channel + 1} Bin {bin + 1} Peak Props'] = return_figure(to_plot,
                                                                                                     self.ind_peak_props[f'Ch {channel} Bin {bin}'],
                                                                                                     f'Ch{channel + 1} Bin {bin + 1}')
 
         return self.indv_peak_figs
 
+    def plot_indv_acfs(self):
+        """
+        This method generates and plots individual autocorrelation functions (ACFs) for each channel and bin.
+
+        Returns:
+            - dict: Dictionary containing generated figures of individual ACF plots.
+        """
+        def return_figure(raw_signal: np.ndarray, acf_curve: np.ndarray, Ch_name: str, period: int):
+            '''
+            Space saving function to generate the plots for the individual ACF plots
+            '''
+            # Create subplots for raw signal and autocorrelation curve
+            fig, (ax1, ax2) = plt.subplots(2, 1)
+            ax1.plot(raw_signal)
+            ax1.set_xlabel(f'{Ch_name} Raw Signal')
+            ax1.set_ylabel('Mean bin px value')
+            ax2.plot(np.arange(-self.num_frames + 1, self.num_frames), acf_curve)
+            ax2.set_ylabel('Autocorrelation')
+            
+            # Annotate the first peak identified as the period if available
+            if not period == np.nan:
+                color = 'red'
+                ax2.axvline(x = period, alpha = 0.5, c = color, linestyle = '--')
+                ax2.axvline(x = -period, alpha = 0.5, c = color, linestyle = '--')
+                ax2.set_xlabel(f'Period is {period} frames')
+            else:
+                ax2.set_xlabel(f'No period identified')
+
+            fig.subplots_adjust(hspace=0.5)
+            plt.close(fig)
+            return(fig)
+
+        # Empty dictionary to store generated figures
+        self.indv_acf_plots = {}
+
+        # Iterate through channels and bins to plot individual autocorrelation curves
+        its = self.num_channels*self.total_bins
+        with tqdm(total=its, miniters=its/100) as pbar:
+            pbar.set_description('ind acfs')
+            for channel in range(self.num_channels):
+                for bin in range(self.total_bins):
+                    pbar.update(1) 
+                    to_plot = self.bin_values[:,channel, bin] if self.analysis_type == "standard" else self.bin_values[channel,bin, :]
+                    # Generate and store the figure for the current channel and bin
+                    self.indv_acf_plots[f'Ch{channel + 1} Bin {bin + 1} ACF'] = return_figure(to_plot, 
+                                                                                            self.acfs[channel, bin], 
+                                                                                            f'Ch{channel + 1}', 
+                                                                                            self.periods[channel, bin])
+        return self.indv_acf_plots
+
+    def plot_indv_ccfs(self, save_folder):
+        """
+        This method generates and plots individual cross-correlation functions (CCFs) for each channel and bin.
+
+        It then saves the measurements to CSV files for each channel combination and bin.
+
+        Parameters:
+            - save_folder (str): Path to the folder where CSV files will be saved.
+
+        Returns:
+            - dict: Dictionary containing generated figures of individual CCF plots.
+        """
+        # Create subplots for raw signals and cross-correlation curve
+        def return_figure(ch1: np.ndarray, ch2: np.ndarray, ccf_curve: np.ndarray, ch1_name: str, ch2_name: str, shift: int):
+            '''
+            Space saving function to generate the plots for the individual CCF plots
+            '''
+            fig, (ax1, ax2) = plt.subplots(2, 1)
+            ax1.plot(ch1, color = 'tab:blue', label = ch1_name)
+            ax1.plot(ch2, color = 'tab:orange', label = ch2_name)
+            ax1.set_xlabel('time (frames)')
+            ax1.set_ylabel('Mean bin px value')
+            ax1.legend(loc='upper right', fontsize = 'small', ncol = 1)
+            ax2.plot(np.arange(-self.num_frames + 1, self.num_frames), ccf_curve)
+            ax2.set_ylabel('Crosscorrelation')
+            
+            # Annotate the first peak identified as the shift if available
+            if not shift == np.nan:
+                color = 'red'
+                ax2.axvline(x = shift, alpha = 0.5, c = color, linestyle = '--')
+                if shift < 1:
+                    ax2.set_xlabel(f'{ch1_name} leads by {int(abs(shift))} frames')
+                elif shift > 1:
+                    ax2.set_xlabel(f'{ch2_name} leads by {int(abs(shift))} frames')
+                else:
+                    ax2.set_xlabel('no shift detected')
+            else:
+                ax2.set_xlabel(f'No peaks identified')
+            
+            fig.subplots_adjust(hspace=0.5)
+            plt.close(fig)
+            return(fig)
+        
+        def normalize(signal: np.ndarray):
+            # Normalize between 0 and 1
+            return (signal - np.min(signal)) / (np.max(signal) - np.min(signal))
+        
+        # Empty dictionary to store generated figures
+        self.indv_ccf_plots = {}
+
+        # Iterate through channel combinations and bins to plot individual cross-correlation curves
+        if self.num_channels > 1:
+            its = len(self.channel_combos)*self.total_bins
+            with tqdm(total=its, miniters=its/100) as pbar:
+                pbar.set_description('ind ccfs')
+                for combo_number, combo in enumerate(self.channel_combos):
+                    for bin in range(self.total_bins):
+                        pbar.update(1)
+                        to_plot1 = self.bin_values[:, combo[0], bin] if self.analysis_type == "standard" else self.bin_values[combo[0], bin, :]
+                        to_plot2 = self.bin_values[:, combo[1], bin] if self.analysis_type == "standard" else self.bin_values[combo[1], bin, :]
+                        # Generate and store the figure for the current channel combination and bin
+                        self.indv_ccf_plots[f'Ch{combo[0]}-Ch{combo[1]} Bin {bin + 1} CCF'] = return_figure(ch1 = normalize(to_plot1),
+                                                                                                        ch2 = normalize(to_plot2),
+                                                                                                        ccf_curve = self.indv_ccfs[combo_number, bin],
+                                                                                                        ch1_name = f'Ch{combo[0] + 1}',
+                                                                                                        ch2_name = f'Ch{combo[1] + 1}',
+                                                                                                        shift = self.indv_shifts[combo_number, bin])
+                        
+                        # Save the individual bin values
+                        ccf_curve = self.indv_ccfs[combo_number, bin]
+                        measurements = list(zip_longest(range(1, len(ccf_curve) + 1),  normalize(to_plot1), normalize(to_plot2), ccf_curve, fillvalue=None))
+                        indv_ccfs_filename = os.path.join(save_folder, f'Bin {bin + 1}_CCF_values.csv')
+                    
+                        # Write measurements to CSV file
+                        with open(indv_ccfs_filename, 'w', newline='') as csvfile:
+                            writer = csv.writer(csvfile)
+                            writer.writerow(['Time', 'Ch1_Value', 'Ch2_Value', 'CCF_Value'])
+                            for time, ch1_val, ch2_val, ccf_val in measurements:
+                                writer.writerow([time, ch1_val, ch2_val, ccf_val])
+        
+        return self.indv_ccf_plots
+
 ############################################
 ############## MEAN BIN PLOTS ##############
 ############################################
 
+    def plot_mean_peak_props(self):
+        """
+        This method generates and plots histograms and boxplots for the mean peak properties
+        (minimum value, maximum value, amplitude, and width) for each channel.
+
+        Returns:
+            - dict: A dictionary containing generated figures of mean peak property plots for each channel.
+        """
+        def return_figure(min_array: np.ndarray, max_array: np.ndarray, amp_array: np.ndarray, width_array: np.ndarray, Ch_name: str):
+            '''
+            Space saving function to generate the plots for the mean peak prop plots
+            '''
+            # Create subplots for histograms and boxplots
+            fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
+
+            # Filter out NaN values from arrays
+            min_array = [val for val in min_array if not np.isnan(val)]
+            max_array = [val for val in max_array if not np.isnan(val)]
+            amp_array = [val for val in amp_array if not np.isnan(val)]
+            width_array = [val for val in width_array if not np.isnan(val)]
+
+            # Define plot parameters for histograms and boxplots
+            plot_params = { 'amp' : (amp_array, 'tab:blue'),
+                            'min' : (min_array, 'tab:purple'),
+                            'max' : (max_array, 'tab:orange')}
+            
+            # Plot histograms for peak properties
+            for labels, (arr, arr_color) in plot_params.items():
+                ax1.hist(arr, color = arr_color, label = labels, alpha = 0.75)
+
+            # Plot boxplots for peak properties
+            boxes = ax2.boxplot([val[0] for val in plot_params.values()], patch_artist = True)
+            ax2.set_xticklabels(plot_params.keys())
+            for box, box_color in zip(boxes['boxes'], [val[1] for val in plot_params.values()]):
+                box.set_color(box_color)
+
+            # Set labels and legends for histograms and boxplots
+            ax1.legend(loc='upper right', fontsize = 'small', ncol = 1)
+            ax1.set_xlabel(f'{Ch_name} histogram of peak values')
+            ax1.set_ylabel('Occurances')
+            ax2.set_xlabel(f'{Ch_name} boxplot of peak values')
+            ax2.set_ylabel('Value (AU)')
+            
+            # Plot histogram for peak widths
+            ax3.hist(width_array, color = 'dimgray', alpha = 0.75)
+            ax3.set_xlabel(f'{Ch_name} histogram of peak widths')
+            ax3.set_ylabel('Occurances')
+
+            # Plot boxplot for peak widths
+            bp = ax4.boxplot(width_array, vert=True, patch_artist=True)
+            bp['boxes'][0].set_facecolor('dimgray')
+            ax4.set_xlabel(f'{Ch_name} boxplot of peak widths')
+            ax4.set_ylabel('Peak width (frames)')
+
+            fig.subplots_adjust(hspace=0.6, wspace=0.6)
+            plt.close(fig)
+            return fig
+
+        # Empty dictionary to fill with figures for each channel
+        self.peak_figs = {}
+    
+        if hasattr(self, 'ind_peak_widths'):
+            for channel in range(self.num_channels):
+                self.peak_figs[f'Ch{channel + 1} Peak Props'] = return_figure(self.ind_peak_mins[channel], 
+                                                                              self.ind_peak_maxs[channel], 
+                                                                              self.ind_peak_amps[channel], 
+                                                                              self.ind_peak_widths[channel], 
+                                                                              f'Ch{channel + 1}')
+
+        return self.peak_figs
+    
     def plot_mean_ACF(self):
         """
         This method generates and plots the mean autocorrelation curve with shaded standard deviation area,
@@ -730,77 +787,6 @@ class TotalSignalProcessor:
                     self.mean_ccf_values[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF values.csv'] = return_mean_CCF_val(self.indv_ccfs[combo_number])
 
         return self.ccf_figs, self.mean_ccf_values
-
-    def plot_mean_peak_props(self):
-        """
-        This method generates and plots histograms and boxplots for the mean peak properties
-        (minimum value, maximum value, amplitude, and width) for each channel.
-
-        Returns:
-            - dict: A dictionary containing generated figures of mean peak property plots for each channel.
-        """
-        def return_figure(min_array: np.ndarray, max_array: np.ndarray, amp_array: np.ndarray, width_array: np.ndarray, Ch_name: str):
-            '''
-            Space saving function to generate the plots for the mean peak prop plots
-            '''
-            # Create subplots for histograms and boxplots
-            fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
-
-            # Filter out NaN values from arrays
-            min_array = [val for val in min_array if not np.isnan(val)]
-            max_array = [val for val in max_array if not np.isnan(val)]
-            amp_array = [val for val in amp_array if not np.isnan(val)]
-            width_array = [val for val in width_array if not np.isnan(val)]
-
-            # Define plot parameters for histograms and boxplots
-            plot_params = { 'amp' : (amp_array, 'tab:blue'),
-                            'min' : (min_array, 'tab:purple'),
-                            'max' : (max_array, 'tab:orange')}
-            
-            # Plot histograms for peak properties
-            for labels, (arr, arr_color) in plot_params.items():
-                ax1.hist(arr, color = arr_color, label = labels, alpha = 0.75)
-
-            # Plot boxplots for peak properties
-            boxes = ax2.boxplot([val[0] for val in plot_params.values()], patch_artist = True)
-            ax2.set_xticklabels(plot_params.keys())
-            for box, box_color in zip(boxes['boxes'], [val[1] for val in plot_params.values()]):
-                box.set_color(box_color)
-
-            # Set labels and legends for histograms and boxplots
-            ax1.legend(loc='upper right', fontsize = 'small', ncol = 1)
-            ax1.set_xlabel(f'{Ch_name} histogram of peak values')
-            ax1.set_ylabel('Occurances')
-            ax2.set_xlabel(f'{Ch_name} boxplot of peak values')
-            ax2.set_ylabel('Value (AU)')
-            
-            # Plot histogram for peak widths
-            ax3.hist(width_array, color = 'dimgray', alpha = 0.75)
-            ax3.set_xlabel(f'{Ch_name} histogram of peak widths')
-            ax3.set_ylabel('Occurances')
-
-            # Plot boxplot for peak widths
-            bp = ax4.boxplot(width_array, vert=True, patch_artist=True)
-            bp['boxes'][0].set_facecolor('dimgray')
-            ax4.set_xlabel(f'{Ch_name} boxplot of peak widths')
-            ax4.set_ylabel('Peak width (frames)')
-
-            fig.subplots_adjust(hspace=0.6, wspace=0.6)
-            plt.close(fig)
-            return fig
-
-        # Empty dictionary to fill with figures for each channel
-        self.peak_figs = {}
-    
-        if hasattr(self, 'ind_peak_widths'):
-            for channel in range(self.num_channels):
-                self.peak_figs[f'Ch{channel + 1} Peak Props'] = return_figure(self.ind_peak_mins[channel], 
-                                                                              self.ind_peak_maxs[channel], 
-                                                                              self.ind_peak_amps[channel], 
-                                                                              self.ind_peak_widths[channel], 
-                                                                              f'Ch{channel + 1}')
-
-        return self.peak_figs
     
     def plot_rolling_summary(self):
         """
