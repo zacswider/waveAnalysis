@@ -171,11 +171,15 @@ class TotalSignalProcessor:
             self.ind_peak_maxs = np.zeros(shape=(self.num_submovies, self.num_channels, self.total_bins))
             self.ind_peak_mins = np.zeros(shape=(self.num_submovies, self.num_channels, self.total_bins))
 
-            for submovie in range(self.num_submovies):
-                for channel in range(self.num_channels):
-                    for bin in range(self.total_bins):
-                        signal = sig.savgol_filter(self.bin_values[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, channel, bin], window_length=11, polyorder=2)
-                        indv_props(signal, bin, submovie = submovie)
+            its = self.num_submovies*self.num_channels*self.xpix*self.ypix
+            with tqdm(total = its, miniters=its/100) as pbar:
+                pbar.set_description('Peak Props: ')
+                for submovie in range(self.num_submovies):
+                    for channel in range(self.num_channels):
+                        for bin in range(self.total_bins):
+                            pbar.update(1)
+                            signal = sig.savgol_filter(self.bin_values[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, channel, bin], window_length=11, polyorder=2)
+                            indv_props(signal, bin, submovie = submovie)
 
         # Calculate additional peak properties
         self.ind_peak_amps = self.ind_peak_maxs - self.ind_peak_mins
@@ -243,14 +247,18 @@ class TotalSignalProcessor:
             self.periods = np.zeros(shape=(self.num_submovies, self.num_channels, self.total_bins))
             self.acfs = np.zeros(shape=(self.num_submovies, self.num_channels, self.total_bins, self.roll_size * 2 - 1))
             # Loop through submovies, channels, and bins
-            for submovie in range(self.num_submovies):
-                for channel in range(self.num_channels):
-                    for bin in range(self.total_bins):
-                        # Extract signal for rolling autocorrelation calculation
-                        signal = self.bin_values[self.roll_by * submovie: self.roll_size + self.roll_by * submovie, channel, bin]
-                        delay, acf_curve = norm_and_calc_shifts(signal, num_frames_or_rollsize=self.roll_size)
-                        self.periods[submovie, channel, bin] = delay
-                        self.acfs[submovie, channel, bin] = acf_curve
+            its = self.num_submovies*self.num_channels*self.xpix*self.ypix
+            with tqdm(total = its, miniters=its/100) as pbar:
+                pbar.set_description( 'Periods: ')
+                for submovie in range(self.num_submovies):
+                    for channel in range(self.num_channels):
+                        for bin in range(self.total_bins):
+                            pbar.update(1)
+                            # Extract signal for rolling autocorrelation calculation
+                            signal = self.bin_values[self.roll_by * submovie: self.roll_size + self.roll_by * submovie, channel, bin]
+                            delay, acf_curve = norm_and_calc_shifts(signal, num_frames_or_rollsize=self.roll_size)
+                            self.periods[submovie, channel, bin] = delay
+                            self.acfs[submovie, channel, bin] = acf_curve
         return self.acfs, self.periods
 
     def calc_indv_CCFs(self):
@@ -355,17 +363,20 @@ class TotalSignalProcessor:
             # Initialize arrays to store shifts and cross-correlation curves
             self.indv_shifts = np.zeros(shape=(self.num_submovies, num_combos, self.total_bins))
             self.indv_ccfs = np.zeros(shape=(self.num_submovies, num_combos, self.total_bins, self.roll_size*2-1))
+            its = self.num_submovies*num_combos*self.total_bins
+            with tqdm(total = its, miniters=its/100) as pbar:
+                pbar.set_description( 'Shifts: ')
+                for submovie in range(self.num_submovies):
+                    for combo_number, combo in enumerate(self.channel_combos):
+                        for bin in range(self.total_bins):
+                            pbar.update(1)
+                            signal1 = self.bin_values[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, combo[0], bin]
+                            signal2 = self.bin_values[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, combo[1], bin]
 
-            for submovie in range(self.num_submovies):
-                for combo_number, combo in enumerate(self.channel_combos):
-                    for bin in range(self.total_bins):
-                        signal1 = self.bin_values[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, combo[0], bin]
-                        signal2 = self.bin_values[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, combo[1], bin]
+                            delay_frames, cc_curve = calc_shifts(signal1, signal2, prominence=0.1, rolling = True)
 
-                        delay_frames, cc_curve = calc_shifts(signal1, signal2, prominence=0.1, rolling = True)
-
-                        self.indv_shifts[submovie, combo_number, bin] = delay_frames
-                        self.indv_ccfs[submovie, combo_number, bin] = cc_curve
+                            self.indv_shifts[submovie, combo_number, bin] = delay_frames
+                            self.indv_ccfs[submovie, combo_number, bin] = cc_curve
 
         return self.indv_shifts, self.indv_ccfs, self.channel_combos
 
