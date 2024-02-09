@@ -300,7 +300,7 @@ class KymographGUI(tk.Tk):
 
         # configure root window
         self.title("Define your analysis parameters")
-        self.geometry("600x200")
+        self.geometry("600x225")
         
         #sets number of columns in the main window
         self.columnconfigure(0, weight = 1)
@@ -310,6 +310,8 @@ class KymographGUI(tk.Tk):
         # define variable types for the different widget field
         self.line_width = tk.IntVar()
         self.line_width.set(5)
+        self.box_shift = tk.IntVar()
+        self.box_shift.set(5)
         self.plot_summary_ACFs = tk.BooleanVar()
         self.plot_summary_ACFs.set(True)
         self.plot_summary_CCFs = tk.BooleanVar()
@@ -346,64 +348,71 @@ class KymographGUI(tk.Tk):
         self.line_width_label = ttk.Label(self, text = 'Line width (pixels)')
         self.line_width_label.grid(row = 1, column = 1, padx = 10, sticky = 'W')
 
+        # box line selection widget
+        self.box_shift_entry = ttk.Entry(self, width = 3, textvariable = self.box_shift)
+        self.box_shift_entry.grid(row = 2, column = 0, padx = 10, sticky = 'E')
+        # create line shift label text
+        self.box_shift_label = ttk.Label(self, text = 'Line shift (pixels)')
+        self.box_shift_label.grid(row = 2, column = 1, padx = 10, sticky = 'W')
+
         # create group names entry widget
         self.group_names_entry = ttk.Entry(self, textvariable = self.group_names)
-        self.group_names_entry.grid(row = 4, column = 0, padx = 10, sticky = 'E')
+        self.group_names_entry.grid(row = 5, column = 0, padx = 10, sticky = 'E')
         # create group names label text
         self.group_names_label = ttk.Label(self, text = 'Group names')
-        self.group_names_label.grid(row = 4, column = 1, padx = 10, sticky = 'W')
+        self.group_names_label.grid(row = 5, column = 1, padx = 10, sticky = 'W')
 
         # create ACF peak threshold entry widget
         self.acf_peak_thresh_entry = ttk.Entry(self, width = 3, textvariable = self.acf_peak_thresh)
-        self.acf_peak_thresh_entry.grid(row = 5, column = 0, padx = 10, sticky = 'E')
+        self.acf_peak_thresh_entry.grid(row = 6, column = 0, padx = 10, sticky = 'E')
         self.acf_peak_thresh_label = ttk.Label(self, text = 'ACF peak threshold')
-        self.acf_peak_thresh_label.grid(row = 5, column = 1, padx = 10, sticky = 'W')
+        self.acf_peak_thresh_label.grid(row = 6, column = 1, padx = 10, sticky = 'W')
 
         # create checkbox for plotting summary ACFs
         self.plot_summary_ACFs_checkbox = ttk.Checkbutton(self, variable = self.plot_summary_ACFs)
-        self.plot_summary_ACFs_checkbox.grid(row = 6, column = 0, padx = 10, sticky = 'E')
+        self.plot_summary_ACFs_checkbox.grid(row = 7, column = 0, padx = 10, sticky = 'E')
         self.plot_summary_ACFs_label = ttk.Label(self, text = 'Plot summary ACFs')
-        self.plot_summary_ACFs_label.grid(row = 6, column = 1, padx = 10, sticky = 'W')
+        self.plot_summary_ACFs_label.grid(row = 7, column = 1, padx = 10, sticky = 'W')
 
         # create checkbox for plotting summary CCFs
         self.plot_summary_CCFs_checkbox = ttk.Checkbutton(self, variable = self.plot_summary_CCFs)
-        self.plot_summary_CCFs_checkbox.grid(row = 7, column = 0, padx = 10, sticky = 'E')
+        self.plot_summary_CCFs_checkbox.grid(row = 8, column = 0, padx = 10, sticky = 'E')
         self.plot_summary_CCFs_label = ttk.Label(self, text = 'Plot summary CCFs')
-        self.plot_summary_CCFs_label.grid(row = 7, column = 1, padx = 10, sticky = 'W')
+        self.plot_summary_CCFs_label.grid(row = 8, column = 1, padx = 10, sticky = 'W')
 
         # create checkbox for plotting summary peaks
         self.plot_summary_peaks_checkbox = ttk.Checkbutton(self, variable = self.plot_summary_peaks)
-        self.plot_summary_peaks_checkbox.grid(row = 8, column = 0, padx = 10, sticky = 'E')
+        self.plot_summary_peaks_checkbox.grid(row = 9, column = 0, padx = 10, sticky = 'E')
         self.plot_summary_peaks_label = ttk.Label(self, text = 'Plot summary peaks')
-        self.plot_summary_peaks_label.grid(row = 8, column = 1, padx = 10, sticky = 'W')
+        self.plot_summary_peaks_label.grid(row = 9, column = 1, padx = 10, sticky = 'W')
 
         # create checkbox for plotting individual ACFs
         self.plot_ind_ACFs_checkbox = ttk.Checkbutton(self, variable = self.plot_ind_ACFs)
-        self.plot_ind_ACFs_checkbox.grid(row = 6, column = 2, padx = 10, sticky = 'E')
+        self.plot_ind_ACFs_checkbox.grid(row = 7, column = 2, padx = 10, sticky = 'E')
         self.plot_ind_ACFs_label = ttk.Label(self, text = 'Plot individual ACFs')
-        self.plot_ind_ACFs_label.grid(row = 6, column = 3, padx = 10, sticky = 'W')
+        self.plot_ind_ACFs_label.grid(row = 7, column = 3, padx = 10, sticky = 'W')
 
         # create checkbox for plotting individual CCFs
         self.plot_ind_CCFs_checkbox = ttk.Checkbutton(self, variable = self.plot_ind_CCFs)
-        self.plot_ind_CCFs_checkbox.grid(row = 7, column = 2, padx = 10, sticky = 'E')
+        self.plot_ind_CCFs_checkbox.grid(row = 8, column = 2, padx = 10, sticky = 'E')
         self.plot_ind_CCFs_label = ttk.Label(self, text = 'Plot individual CCFs')
-        self.plot_ind_CCFs_label.grid(row = 7, column = 3, padx = 10, sticky = 'W')
+        self.plot_ind_CCFs_label.grid(row = 8, column = 3, padx = 10, sticky = 'W')
 
         # create checkbox for plotting individual peaks
         self.plot_ind_peaks_checkbox = ttk.Checkbutton(self, variable = self.plot_ind_peaks)
-        self.plot_ind_peaks_checkbox.grid(row = 8, column = 2, padx = 10, sticky = 'E')
+        self.plot_ind_peaks_checkbox.grid(row = 9, column = 2, padx = 10, sticky = 'E')
         self.plot_ind_peaks_label = ttk.Label(self, text = 'Plot individual peaks')
-        self.plot_ind_peaks_label.grid(row = 8, column = 3, padx = 10, sticky = 'W')
+        self.plot_ind_peaks_label.grid(row = 9, column = 3, padx = 10, sticky = 'W')
         
         # create start button
         self.start_button = ttk.Button(self, text = 'Start analysis')
         self.start_button['command'] = self.start_analysis
-        self.start_button.grid(row = 9, column = 0, padx = 10, sticky = 'E')
+        self.start_button.grid(row = 10, column = 0, padx = 10, sticky = 'E')
 
         # create cancel button
         self.cancel_button = ttk.Button(self, text = 'Cancel')
         self.cancel_button['command'] = self.cancel_analysis
-        self.cancel_button.grid(row = 9, column = 1, padx = 10, sticky = 'W')
+        self.cancel_button.grid(row = 10, column = 1, padx = 10, sticky = 'W')
 
     def get_folder_path(self):
         self.folder_path.set(askdirectory())
@@ -423,6 +432,7 @@ class KymographGUI(tk.Tk):
         self.plot_ind_peaks = self.plot_ind_peaks.get()
         self.folder_path = self.folder_path.get()
         self.acf_peak_thresh = self.acf_peak_thresh.get()
+        self.box_shift = self.box_shift.get()
 
         self.rolling = False
         

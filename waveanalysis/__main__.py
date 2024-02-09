@@ -85,6 +85,7 @@ def main():
         plot_ind_peaks = gui.plot_ind_peaks
         plot_ind_ACFs = gui.plot_ind_ACFs
         line_width = gui.line_width
+        box_shift = gui.box_shift
         group_names = gui.group_names
         acf_peak_thresh = gui.acf_peak_thresh
 
@@ -92,7 +93,6 @@ def main():
         subframe_size = None
         subframe_roll = None
         box_size = None
-        box_shift = None
 
         # set the analysis type
         analysis_type = "kymograph"

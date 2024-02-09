@@ -20,7 +20,8 @@ class TotalSignalProcessor:
         self.roll_by = roll_by
         self.kernel_size = kern
         self.step = step
-        
+
+        # Import image and extract metadata
         self.image_path = image_path
         self.image = image
         with tifffile.TiffFile(self.image_path) as tif_file:
@@ -37,7 +38,7 @@ class TotalSignalProcessor:
             self.num_submovies = (self.num_frames - self.roll_size) // self.roll_by
 
         if analysis_type == "kymograph":
-            self.total_bins = self.image.shape[-1]
+            self.total_columns = self.image.shape[-1]
             self.num_frames = self.image.shape[-2]
 
         # calculate the bin (box or line) values for each movie
@@ -63,24 +64,26 @@ class TotalSignalProcessor:
 
         # Use lines for kymograph analysis
         else:
+            if self.line_width < 1:
+                raise ValueError("Line width must be at least 1")
+            
+            # Calculate the total amount of bins based on the step size
+            self.total_bins = (self.total_columns // self.step) 
+
+            # Initialize array to store line values
             line_values = np.full(shape=(self.num_channels, self.total_bins, self.num_frames), fill_value=np.nan)
 
             for channel in range(self.num_channels):
-                for col_num in range(self.total_bins):
-                    if self.line_width == 1:
-                        signal = sig.savgol_filter(self.image[channel, :, col_num], window_length=1, polyorder=0)
-                    else:
-                        line_width_extra = min(self.line_width - 1, self.total_bins - col_num)
-                        start_col = col_num
-                        end_col = col_num + line_width_extra + 1
-                        if line_width_extra > 0 and self.image[channel, :, start_col:end_col].shape == (self.num_frames, self.line_width):
-                            signal = np.mean(self.image[channel, :, start_col:end_col], axis=1)
+                for col_num in range(0, self.total_columns, self.step):
+                    end_col = col_num + self.line_width
+                    if end_col <= self.total_columns:
+                        signal_slice = self.image[channel, :, col_num:end_col]
+                        if signal_slice.shape == (self.num_frames, self.line_width):
+                            signal = np.mean(signal_slice, axis=1)
                             signal = sig.savgol_filter(signal, window_length=1, polyorder=0)
-                        else:
-                            signal = np.nan
+                            idx = col_num // self.step
+                            line_values[channel, idx] = signal
 
-                    line_values[channel, col_num] = signal
-                    
             return line_values
         
 ############################################
