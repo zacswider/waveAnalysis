@@ -1,5 +1,5 @@
-from .correlation_functions import acf_shifts
+from .correlation_functions import create_acf_curves_calc_period
 
 __all__ = [
-    "acf_shifts",
+    "create_acf_curves_calc_period",
 ]

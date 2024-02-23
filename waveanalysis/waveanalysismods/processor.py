@@ -5,11 +5,11 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import scipy.signal as sig
-import scipy.ndimage as nd
 import matplotlib.pyplot as plt
 from itertools import zip_longest
 
-from waveanalysis.signal_processing import acf_shifts
+from waveanalysis.signal_processing import create_acf_curves_calc_period
+import waveanalysis.image_signals as sc
 
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -32,61 +32,19 @@ class TotalSignalProcessor:
 
         if self.analysis_type == "standard" or self.analysis_type == "rolling":
             self.num_frames = metadata.get('frames', 1)
-            num_slices = metadata.get('slices', 1)
-            self.image = image.reshape(self.num_frames, num_slices, self.num_channels, *self.image.shape[-2:])
-
+            
         if self.analysis_type == "rolling":
             assert isinstance(self.roll_size, int) and isinstance(self.roll_by, int), 'Roll size and roll by must be integers'
             self.num_submovies = (self.num_frames - self.roll_size) // self.roll_by
-
-        if analysis_type == "kymograph":
-            self.total_columns = self.image.shape[-1]
-            self.num_frames = self.image.shape[-2]
-
-        # calculate the bin (box or line) values for each movie
-        self.bin_values = self.calculate_bin_values()        
-
-    def calculate_bin_values(self):
-        '''
-        Calculate the mean signal for the specified box or line size over the images.
-        '''
-        # Use boxes for the standard and rolling analysis
+            
         if self.analysis_type == "standard" or self.analysis_type == "rolling":
-            # Calculate the index for the center of the kernel
-            ind = self.kernel_size // 2
-            # Apply uniform filter to calculate mean signal over specified box size
-            box_values = nd.uniform_filter(self.image[:, 0, :, :, :], size=(1, 1, self.kernel_size, self.kernel_size))[:, :, ind::self.step, ind::self.step]
-            # Get the dimensions of the resulting mean image
-            self.xpix, self.ypix = box_values.shape[-2:]
-            # We are either binning the image into boxes (standard) or columns (kymographs), so just call bins for simplicity
-            self.total_bins = self.xpix * self.ypix
-            box_values = box_values.reshape(self.num_frames, self.num_channels, self.total_bins)
-
-            return box_values
+            self.bin_values, self.total_bins, self.xpix, self.ypix = sc.create_standard_signals(kernel_size=self.kernel_size, step=self.step, num_channels=self.num_channels, num_frames=self.num_frames, image=self.image)
 
         # Use lines for kymograph analysis
         else:
-            if self.line_width < 1:
-                raise ValueError("Line width must be at least 1")
-            
-            # Calculate the total amount of bins based on the step size
-            self.total_bins = (self.total_columns // self.step) 
-
-            # Initialize array to store line values
-            line_values = np.full(shape=(self.num_channels, self.total_bins, self.num_frames), fill_value=np.nan)
-
-            for channel in range(self.num_channels):
-                for col_num in range(0, self.total_columns, self.step):
-                    end_col = col_num + self.line_width
-                    if end_col <= self.total_columns:
-                        signal_slice = self.image[channel, :, col_num:end_col]
-                        if signal_slice.shape == (self.num_frames, self.line_width):
-                            signal = np.mean(signal_slice, axis=1)
-                            signal = sig.savgol_filter(signal, window_length=1, polyorder=0)
-                            idx = col_num // self.step
-                            line_values[channel, idx] = signal
-
-            return line_values
+            self.total_columns = self.image.shape[-1]
+            self.num_frames = self.image.shape[-2]
+            self.bin_values, self.total_bins = sc.create_kymo_signals(line_width=self.line_width, total_columns=self.total_columns, step=self.step, num_channels=self.num_channels, num_frames=self.num_frames, image=self.image)
         
 ############################################
 ######## INDIVIDUAL BIN CALCULATION ########
@@ -212,7 +170,7 @@ class TotalSignalProcessor:
             for channel in range(self.num_channels):
                 for bin in range(self.total_bins):
                     signal = self.bin_values[:, channel, bin] if self.analysis_type == "standard" else self.bin_values[channel, bin, :]
-                    delay, acf_curve = acf_shifts(signal, num_frames_or_rollsize=self.num_frames, peak_thresh=peak_thresh)
+                    delay, acf_curve = create_acf_curves_calc_period(signal, num_frames_or_rollsize=self.num_frames, peak_thresh=peak_thresh)
                     self.periods[channel, bin] = delay
                     self.acfs[channel, bin] = acf_curve
         # If rolling analysis
@@ -229,7 +187,7 @@ class TotalSignalProcessor:
                             pbar.update(1)
                             # Extract signal for rolling autocorrelation calculation
                             signal = self.bin_values[self.roll_by * submovie: self.roll_size + self.roll_by * submovie, channel, bin]
-                            delay, acf_curve = acf_shifts(signal, num_frames_or_rollsize=self.roll_size, peak_thresh=peak_thresh)
+                            delay, acf_curve = create_acf_curves_calc_period(signal, num_frames_or_rollsize=self.roll_size, peak_thresh=peak_thresh)
                             self.periods[submovie, channel, bin] = delay
                             self.acfs[submovie, channel, bin] = acf_curve
         return self.acfs, self.periods

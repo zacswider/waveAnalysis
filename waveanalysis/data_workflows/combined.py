@@ -1,6 +1,5 @@
 import os
 import datetime
-import pathlib
 import sys
 import timeit
 from typing import Any
@@ -8,14 +7,15 @@ from typing import Any
 import csv
 import numpy as np
 
-import seaborn as sns
-import matplotlib.pyplot as plt
 
 import pandas as pd
-import tifffile
 from tqdm import tqdm
 
+import waveanalysis.image_signals as sc
+
+
 from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
+from waveanalysis.housekeeping.housekeeping_functions import make_log, generate_group_comparison
 
 def combined_workflow(
     folder_path: str,
@@ -34,74 +34,7 @@ def combined_workflow(
     plot_ind_ACFs: bool,
     plot_ind_CCFs: bool,
     plot_ind_peaks: bool,
-) -> pd.DataFrame:
-
-    ''' ** housekeeping functions ** '''
-    def make_log(directory, logParams):
-        '''
-        Convert dictionary of parameters to a log file and save it in the directory
-        '''
-        now = datetime.datetime.now()
-        logPath = os.path.join(directory, f"!log-{now.strftime('%Y%m%d%H%M')}.txt")
-        logFile = open(logPath, "w")                                    
-        logFile.write("\n" + now.strftime("%Y-%m-%d %H:%M") + "\n")     
-        for key, value in logParams.items():                            
-            logFile.write('%s: %s\n' % (key, value))                    
-        logFile.close()                                                 
-
-    def plotComparisons(dataFrame: pd.DataFrame, dependent: str, independent = 'Group Name'):
-        '''
-        This func accepts a dataframe, the name of a dependent variable, and the name of an
-        independent variable (by default, set to Group Name). It returns a figure object showing
-        a box and scatter plot of the dependent variable grouped by the independent variable.
-        '''
-        ax = sns.boxplot(x=independent, y=dependent, data=dataFrame, palette = "Set2", showfliers = False)
-        ax = sns.swarmplot(x=independent, y=dependent, data=dataFrame, color=".25")	
-        ax.set_xticklabels(ax.get_xticklabels(),rotation=45)
-        fig = ax.get_figure()
-        return fig
-    
-    def convert_images(folder_path, analysis_type):
-        """
-        Convert all TIF files in the specified directory to standardized numpy arrays.
-
-        Args:
-            directory (str or pathlib.Path): The path to the directory containing the TIF files.
-
-        Returns:
-            dict: A dictionary where the keys are the file names and the values are the numpy arrays of the images.
-        """
-        input_path = pathlib.Path(folder_path)
-        images = {}
-
-        for file_path in input_path.glob('*.tif'):
-            # Load the TIFF file into a numpy array
-            image = tifffile.imread(file_path)
-
-            with tifffile.TiffFile(file_path) as tif_file:
-                metadata = tif_file.imagej_metadata
-            num_channels = metadata.get('channels', 1)
-            num_frames = metadata.get('frames', 1)
-            num_slices = metadata.get('slices', 1)
-
-            # Max project if multiple slices
-            if num_slices > 1:
-                print('Max projecting image stack')
-                image = np.max(image, axis=1)
-                num_slices = 1
-                image = image.reshape(num_frames, num_slices, num_channels, *image.shape[-2:])
-
-            if analysis_type == "kymograph":
-                image = image.reshape(num_channels, 
-                                        image.shape[-2],  # cols
-                                        image.shape[-1])  # rows
-                
-            images[file_path.name] = image
-
-        # Sort the dictionary keys alphabetically
-        images = {key: images[key] for key in sorted(images)}
-
-        return images
+) -> pd.DataFrame:                           
 
     ''' ** error catching for group names ** '''
     # list of file names in specified directory
@@ -151,8 +84,10 @@ def combined_workflow(
     # column headers to use with summary data during conversion to dataframe
     col_headers = []
 
-    # create a dictionary of the filename and corresponding images as mp arrays. 
-    all_images = convert_images(folder_path, analysis_type)
+    if analysis_type == 'kymograph':
+        all_images = sc.convert_kymos(folder_path=folder_path)
+    else:
+        all_images = sc.convert_movies(folder_path=folder_path)
 
     print('Processing files...')
 
@@ -316,35 +251,7 @@ def combined_workflow(
 
         # if group names were entered into the gui, generate comparisons between each group
         if group_names != ['']:
-            print('Generating group comparisons...')
-            # make a group comparisons save path in the main save directory
-            group_save_path = os.path.join(main_save_path, "!groupComparisons")
-            if not os.path.exists(group_save_path):
-                os.makedirs(group_save_path)
-            
-            # make a list of parameters to compare
-            stats_to_compare = ['Mean']
-            channels_to_compare = [f'Ch {i+1}' for i in range(processor.num_channels)]
-            measurements_to_compare = ['Period', 'Shift', 'Peak Width', 'Peak Max', 'Peak Min', 'Peak Amp', 'Peak Rel Amp']
-            params_to_compare = []
-            for channel in channels_to_compare:
-                for stat in stats_to_compare:
-                    for measurement in measurements_to_compare:
-                        params_to_compare.append(f'{channel} {stat} {measurement}')
-
-            # will compare the shifts if multichannel movie
-            if hasattr(processor, 'channel_combos'):
-                shifts_to_compare = [f'Ch{combo[0]+1}-Ch{combo[1]+1} Mean Shift' for combo in processor.channel_combos]
-                params_to_compare.extend(shifts_to_compare)
-
-            # generate and save figures for each parameter
-            for param in params_to_compare:
-                try:
-                    fig = plotComparisons(summary_df, param)
-                    fig.savefig(f'{group_save_path}/{param}.png')  # type: ignore
-                    plt.close(fig)
-                except ValueError:
-                    log_params['Plotting errors'].append(f'No data to compare for {param}')
+            generate_group_comparison(main_save_path = main_save_path, processor = processor, summary_df = summary_df, log_params = log_params)
             
             # save the means each parameter for the attributes to make them easier to work with in prism
             processor.save_parameter_means_to_csv(main_save_path, group_names, summary_df)
