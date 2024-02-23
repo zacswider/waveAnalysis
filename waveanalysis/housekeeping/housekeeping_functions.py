@@ -23,12 +23,10 @@ def make_log(
 
 def ensure_group_names(
     folder_path: str,
+    file_names: list,
     group_names: list,
     log_params: dict
-) -> list:
-    # list of file names in specified directory
-    file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
-
+):
     # list of groups that matched to file names
     groups_found = np.unique([group for group in group_names for file in file_names if group in file]).tolist()
 
@@ -56,8 +54,6 @@ def ensure_group_names(
             f"\nGroups found: {groups_found}",
             "\n****** ERROR ******")
         sys.exit()      
-    
-    return file_names
 
 def plotComparisons(
     dataFrame: pd.DataFrame, 

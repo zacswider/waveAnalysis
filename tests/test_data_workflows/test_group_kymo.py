@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from waveanalysis.data_workflows.combined import combined_workflow
+from waveanalysis.data_workflows import standard_kymo_workflow
 
 @pytest.fixture
 def default_log_params():
@@ -24,24 +24,19 @@ def default_log_params():
         'Plotting errors': [],
     }
 
-# TODO: define default kymograph log params
-# TODO: define default rolling log params
-# TODO: create known output for kymograph analysis to test against
-# TODO: create known output for rolling analysis to test against
-
-def test_combined(default_log_params):
+def test_kymo(default_log_params):
     # load csv
     known_results = pd.read_csv('tests/assets/kymo/kymo_known_results.csv')
     assert isinstance(known_results, pd.DataFrame)
-    exp_results = combined_workflow(
+    exp_results = standard_kymo_workflow(
         folder_path=str(Path('tests/assets/kymo/')),
         group_names=[''],
         log_params=default_log_params,
         analysis_type='kymograph',
-        box_size=np.nan,            # type: ignore ;not part of standard analysis
+        box_size=np.nan,            # type: ignore ;not part of kymo analysis
         box_shift=default_log_params['Line Shift(px)'],
-        subframe_size=np.nan,       # type: ignore ; not part of standard analysis
-        subframe_roll=np.nan,       # type: ignore ;not part of standard analysis
+        subframe_size=np.nan,       # type: ignore ; not part of kymo analysis
+        subframe_roll=np.nan,       # type: ignore ;not part of kymo analysis
         line_width=default_log_params['Line Size(px)'],         
         acf_peak_thresh=default_log_params['ACF Peak Prominence'],
         plot_summary_ACFs=default_log_params['Plot Summary ACFs'],

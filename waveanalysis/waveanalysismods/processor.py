@@ -8,7 +8,7 @@ import scipy.signal as sig
 import matplotlib.pyplot as plt
 from itertools import zip_longest
 
-from waveanalysis.signal_processing import create_acf_curves_calc_period
+from waveanalysis.signal_processing import create_acf_curves_calc_period, calc_shifts_CCF_curves
 import waveanalysis.image_signals as sc
 
 np.seterr(divide='ignore', invalid='ignore')
@@ -202,56 +202,6 @@ class TotalSignalProcessor:
             - indv_ccfs (numpy.ndarray): Array of cross-correlation functions.
             - channel_combos (list): List of channel combinations.
         """
-        def calc_shifts(signal1, signal2, prominence=0.1, rolling = False):
-            """
-            This function calculates the shifts and cross-correlation curves between two signals.
-            It performs signal smoothing, peak finding, and computes the cross-correlation curve.
-
-            Parameters:
-                - signal1 (numpy.ndarray): First input signal.
-                - signal2 (numpy.ndarray): Second input signal.
-                - prominence (float): Minimum prominence of peaks for peak finding. Defaults to 0.1.
-                - rolling (bool): Flag indicating if the analysis is rolling. Defaults to False.
-
-            Returns:
-                - delay_frames (float): Delay between the signals.
-                - cc_curve (numpy.ndarray): Cross-correlation curve of the signals.
-            """
-            # Smoothing signals and finding peaks
-            signal1 = sig.savgol_filter(signal1, window_length=11, polyorder=3)
-            signal2 = sig.savgol_filter(signal2, window_length=11, polyorder=3)
-            peaks1, _ = sig.find_peaks(signal1, prominence=(np.max(signal1)-np.min(signal1))*0.25)
-            peaks2, _ = sig.find_peaks(signal2, prominence=(np.max(signal2)-np.min(signal2))*0.25)
-
-            # If peaks are found in both signals
-            if len(peaks1) > 0 and len(peaks2) > 0:
-                corr_signal1 = signal1 - signal1.mean()
-                corr_signal2 = signal2 - signal2.mean()
-                # Calculate cross-correlation curve
-                cc_curve = np.correlate(corr_signal1, corr_signal2, mode='full')
-                if rolling:
-                    cc_curve = cc_curve / (self.roll_size * signal1.std() * signal2.std())
-                else:
-                    cc_curve = sig.savgol_filter(cc_curve, window_length=11, polyorder=3)
-                    cc_curve = cc_curve / (self.num_frames * signal1.std() * signal2.std())
-                # Find peaks in the cross-correlation curve
-                peaks, _ = sig.find_peaks(cc_curve, prominence=prominence)
-                peaks_abs = abs(peaks - cc_curve.shape[0] // 2)
-                # If multiple peaks found, select the one closest to the center
-                if len(peaks) > 1:
-                    delay = np.argmin(peaks_abs[np.nonzero(peaks_abs)])
-                    delayIndex = peaks[delay]
-                    delay_frames = delayIndex - cc_curve.shape[0] // 2
-                # Otherwise, return NaNs
-                else:
-                    delay_frames = np.nan
-                    cc_curve = np.full((self.roll_size*2-1 if rolling else self.num_frames * 2 - 1), np.nan)
-            else:
-                # If no peaks found, return NaNs
-                delay_frames = np.nan
-                cc_curve = np.full((self.roll_size*2-1 if rolling else self.num_frames * 2 - 1), np.nan)
-
-            return delay_frames, cc_curve
         
         # Initialize arrays to store shifts and cross-correlation curves
         channels = list(range(self.num_channels))
@@ -276,7 +226,7 @@ class TotalSignalProcessor:
                         signal1 = self.bin_values[combo[0], bin]
                         signal2 = self.bin_values[combo[1], bin]
      
-                    delay_frames, cc_curve = calc_shifts(signal1, signal2, prominence=0.1)
+                    delay_frames, cc_curve = calc_shifts_CCF_curves(signal1, signal2, prominence=0.1, roll_size = None, num_frames=self.num_frames)
 
                     # The script has issues when the shift is very small or none, so minus the average period from the two channels
                     average_period = np.mean(self.periods[:, bin])
@@ -304,7 +254,7 @@ class TotalSignalProcessor:
                             signal1 = self.bin_values[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, combo[0], bin]
                             signal2 = self.bin_values[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, combo[1], bin]
 
-                            delay_frames, cc_curve = calc_shifts(signal1, signal2, prominence=0.1, rolling = True)
+                            delay_frames, cc_curve = calc_shifts_CCF_curves(signal1, signal2, prominence=0.1, roll_size = self.roll_size, num_frames=None)
 
                             self.indv_shifts[submovie, combo_number, bin] = delay_frames
                             self.indv_ccfs[submovie, combo_number, bin] = cc_curve

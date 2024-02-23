@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from waveanalysismods.customgui import BaseGUI, RollingGUI, KymographGUI
-from data_workflows.combined import combined_workflow
+from waveanalysis.data_workflows.standard_kymo_workflow import combined_workflow
 
 np.seterr(divide='ignore', invalid='ignore')
 plt.rcParams['figure.max_open_warning'] = 0

@@ -10,7 +10,7 @@ import waveanalysis.image_signals as sc
 from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
 from waveanalysis.housekeeping.housekeeping_functions import make_log, generate_group_comparison, ensure_group_names
 
-def combined_workflow(
+def standard_kymo_workflow(
     folder_path: str,
     group_names: list[str],
     log_params: dict[str, Any],
@@ -28,16 +28,20 @@ def combined_workflow(
     plot_ind_CCFs: bool,
     plot_ind_peaks: bool,
 ) -> pd.DataFrame:                           
-
-    file_names = ensure_group_names(folder_path=folder_path, group_names=group_names, log_params=log_params)
-
-    ''' ** Main Workflow ** '''
-    # performance tracker
     start = timeit.default_timer()
+
+    # convert images to numpy arrays
+    if analysis_type == 'kymograph':
+        all_images = sc.convert_kymos(folder_path=folder_path)
+    else:
+        all_images = sc.convert_movies(folder_path=folder_path)
+
+    # list of file names in specified directory
+    file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
+
     # create main save path
     now = datetime.datetime.now()
     main_save_path = os.path.join(folder_path, f"0_signalProcessing-{now.strftime('%Y%m%d%H%M')}")
-    # create directory if it doesn't exist
     if not os.path.exists(main_save_path):
         os.makedirs(main_save_path)
 
@@ -46,10 +50,8 @@ def combined_workflow(
     # column headers to use with summary data during conversion to dataframe
     col_headers = []
 
-    if analysis_type == 'kymograph':
-        all_images = sc.convert_kymos(folder_path=folder_path)
-    else:
-        all_images = sc.convert_movies(folder_path=folder_path)
+    # error checking for group names
+    ensure_group_names(folder_path=folder_path, file_names=file_names, group_names=group_names, log_params=log_params)
 
     print('Processing files...')
 
@@ -58,6 +60,7 @@ def combined_workflow(
         for file_name in file_names: 
             print('******'*10)
             print(f'Processing {file_name}...')
+            
             processor = TotalSignalProcessor(analysis_type = analysis_type, 
                                              image_path = f'{folder_path}/{file_name}',
                                              image = all_images[file_name], 
@@ -157,33 +160,6 @@ def combined_workflow(
                 # Summarize the data for current image as dataframe, and save as .csv
                 im_measurements_df = processor.organize_measurements()
                 im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)  # type: ignore
-
-            # if rolling analysis            
-            else:
-                # calculate the number of subframes used
-                num_submovies = processor.num_submovies
-                log_params['Submovies Used'].append(num_submovies)
-
-                # summarize the data for each subframe as individual dataframes, and save as .csv
-                submovie_meas_list = processor.organize_measurements()
-                csv_save_path = os.path.join(im_save_path, 'rolling_measurements')
-                if not os.path.exists(csv_save_path):
-                    os.makedirs(csv_save_path)
-                for measurement_index, submovie_meas_df in enumerate(submovie_meas_list):  # type: ignore
-                    submovie_meas_df: pd.DataFrame
-                    submovie_meas_df.to_csv(f'{csv_save_path}/{name_wo_ext}_subframe{measurement_index}_measurements.csv', index = False)
-                
-                # summarize the data for each subframe as a single dataframe, and save as .csv
-                summary_df = processor.summarize_rolling_file()
-                summary_df.to_csv(f'{im_save_path}/{name_wo_ext}_summary.csv', index = False)
-
-                # make and save the summary plot for rolling data
-                summary_plots = processor.plot_rolling_summary()
-                plot_save_path = os.path.join(im_save_path, 'summary_plots')
-                if not os.path.exists(plot_save_path):
-                    os.makedirs(plot_save_path)
-                for title, plot in summary_plots.items():
-                    plot.savefig(f'{plot_save_path}/{name_wo_ext}_{title}.png')
 
             # generate summary data for current image
             im_summary_dict = processor.summarize_image(file_name = file_name, group_name = group_name)
