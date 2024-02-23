@@ -1,21 +1,14 @@
 import os
-import datetime
-import sys
-import timeit
-from typing import Any
-
 import csv
-import numpy as np
-
-
+import timeit
+import datetime
 import pandas as pd
 from tqdm import tqdm
+from typing import Any
 
 import waveanalysis.image_signals as sc
-
-
 from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
-from waveanalysis.housekeeping.housekeeping_functions import make_log, generate_group_comparison
+from waveanalysis.housekeeping.housekeeping_functions import make_log, generate_group_comparison, ensure_group_names
 
 def combined_workflow(
     folder_path: str,
@@ -36,38 +29,7 @@ def combined_workflow(
     plot_ind_peaks: bool,
 ) -> pd.DataFrame:                           
 
-    ''' ** error catching for group names ** '''
-    # list of file names in specified directory
-    file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
-
-    # list of groups that matched to file names
-    groups_found = np.unique([group for group in group_names for file in file_names if group in file]).tolist()
-
-    # dictionary of file names and their corresponding group names
-    uniqueDic = {file : [group for group in group_names if group in file] for file in file_names}
-
-    for file_name, matching_groups in uniqueDic.items():
-        # if a file doesn't have a group name, log it but still run the script
-        if len(matching_groups) == 0:
-            log_params["Group Matching Errors"].append(f'{file_name} was not matched to a group')
-
-        # if a file has multiple groups names, raise error and exit the script
-        elif len(matching_groups) > 1:
-            print('****** ERROR ******',
-                f'\n{file_name} matched to multiple groups: {matching_groups}',
-                '\nPlease fix errors and try again.',
-                '\n****** ERROR ******')
-            sys.exit()
-
-    # if a group was specified but not matched to a file name, raise error and exit the script
-    if len(groups_found) != len(group_names):
-        print("****** ERROR ******",
-            "\nOne or more groups were not matched to file names",
-            f"\nGroups specified: {group_names}",
-            f"\nGroups found: {groups_found}",
-            "\n****** ERROR ******")
-        sys.exit()
-
+    file_names = ensure_group_names(folder_path=folder_path, group_names=group_names, log_params=log_params)
 
     ''' ** Main Workflow ** '''
     # performance tracker
@@ -104,6 +66,7 @@ def combined_workflow(
                                              roll_size = subframe_size, 
                                              roll_by = subframe_roll, 
                                              line_width = line_width)
+            
             # log error and skip image if frames < 2 
             if processor.num_frames < 2:
                 print(f"****** ERROR ******",
