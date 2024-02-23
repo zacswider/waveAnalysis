@@ -9,6 +9,8 @@ import scipy.ndimage as nd
 import matplotlib.pyplot as plt
 from itertools import zip_longest
 
+from waveanalysis.signal_processing import acf_shifts
+
 np.seterr(divide='ignore', invalid='ignore')
 
 class TotalSignalProcessor:
@@ -200,35 +202,6 @@ class TotalSignalProcessor:
             - acfs (numpy.ndarray): Array of autocorrelation functions.
             - periods (numpy.ndarray): Array of periods estimated from the ACF peaks.
         """
-        def norm_and_calc_shifts(signal, num_frames_or_rollsize):
-            """
-            This function normalizes the input signal and computes the autocorrelation curve.
-            It identifies peaks in the autocorrelation curve to estimate the delay.
-
-            Parameters:
-                - signal (numpy.ndarray): Input signal.
-                - num_frames_or_rows_or_rollsize (int): Number of frames or roll size for normalization.
-
-            Returns:
-                - delay (float): Delay estimated from the autocorrelation curve.
-                - acf_curve (numpy.ndarray): Autocorrelation curve of the normalized signal.
-            """
-            corr_signal = signal - np.mean(signal)
-            acf_curve = np.correlate(corr_signal, corr_signal, mode='full')
-            # Normalize the autocorrelation curve
-            acf_curve = acf_curve / (num_frames_or_rollsize * np.std(signal) ** 2)
-            # Find peaks in the autocorrelation curve
-            peaks, _ = sig.find_peaks(acf_curve, prominence=peak_thresh)
-            # Calculate absolute differences between peaks and center
-            peaks_abs = np.abs(peaks - acf_curve.shape[0] // 2)
-            # If peaks are identified, pick the closest one to the center
-            if len(peaks) > 1:
-                delay = np.min(peaks_abs[np.nonzero(peaks_abs)])
-            else:
-                # Otherwise, return NaNs for both delay and autocorrelation curve
-                delay = np.nan
-                acf_curve = np.full((num_frames_or_rollsize * 2 - 1), np.nan)
-            return delay, acf_curve
         
         # Initialize arrays to store period measurements and autocorrelation curves
         self.periods = np.zeros(shape=(self.num_channels, self.total_bins))
@@ -239,7 +212,7 @@ class TotalSignalProcessor:
             for channel in range(self.num_channels):
                 for bin in range(self.total_bins):
                     signal = self.bin_values[:, channel, bin] if self.analysis_type == "standard" else self.bin_values[channel, bin, :]
-                    delay, acf_curve = norm_and_calc_shifts(signal, num_frames_or_rollsize=self.num_frames)
+                    delay, acf_curve = acf_shifts(signal, num_frames_or_rollsize=self.num_frames, peak_thresh=peak_thresh)
                     self.periods[channel, bin] = delay
                     self.acfs[channel, bin] = acf_curve
         # If rolling analysis
@@ -256,7 +229,7 @@ class TotalSignalProcessor:
                             pbar.update(1)
                             # Extract signal for rolling autocorrelation calculation
                             signal = self.bin_values[self.roll_by * submovie: self.roll_size + self.roll_by * submovie, channel, bin]
-                            delay, acf_curve = norm_and_calc_shifts(signal, num_frames_or_rollsize=self.roll_size)
+                            delay, acf_curve = acf_shifts(signal, num_frames_or_rollsize=self.roll_size, peak_thresh=peak_thresh)
                             self.periods[submovie, channel, bin] = delay
                             self.acfs[submovie, channel, bin] = acf_curve
         return self.acfs, self.periods
