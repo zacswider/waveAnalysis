@@ -8,8 +8,7 @@ import scipy.signal as sig
 import matplotlib.pyplot as plt
 from itertools import zip_longest
 
-from waveanalysis.signal_processing import acf_shifts
-import waveanalysis.signal_processing as sp
+from waveanalysis.signal_processing import create_acf_curves_calc_period
 import waveanalysis.image_signals as sc
 
 np.seterr(divide='ignore', invalid='ignore')
@@ -52,31 +51,102 @@ class TotalSignalProcessor:
 ############################################
     
     def calc_indv_peak_props(self):
-        # Loop through channels and bins for standard or kymograph analysis
-        if self.analysis_type != "rolling": 
-            self.ind_peak_widths, self.ind_peak_maxs, self.ind_peak_mins, self.ind_peak_amps, self.ind_peak_rel_amps, self.ind_peak_props = sp.indv_props_standard_kymo(
-                                num_channels=self.num_channels, 
-                                total_bins=self.total_bins, 
-                                analysis_type=self.analysis_type, 
-                                bin_values=self.bin_values
-            )
+        """
+        This method computes various peak properties for each channel and bin of the analyzed data.
+
+        Returns:
+            - ind_peak_widths (numpy.ndarray): Array of peak widths.
+            - ind_peak_maxs (numpy.ndarray): Array of peak maximum values.
+            - ind_peak_mins (numpy.ndarray): Array of peak minimum values.
+            - ind_peak_amps (numpy.ndarray): Array of peak amplitudes.
+            - ind_peak_rel_amps (numpy.ndarray): Array of relative peak amplitudes.
+            - ind_peak_props (dict): Dictionary containing additional peak properties.
+        """
+        def indv_props(signal, bin, submovie = None):
+            """
+            This function calculates various peak properties for a given signal.
+
+            Parameters:
+                - signal (numpy.ndarray): Input signal.
+                - bin (int): Index of the bin.
+                - submovie (int): Index of the submovie. Defaults to None.
+            """
+            peaks, _ = sig.find_peaks(signal, prominence=(np.max(signal)-np.min(signal))*0.1)
+
+            # If peaks detected, calculate properties, otherwise return NaNs
+            if len(peaks) > 0:
+                proms, _, _ = sig.peak_prominences(signal, peaks)
+                widths, heights, leftIndex, rightIndex = sig.peak_widths(signal, peaks, rel_height=0.5)
+                mean_width = np.mean(widths, axis=0)
+                mean_max = np.mean(signal[peaks], axis = 0)
+                mean_min = np.mean(signal[peaks]-proms, axis = 0)
+            else:
+                mean_width = np.nan
+                mean_max = np.nan
+                mean_min = np.nan
+                peaks = np.nan
+                proms = np.nan 
+                heights = np.nan
+                leftIndex = np.nan
+                rightIndex = np.nan
+
+            # If rolling analysis
+            if submovie != None:
+                # Store peak measurements for each bin in each channel of a submovie
+                self.ind_peak_widths[submovie, channel, bin] = mean_width
+                self.ind_peak_maxs[submovie, channel, bin] = mean_max
+                self.ind_peak_mins[submovie, channel, bin] = mean_min
             
-            return self.ind_peak_widths, self.ind_peak_maxs, self.ind_peak_mins, self.ind_peak_amps, self.ind_peak_rel_amps, self.ind_peak_props
-        
+            else:
+                # Store peak measurements for each bin in each channel
+                self.ind_peak_widths[channel, bin] = mean_width
+                self.ind_peak_maxs[channel, bin] = mean_max
+                self.ind_peak_mins[channel, bin] = mean_min
+                self.ind_peak_props[f'Ch {channel} Bin {bin}'] = {'smoothed': signal, 
+                                                        'peaks': peaks,
+                                                        'proms': proms, 
+                                                        'heights': heights, 
+                                                        'leftIndex': leftIndex, 
+                                                        'rightIndex': rightIndex}
+
+        # Initialize arrays/dictionary to store peak measurements
+        self.ind_peak_widths = np.zeros(shape=(self.num_channels, self.total_bins))
+        self.ind_peak_maxs = np.zeros(shape=(self.num_channels, self.total_bins))
+        self.ind_peak_mins = np.zeros(shape=(self.num_channels, self.total_bins))
+        self.ind_peak_props = {}
+
+        # Loop through channels and bins for standard or kymograph analysis
+        if self.analysis_type != "rolling":
+            for channel in range(self.num_channels):
+                for bin in range(self.total_bins):
+                    if self.analysis_type == "standard":
+                        signal = sig.savgol_filter(self.bin_values[:,channel, bin], window_length = 11, polyorder = 2)   
+                    else:                     
+                        signal = sig.savgol_filter(self.bin_values[channel, bin], window_length = 11, polyorder = 2)   
+                    indv_props(signal, bin)
+
         # If rolling analysis
-        else:
-            self.ind_peak_widths, self.ind_peak_maxs, self.ind_peak_mins, self.ind_peak_amps, self.ind_peak_rel_amps = sp.indv_props_rolling(
-                                num_submovies=self.num_submovies, 
-                                num_channels=self.num_channels, 
-                                total_bins=self.total_bins,
-                                xpix=self.xpix,
-                                ypix=self.ypix,
-                                roll_size=self.roll_size,
-                                roll_by=self.roll_by,
-                                bin_values=self.bin_values
-            )
-                               
-            return self.ind_peak_widths, self.ind_peak_maxs, self.ind_peak_mins, self.ind_peak_amps, self.ind_peak_rel_amps
+        elif self.analysis_type == "rolling":
+            self.ind_peak_widths = np.zeros(shape=(self.num_submovies, self.num_channels, self.total_bins))
+            self.ind_peak_maxs = np.zeros(shape=(self.num_submovies, self.num_channels, self.total_bins))
+            self.ind_peak_mins = np.zeros(shape=(self.num_submovies, self.num_channels, self.total_bins))
+
+            its = self.num_submovies*self.num_channels*self.xpix*self.ypix
+            with tqdm(total = its, miniters=its/100) as pbar:
+                pbar.set_description('Peak Props: ')
+                for submovie in range(self.num_submovies):
+                    for channel in range(self.num_channels):
+                        for bin in range(self.total_bins):
+                            pbar.update(1)
+                            signal = sig.savgol_filter(self.bin_values[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, channel, bin], window_length=11, polyorder=2)
+                            indv_props(signal, bin, submovie = submovie)
+
+        # Calculate additional peak properties
+        self.ind_peak_amps = self.ind_peak_maxs - self.ind_peak_mins
+        self.ind_peak_rel_amps = self.ind_peak_amps / self.ind_peak_mins
+
+      
+        return self.ind_peak_widths, self.ind_peak_maxs, self.ind_peak_mins, self.ind_peak_amps, self.ind_peak_rel_amps, self.ind_peak_props
 
     def calc_indv_ACFs(self, peak_thresh=0.1):
         """
@@ -100,7 +170,7 @@ class TotalSignalProcessor:
             for channel in range(self.num_channels):
                 for bin in range(self.total_bins):
                     signal = self.bin_values[:, channel, bin] if self.analysis_type == "standard" else self.bin_values[channel, bin, :]
-                    delay, acf_curve = sp.create_acf_curves_calc_period(signal, num_frames_or_rollsize=self.num_frames, peak_thresh=peak_thresh)
+                    delay, acf_curve = create_acf_curves_calc_period(signal, num_frames_or_rollsize=self.num_frames, peak_thresh=peak_thresh)
                     self.periods[channel, bin] = delay
                     self.acfs[channel, bin] = acf_curve
         # If rolling analysis
@@ -117,7 +187,7 @@ class TotalSignalProcessor:
                             pbar.update(1)
                             # Extract signal for rolling autocorrelation calculation
                             signal = self.bin_values[self.roll_by * submovie: self.roll_size + self.roll_by * submovie, channel, bin]
-                            delay, acf_curve = sp.create_acf_curves_calc_period(signal, num_frames_or_rollsize=self.roll_size, peak_thresh=peak_thresh)
+                            delay, acf_curve = create_acf_curves_calc_period(signal, num_frames_or_rollsize=self.roll_size, peak_thresh=peak_thresh)
                             self.periods[submovie, channel, bin] = delay
                             self.acfs[submovie, channel, bin] = acf_curve
         return self.acfs, self.periods
@@ -132,6 +202,56 @@ class TotalSignalProcessor:
             - indv_ccfs (numpy.ndarray): Array of cross-correlation functions.
             - channel_combos (list): List of channel combinations.
         """
+        def calc_shifts(signal1, signal2, prominence=0.1, rolling = False):
+            """
+            This function calculates the shifts and cross-correlation curves between two signals.
+            It performs signal smoothing, peak finding, and computes the cross-correlation curve.
+
+            Parameters:
+                - signal1 (numpy.ndarray): First input signal.
+                - signal2 (numpy.ndarray): Second input signal.
+                - prominence (float): Minimum prominence of peaks for peak finding. Defaults to 0.1.
+                - rolling (bool): Flag indicating if the analysis is rolling. Defaults to False.
+
+            Returns:
+                - delay_frames (float): Delay between the signals.
+                - cc_curve (numpy.ndarray): Cross-correlation curve of the signals.
+            """
+            # Smoothing signals and finding peaks
+            signal1 = sig.savgol_filter(signal1, window_length=11, polyorder=3)
+            signal2 = sig.savgol_filter(signal2, window_length=11, polyorder=3)
+            peaks1, _ = sig.find_peaks(signal1, prominence=(np.max(signal1)-np.min(signal1))*0.25)
+            peaks2, _ = sig.find_peaks(signal2, prominence=(np.max(signal2)-np.min(signal2))*0.25)
+
+            # If peaks are found in both signals
+            if len(peaks1) > 0 and len(peaks2) > 0:
+                corr_signal1 = signal1 - signal1.mean()
+                corr_signal2 = signal2 - signal2.mean()
+                # Calculate cross-correlation curve
+                cc_curve = np.correlate(corr_signal1, corr_signal2, mode='full')
+                if rolling:
+                    cc_curve = cc_curve / (self.roll_size * signal1.std() * signal2.std())
+                else:
+                    cc_curve = sig.savgol_filter(cc_curve, window_length=11, polyorder=3)
+                    cc_curve = cc_curve / (self.num_frames * signal1.std() * signal2.std())
+                # Find peaks in the cross-correlation curve
+                peaks, _ = sig.find_peaks(cc_curve, prominence=prominence)
+                peaks_abs = abs(peaks - cc_curve.shape[0] // 2)
+                # If multiple peaks found, select the one closest to the center
+                if len(peaks) > 1:
+                    delay = np.argmin(peaks_abs[np.nonzero(peaks_abs)])
+                    delayIndex = peaks[delay]
+                    delay_frames = delayIndex - cc_curve.shape[0] // 2
+                # Otherwise, return NaNs
+                else:
+                    delay_frames = np.nan
+                    cc_curve = np.full((self.roll_size*2-1 if rolling else self.num_frames * 2 - 1), np.nan)
+            else:
+                # If no peaks found, return NaNs
+                delay_frames = np.nan
+                cc_curve = np.full((self.roll_size*2-1 if rolling else self.num_frames * 2 - 1), np.nan)
+
+            return delay_frames, cc_curve
         
         # Initialize arrays to store shifts and cross-correlation curves
         channels = list(range(self.num_channels))
@@ -156,7 +276,7 @@ class TotalSignalProcessor:
                         signal1 = self.bin_values[combo[0], bin]
                         signal2 = self.bin_values[combo[1], bin]
      
-                    delay_frames, cc_curve = sp.calc_shifts_CCF_curves(signal1, signal2, prominence=0.1, roll_size = None, num_frames=self.num_frames)
+                    delay_frames, cc_curve = calc_shifts(signal1, signal2, prominence=0.1)
 
                     # The script has issues when the shift is very small or none, so minus the average period from the two channels
                     average_period = np.mean(self.periods[:, bin])
@@ -184,7 +304,7 @@ class TotalSignalProcessor:
                             signal1 = self.bin_values[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, combo[0], bin]
                             signal2 = self.bin_values[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, combo[1], bin]
 
-                            delay_frames, cc_curve = sp.calc_shifts_CCF_curves(signal1, signal2, prominence=0.1, roll_size = self.roll_size, num_frames=None)
+                            delay_frames, cc_curve = calc_shifts(signal1, signal2, prominence=0.1, rolling = True)
 
                             self.indv_shifts[submovie, combo_number, bin] = delay_frames
                             self.indv_ccfs[submovie, combo_number, bin] = cc_curve

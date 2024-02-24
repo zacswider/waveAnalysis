@@ -1,28 +1,21 @@
 import os
-import csv
-import timeit
 import datetime
-import datetime
-import pathlib
+import sys
 import timeit
 from typing import Any
 
 import csv
 import numpy as np
 
-import seaborn as sns
-import matplotlib.pyplot as plt
 
 import pandas as pd
-import tifffile
 from tqdm import tqdm
-from typing import Any
 
 import waveanalysis.image_signals as sc
-from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
-from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
 
-# TODO: figure out a better way to handle how the kymographs and movies are imported so that we do need if else statements with the analysis type for standard/kymo
+
+from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
+from waveanalysis.housekeeping.housekeeping_functions import make_log, generate_group_comparison
 
 def combined_workflow(
     folder_path: str,
@@ -41,89 +34,48 @@ def combined_workflow(
     plot_ind_ACFs: bool,
     plot_ind_CCFs: bool,
     plot_ind_peaks: bool,
-) -> pd.DataFrame:           
-                    
-    start = timeit.default_timer()
+) -> pd.DataFrame:                           
 
-    # convert images to numpy arrays
-    if analysis_type == 'kymograph':
-        all_images = sc.convert_kymos(folder_path=folder_path)
-    else:
-        all_images = sc.convert_movies(folder_path=folder_path)
-
-    ''' ** housekeeping functions ** '''
-    def make_log(directory, logParams):
-        '''
-        Convert dictionary of parameters to a log file and save it in the directory
-        '''
-        now = datetime.datetime.now()
-        logPath = os.path.join(directory, f"!log-{now.strftime('%Y%m%d%H%M')}.txt")
-        logFile = open(logPath, "w")                                    
-        logFile.write("\n" + now.strftime("%Y-%m-%d %H:%M") + "\n")     
-        for key, value in logParams.items():                            
-            logFile.write('%s: %s\n' % (key, value))                    
-        logFile.close()                                                 
-
-    def plotComparisons(dataFrame: pd.DataFrame, dependent: str, independent = 'Group Name'):
-        '''
-        This func accepts a dataframe, the name of a dependent variable, and the name of an
-        independent variable (by default, set to Group Name). It returns a figure object showing
-        a box and scatter plot of the dependent variable grouped by the independent variable.
-        '''
-        ax = sns.boxplot(x=independent, y=dependent, data=dataFrame, palette = "Set2", showfliers = False)
-        ax = sns.swarmplot(x=independent, y=dependent, data=dataFrame, color=".25")	
-        ax.set_xticklabels(ax.get_xticklabels(),rotation=45)
-        fig = ax.get_figure()
-        return fig
-    
-    def convert_images(folder_path, analysis_type):
-        """
-        Convert all TIF files in the specified directory to standardized numpy arrays.
-
-        Args:
-            directory (str or pathlib.Path): The path to the directory containing the TIF files.
-
-        Returns:
-            dict: A dictionary where the keys are the file names and the values are the numpy arrays of the images.
-        """
-        input_path = pathlib.Path(folder_path)
-        images = {}
-
-        for file_path in input_path.glob('*.tif'):
-            # Load the TIFF file into a numpy array
-            image = tifffile.imread(file_path)
-
-            with tifffile.TiffFile(file_path) as tif_file:
-                metadata = tif_file.imagej_metadata
-            num_channels = metadata.get('channels', 1)
-            num_frames = metadata.get('frames', 1)
-            num_slices = metadata.get('slices', 1)
-
-            # Max project if multiple slices
-            if num_slices > 1:
-                print('Max projecting image stack')
-                image = np.max(image, axis=1)
-                num_slices = 1
-                image = image.reshape(num_frames, num_slices, num_channels, *image.shape[-2:])
-
-            if analysis_type == "kymograph":
-                image = image.reshape(num_channels, 
-                                        image.shape[-2],  # cols
-                                        image.shape[-1])  # rows
-                
-            images[file_path.name] = image
-
-        # Sort the dictionary keys alphabetically
-        images = {key: images[key] for key in sorted(images)}
-
-        return images
-
+    ''' ** error catching for group names ** '''
     # list of file names in specified directory
     file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
 
+    # list of groups that matched to file names
+    groups_found = np.unique([group for group in group_names for file in file_names if group in file]).tolist()
+
+    # dictionary of file names and their corresponding group names
+    uniqueDic = {file : [group for group in group_names if group in file] for file in file_names}
+
+    for file_name, matching_groups in uniqueDic.items():
+        # if a file doesn't have a group name, log it but still run the script
+        if len(matching_groups) == 0:
+            log_params["Group Matching Errors"].append(f'{file_name} was not matched to a group')
+
+        # if a file has multiple groups names, raise error and exit the script
+        elif len(matching_groups) > 1:
+            print('****** ERROR ******',
+                f'\n{file_name} matched to multiple groups: {matching_groups}',
+                '\nPlease fix errors and try again.',
+                '\n****** ERROR ******')
+            sys.exit()
+
+    # if a group was specified but not matched to a file name, raise error and exit the script
+    if len(groups_found) != len(group_names):
+        print("****** ERROR ******",
+            "\nOne or more groups were not matched to file names",
+            f"\nGroups specified: {group_names}",
+            f"\nGroups found: {groups_found}",
+            "\n****** ERROR ******")
+        sys.exit()
+
+
+    ''' ** Main Workflow ** '''
+    # performance tracker
+    start = timeit.default_timer()
     # create main save path
     now = datetime.datetime.now()
     main_save_path = os.path.join(folder_path, f"0_signalProcessing-{now.strftime('%Y%m%d%H%M')}")
+    # create directory if it doesn't exist
     if not os.path.exists(main_save_path):
         os.makedirs(main_save_path)
 
@@ -132,10 +84,10 @@ def combined_workflow(
     # column headers to use with summary data during conversion to dataframe
     col_headers = []
 
-    # error checking for group names
-    ensure_group_names(folder_path=folder_path, file_names=file_names, group_names=group_names, log_params=log_params)
-    # create a dictionary of the filename and corresponding images as mp arrays. 
-    all_images = convert_images(folder_path, analysis_type)
+    if analysis_type == 'kymograph':
+        all_images = sc.convert_kymos(folder_path=folder_path)
+    else:
+        all_images = sc.convert_movies(folder_path=folder_path)
 
     print('Processing files...')
 
@@ -144,7 +96,6 @@ def combined_workflow(
         for file_name in file_names: 
             print('******'*10)
             print(f'Processing {file_name}...')
-            
             processor = TotalSignalProcessor(analysis_type = analysis_type, 
                                              image_path = f'{folder_path}/{file_name}',
                                              image = all_images[file_name], 
@@ -153,7 +104,6 @@ def combined_workflow(
                                              roll_size = subframe_size, 
                                              roll_by = subframe_roll, 
                                              line_width = line_width)
-            
             # log error and skip image if frames < 2 
             if processor.num_frames < 2:
                 print(f"****** ERROR ******",
@@ -245,6 +195,33 @@ def combined_workflow(
                 im_measurements_df = processor.organize_measurements()
                 im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)  # type: ignore
 
+            # if rolling analysis            
+            else:
+                # calculate the number of subframes used
+                num_submovies = processor.num_submovies
+                log_params['Submovies Used'].append(num_submovies)
+
+                # summarize the data for each subframe as individual dataframes, and save as .csv
+                submovie_meas_list = processor.organize_measurements()
+                csv_save_path = os.path.join(im_save_path, 'rolling_measurements')
+                if not os.path.exists(csv_save_path):
+                    os.makedirs(csv_save_path)
+                for measurement_index, submovie_meas_df in enumerate(submovie_meas_list):  # type: ignore
+                    submovie_meas_df: pd.DataFrame
+                    submovie_meas_df.to_csv(f'{csv_save_path}/{name_wo_ext}_subframe{measurement_index}_measurements.csv', index = False)
+                
+                # summarize the data for each subframe as a single dataframe, and save as .csv
+                summary_df = processor.summarize_rolling_file()
+                summary_df.to_csv(f'{im_save_path}/{name_wo_ext}_summary.csv', index = False)
+
+                # make and save the summary plot for rolling data
+                summary_plots = processor.plot_rolling_summary()
+                plot_save_path = os.path.join(im_save_path, 'summary_plots')
+                if not os.path.exists(plot_save_path):
+                    os.makedirs(plot_save_path)
+                for title, plot in summary_plots.items():
+                    plot.savefig(f'{plot_save_path}/{name_wo_ext}_{title}.png')
+
             # generate summary data for current image
             im_summary_dict = processor.summarize_image(file_name = file_name, group_name = group_name)
 
@@ -274,35 +251,7 @@ def combined_workflow(
 
         # if group names were entered into the gui, generate comparisons between each group
         if group_names != ['']:
-            print('Generating group comparisons...')
-            # make a group comparisons save path in the main save directory
-            group_save_path = os.path.join(main_save_path, "!groupComparisons")
-            if not os.path.exists(group_save_path):
-                os.makedirs(group_save_path)
-            
-            # make a list of parameters to compare
-            stats_to_compare = ['Mean']
-            channels_to_compare = [f'Ch {i+1}' for i in range(processor.num_channels)]
-            measurements_to_compare = ['Period', 'Shift', 'Peak Width', 'Peak Max', 'Peak Min', 'Peak Amp', 'Peak Rel Amp']
-            params_to_compare = []
-            for channel in channels_to_compare:
-                for stat in stats_to_compare:
-                    for measurement in measurements_to_compare:
-                        params_to_compare.append(f'{channel} {stat} {measurement}')
-
-            # will compare the shifts if multichannel movie
-            if hasattr(processor, 'channel_combos'):
-                shifts_to_compare = [f'Ch{combo[0]+1}-Ch{combo[1]+1} Mean Shift' for combo in processor.channel_combos]
-                params_to_compare.extend(shifts_to_compare)
-
-            # generate and save figures for each parameter
-            for param in params_to_compare:
-                try:
-                    fig = plotComparisons(summary_df, param)
-                    fig.savefig(f'{group_save_path}/{param}.png')  # type: ignore
-                    plt.close(fig)
-                except ValueError:
-                    log_params['Plotting errors'].append(f'No data to compare for {param}')
+            generate_group_comparison(main_save_path = main_save_path, processor = processor, summary_df = summary_df, log_params = log_params)
             
             # save the means each parameter for the attributes to make them easier to work with in prism
             processor.save_parameter_means_to_csv(main_save_path, group_names, summary_df)
@@ -313,5 +262,3 @@ def combined_workflow(
         make_log(main_save_path, log_params)
 
         return summary_df
-
-
