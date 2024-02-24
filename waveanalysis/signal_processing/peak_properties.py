@@ -86,7 +86,7 @@ def indv_props_rolling(
                     peaks, _ = sig.find_peaks(signal, prominence=(np.max(signal)-np.min(signal))*0.1)
 
                     # If peaks detected, calculate properties, otherwise return NaNs
-                    if len(peaks) > 0:
+                    if len(peaks) > 0 and len(peaks)< 2:
                         proms, _, _ = sig.peak_prominences(signal, peaks)
                         widths = sig.peak_widths(signal, peaks, rel_height=0.5)
                         mean_width = np.mean(widths, axis=0)                        

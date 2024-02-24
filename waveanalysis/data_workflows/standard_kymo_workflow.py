@@ -10,6 +10,8 @@ import waveanalysis.image_signals as sc
 from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
 from waveanalysis.housekeeping.housekeeping_functions import make_log, generate_group_comparison, ensure_group_names
 
+# TODO: figure out a better way to handle how the kymographs and movies are imported so that we do need if else statements with the analysis type for standard/kymo
+
 def standard_kymo_workflow(
     folder_path: str,
     group_names: list[str],
