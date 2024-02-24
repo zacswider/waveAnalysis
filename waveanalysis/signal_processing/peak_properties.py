@@ -57,6 +57,7 @@ def indv_props_standard_kymo(
     
     return ind_peak_widths, ind_peak_maxs, ind_peak_mins, ind_peak_amps, ind_peak_rel_amps, ind_peak_props
     
+# TODO: fix the rolling version where it is not working correctly when more than one peak is detected
 
 def indv_props_rolling(
     num_submovies: int,

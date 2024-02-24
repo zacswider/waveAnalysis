@@ -10,6 +10,9 @@ import waveanalysis.image_signals as sc
 from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
 from waveanalysis.housekeeping.housekeeping_functions import make_log
 
+# TODO: major refactor in how the rolling movies are generated and processed so that we can use the same functions for both standard and rolling
+# TODO: figure out a better way to handle how the kymographs and movies are imported so that we do need if else statements with the analysis type for standard/kymo
+
 def rolling_workflow(
     folder_path: str,
     log_params: dict[str, Any],
