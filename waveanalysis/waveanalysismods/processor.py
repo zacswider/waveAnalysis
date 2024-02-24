@@ -8,6 +8,7 @@ import scipy.signal as sig
 import matplotlib.pyplot as plt
 from itertools import zip_longest
 
+from waveanalysis.signal_processing import acf_shifts
 import waveanalysis.signal_processing as sp
 import waveanalysis.image_signals as sc
 

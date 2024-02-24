@@ -3,6 +3,9 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from waveanalysis.data_workflows import standard_kymo_workflow
+import numpy as np
+
+from waveanalysis.data_workflows.combined import combined_workflow
 
 @pytest.fixture
 def default_log_params():
@@ -24,7 +27,7 @@ def default_log_params():
         'Plotting errors': [],
     }
 
-def test_standard(default_log_params):
+def test_combined(default_log_params):
     # load csv
     known_results = pd.read_csv('tests/assets/standard/standard_known_results.csv')
     assert isinstance(known_results, pd.DataFrame)
@@ -47,4 +50,3 @@ def test_standard(default_log_params):
         plot_ind_peaks=default_log_params['Plot Individual Peaks'],
     )
     assert pd.testing.assert_frame_equal(known_results, exp_results) is None
-

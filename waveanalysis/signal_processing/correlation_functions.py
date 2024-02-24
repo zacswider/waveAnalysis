@@ -3,13 +3,13 @@ import numpy as np
 from scipy import signal as sig
 
 
-def create_acf_curves_calc_period(
+def acf_shifts(
     signal: np.ndarray,
     num_frames_or_rollsize: int,
     peak_thresh: float,
 ) -> tuple[float, np.ndarray]:
     """
-    This function normalizes the input signal and computes the autocorrelation curve.
+    This function normalizes the input signal and computes the aupyttocorrelation curve.
     It identifies peaks in the autocorrelation curve to estimate the delay.
 
     Parameters:
