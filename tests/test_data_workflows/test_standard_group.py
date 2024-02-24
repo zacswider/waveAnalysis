@@ -30,7 +30,7 @@ def test_combined(default_log_params):
     assert isinstance(known_results, pd.DataFrame)
     exp_results = combined_workflow(
         folder_path=str(Path('tests/assets/standard/')),
-        group_names=[''],
+        group_names=['Group1','Group2'],
         log_params=default_log_params,
         analysis_type='standard',
         box_size=default_log_params['Box Size(px)'],
