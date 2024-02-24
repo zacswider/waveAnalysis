@@ -22,22 +22,6 @@ def make_log(
         logFile.write('%s: %s\n' % (key, value))                    
     logFile.close()           
 
-def plot_group_comparisons(
-    dataFrame: pd.DataFrame, 
-    dependent: str, 
-    independent = 'Group Name'
-) -> plt.Figure:
-        '''
-        This func accepts a dataframe, the name of a dependent variable, and the name of an
-        independent variable (by default, set to Group Name). It returns a figure object showing
-        a box and scatter plot of the dependent variable grouped by the independent variable.
-        '''
-        ax = sns.boxplot(x=independent, y=dependent, data=dataFrame, palette = "Set2", showfliers = False)
-        ax = sns.swarmplot(x=independent, y=dependent, data=dataFrame, color=".25")	
-        ax.set_xticklabels(ax.get_xticklabels(),rotation=45)
-        fig = ax.get_figure()
-        return fig
-
 def generate_group_comparison(
     main_save_path: str,
     processor: object,
@@ -68,7 +52,10 @@ def generate_group_comparison(
     # generate and save figures for each parameter
     for param in params_to_compare:
         try:
-            fig = plot_group_comparisons(summary_df, param)
+            ax = sns.boxplot(x='Group Name', y=param, data=summary_df, palette = "Set2", showfliers = False)
+            ax = sns.swarmplot(x='Group Name', y=param, data=summary_df, color=".25")	
+            ax.set_xticklabels(ax.get_xticklabels(),rotation=45)
+            fig = ax.get_figure()
             fig.savefig(f'{group_save_path}/{param}.png')  # type: ignore
             plt.close(fig)
         except ValueError:
@@ -79,7 +66,6 @@ def group_name_error_check(
     group_names: list,
     log_params: dict
 ):
-    
     # list of groups that matched to file names
     groups_found = np.unique([group for group in group_names for file in file_names if group in file]).tolist()
 

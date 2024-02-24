@@ -10,7 +10,7 @@ from itertools import zip_longest
 
 from waveanalysis.image_signals.create_signals import create_standard_signals, create_kymo_signals  
 
-from waveanalysis.signal_processing import create_acf_curves_calc_period
+from waveanalysis.signal_processing import calc_indv_ACFs_periods
 
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -23,6 +23,8 @@ class TotalSignalProcessor:
         self.roll_by = roll_by
         self.kernel_size = kern
         self.step = step
+        self.num_submovies = np.nan
+        self.xpix, self.ypix  = np.nan, np.nan
 
         # Import image and extract metadata
         self.image_path = image_path
@@ -150,47 +152,10 @@ class TotalSignalProcessor:
         return self.ind_peak_widths, self.ind_peak_maxs, self.ind_peak_mins, self.ind_peak_amps, self.ind_peak_rel_amps, self.ind_peak_props
 
     def calc_indv_ACFs(self, peak_thresh=0.1):
-        """
-        This method computes the autocorrelation functions (ACFs) for each channel and bin of the analyzed data.
-        It also identifies peaks in the ACF curves to estimate periods.
-
-        Parameters:
-            - peak_thresh (float): Threshold for peak detection in the ACF curves. Defaults to 0.1.
-
-        Returns:
-            - acfs (numpy.ndarray): Array of autocorrelation functions.
-            - periods (numpy.ndarray): Array of periods estimated from the ACF peaks.
-        """
         
-        # Initialize arrays to store period measurements and autocorrelation curves
-        self.periods = np.zeros(shape=(self.num_channels, self.total_bins))
-        self.acfs = np.zeros(shape=(self.num_channels, self.total_bins, self.num_frames * 2 - 1))
+        self.acfs, self.periods = calc_indv_ACFs_periods(self.num_channels, self.total_bins, self.num_frames, self.bin_values, self.analysis_type, self.roll_size, self.roll_by, self.num_submovies, self.xpix, self.ypix, peak_thresh=peak_thresh)
 
-        # Loop through channels and bins for standard or kymograph analysis
-        if self.analysis_type != "rolling":
-            for channel in range(self.num_channels):
-                for bin in range(self.total_bins):
-                    signal = self.bin_values[:, channel, bin] if self.analysis_type == "standard" else self.bin_values[channel, bin, :]
-                    delay, acf_curve = create_acf_curves_calc_period(signal, num_frames_or_rollsize=self.num_frames, peak_thresh=peak_thresh)
-                    self.periods[channel, bin] = delay
-                    self.acfs[channel, bin] = acf_curve
-        # If rolling analysis
-        elif self.analysis_type == "rolling":
-            self.periods = np.zeros(shape=(self.num_submovies, self.num_channels, self.total_bins))
-            self.acfs = np.zeros(shape=(self.num_submovies, self.num_channels, self.total_bins, self.roll_size * 2 - 1))
-            # Loop through submovies, channels, and bins
-            its = self.num_submovies*self.num_channels*self.xpix*self.ypix
-            with tqdm(total = its, miniters=its/100) as pbar:
-                pbar.set_description( 'Periods: ')
-                for submovie in range(self.num_submovies):
-                    for channel in range(self.num_channels):
-                        for bin in range(self.total_bins):
-                            pbar.update(1)
-                            # Extract signal for rolling autocorrelation calculation
-                            signal = self.bin_values[self.roll_by * submovie: self.roll_size + self.roll_by * submovie, channel, bin]
-                            delay, acf_curve = create_acf_curves_calc_period(signal, num_frames_or_rollsize=self.roll_size, peak_thresh=peak_thresh)
-                            self.periods[submovie, channel, bin] = delay
-                            self.acfs[submovie, channel, bin] = acf_curve
+
         return self.acfs, self.periods
 
     def calc_indv_CCFs(self):
