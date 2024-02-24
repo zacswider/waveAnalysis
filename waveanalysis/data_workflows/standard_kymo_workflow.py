@@ -27,7 +27,8 @@ def standard_kymo_workflow(
     plot_ind_ACFs: bool,
     plot_ind_CCFs: bool,
     plot_ind_peaks: bool,
-) -> pd.DataFrame:                           
+) -> pd.DataFrame:           
+                    
     start = timeit.default_timer()
 
     # convert images to numpy arrays

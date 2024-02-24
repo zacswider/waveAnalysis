@@ -8,7 +8,7 @@ from typing import Any
 
 import waveanalysis.image_signals as sc
 from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
-from waveanalysis.housekeeping.housekeeping_functions import make_log, generate_group_comparison, ensure_group_names
+from waveanalysis.housekeeping.housekeeping_functions import make_log
 
 def rolling_workflow(
     folder_path: str,
@@ -20,7 +20,8 @@ def rolling_workflow(
     subframe_roll: int,
     line_width: int,
     acf_peak_thresh: float
-) -> pd.DataFrame:                           
+) -> pd.DataFrame:               
+                
     start = timeit.default_timer()
 
     all_images = sc.convert_movies(folder_path=folder_path)
@@ -71,8 +72,8 @@ def rolling_workflow(
             name_wo_ext = file_name.rsplit(".",1)[0]
 
             # calculate the population signal properties
-            processor.calc_indv_ACFs(peak_thresh = acf_peak_thresh)
             processor.calc_indv_peak_props()
+            processor.calc_indv_ACFs(peak_thresh = acf_peak_thresh)
             if processor.num_channels > 1:
                 processor.calc_indv_CCFs()
 
