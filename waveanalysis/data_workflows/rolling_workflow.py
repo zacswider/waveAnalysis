@@ -11,6 +11,7 @@ from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
 from waveanalysis.housekeeping.housekeeping_functions import make_log
 
 # TODO: major refactor in how the rolling movies are generated and processed so that we can use the same functions for both standard and rolling
+# TODO: this is broken. it is not saving the summary files correctly for the subframe measurements
 
 def rolling_workflow(
     folder_path: str,
