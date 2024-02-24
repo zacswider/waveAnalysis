@@ -63,7 +63,7 @@ class TotalSignalProcessor:
             - ind_peak_rel_amps (numpy.ndarray): Array of relative peak amplitudes.
             - ind_peak_props (dict): Dictionary containing additional peak properties.
         """
-        def indv_props(signal, bin, submovie = None):
+        def indv_props(channel, signal, bin, submovie = None):
             """
             This function calculates various peak properties for a given signal.
 
@@ -124,7 +124,7 @@ class TotalSignalProcessor:
                         signal = sig.savgol_filter(self.bin_values[:,channel, bin], window_length = 11, polyorder = 2)   
                     else:                     
                         signal = sig.savgol_filter(self.bin_values[channel, bin], window_length = 11, polyorder = 2)   
-                    indv_props(signal, bin)
+                    indv_props(channel, signal, bin)
 
         # If rolling analysis
         elif self.analysis_type == "rolling":
@@ -140,7 +140,7 @@ class TotalSignalProcessor:
                         for bin in range(self.total_bins):
                             pbar.update(1)
                             signal = sig.savgol_filter(self.bin_values[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, channel, bin], window_length=11, polyorder=2)
-                            indv_props(signal, bin, submovie = submovie)
+                            indv_props(channel, signal, bin, submovie = submovie)
 
         # Calculate additional peak properties
         self.ind_peak_amps = self.ind_peak_maxs - self.ind_peak_mins
@@ -805,7 +805,140 @@ class TotalSignalProcessor:
 ############################################
 ############ DATA ORGANIZATION #############
 ############################################ 
+
+    def get_submovie_measurements(self):
+        '''
+        Gathers period, shift, and peak properties measurements (if they exist), appends some simple statistics, 
+        and returns a SEPARATE dataframe with raw and summarized measurements for each submovie in the dataset.
+        returns:
+        self.submovie_measurements is a list of dataframes, one for each submovie in the full sequence
+        '''
+        
+        # function to summarize measurements statistics by appending them to the beginning of the measurement list
+        def add_stats(measurements: np.ndarray, measurement_name: str):
+            '''
+            Accepts a list of measurements. Calculates the mean, median, standard deviation,
+            and append them to the beginning of the list in that order. Finally, appends the name of
+            the measurement of the beginning of the list.
+            '''
+
+            if measurement_name == 'Shift':
+                statified = []
+                for combo_number, combo in enumerate(self.channel_combos):
+                    meas_mean = np.nanmean(measurements[combo_number])
+                    meas_median = np.nanmedian(measurements[combo_number])
+                    meas_std = np.nanstd(measurements[combo_number])
+                    meas_list = list(measurements[combo_number])
+                    meas_list.insert(0, meas_mean)
+                    meas_list.insert(1, meas_median)
+                    meas_list.insert(2, meas_std)
+                    meas_list.insert(0, f'Ch{combo[0]+1}-Ch{combo[1]+1} {measurement_name}')
+                    statified.append(meas_list)
+
+            else:
+                statified = []
+                for channel in range(self.num_channels):
+                    meas_mean = np.nanmean(measurements[channel])
+                    meas_median = np.nanmedian(measurements[channel])
+                    meas_std = np.nanstd(measurements[channel])
+                    meas_list = list(measurements[channel])
+                    meas_list.insert(0, meas_mean)
+                    meas_list.insert(1, meas_median)
+                    meas_list.insert(2, meas_std)
+                    meas_list.insert(0, f'Ch {channel +1} {measurement_name}')
+                    statified.append(meas_list)
+
+            return(statified)
+
+        # column names for the dataframe summarizing the box results
+        col_names = ["Parameter", "Mean", "Median", "StdDev"]
+        col_names.extend([f'Box{i}' for i in range(self.total_bins)])
+        
+        self.submovie_measurements = []
+
+        for submovie in range(self.num_submovies):
+            statified_measurements = []
+
+            if hasattr(self, 'acfs'):
+                submovie_periods_with_stats = add_stats(self.periods[submovie], 'Period')
+                for channel in range(self.num_channels):
+                    statified_measurements.append(submovie_periods_with_stats[channel])
+            
+            if hasattr(self, 'ccfs'):
+                submovie_shifts_with_stats = add_stats(self.ccfs[submovie], 'Shift')
+                for combo_number, _ in enumerate(self.channel_combos):
+                    statified_measurements.append(submovie_shifts_with_stats[combo_number])
+            
+            if hasattr(self, 'peak_widths'):
+                submovie_widths_with_stats = add_stats(self.ind_peak_widths[submovie], 'Peak Width')
+                submovie_maxs_with_stats = add_stats(self.ind_peak_maxs[submovie], 'Peak Max')
+                submovie_mins_with_stats = add_stats(self.ind_peak_mins[submovie], 'Peak Min')
+                submovie_amps_with_stats = add_stats(self.ind_peak_amps[submovie], 'Peak Amp')
+                submovie_rel_amps_with_stats = add_stats(self.ind_peak_rel_amps[submovie], 'Peak Rel Amp')
+                for channel in range(self.num_channels):
+                    statified_measurements.append(submovie_widths_with_stats[channel])
+                    statified_measurements.append(submovie_maxs_with_stats[channel])
+                    statified_measurements.append(submovie_mins_with_stats[channel])
+                    statified_measurements.append(submovie_amps_with_stats[channel])
+                    statified_measurements.append(submovie_rel_amps_with_stats[channel])
+
+            submovie_meas_df = pd.DataFrame(statified_measurements, columns = col_names)
+            self.submovie_measurements.append(submovie_meas_df)
+
+        return self.submovie_measurements 
+
+
+    def summarize_rolling_file(self):
+        """
+        This method calculates and summarizes various measurements for each submovie in a rolling analysis, including
+        statistics on periods, shifts, and peak properties. It returns a pandas DataFrame containing the summarized measurements.
+
+        Returns:
+            - pandas.DataFrame: A DataFrame containing the summarized measurements for each submovie in the rolling analysis.
+        """
+        all_submovie_summary = []
+
+        stat_name_and_func = {'Mean' : np.nanmean,
+                              'Median' : np.nanmedian,
+                              'StdDev' : np.nanstd
+                              }
+
+        for submovie in range(self.num_submovies):
+            submovie_summary = {}
+            submovie_summary['Submovie'] = submovie + 1 
+            
+            if hasattr(self, 'acfs'):
+                for channel in range(self.num_channels):
+                    pcnt_no_period = (np.count_nonzero(np.isnan(self.periods[submovie, channel])) / self.total_bins) * 100
+                    submovie_summary[f'Ch {channel + 1} Pcnt No Periods'] = pcnt_no_period
+                    for stat_name, func in stat_name_and_func.items():
+                        submovie_summary[f'Ch {channel + 1} {stat_name} Period'] = func(self.periods[submovie, channel])
+
+            if hasattr(self, 'indv_ccfs'):
+                for combo_number, combo in enumerate(self.channel_combos):
+                    pcnt_no_shift = np.count_nonzero(np.isnan(self.indv_ccfs[submovie, combo_number])) / self.total_bins * 100
+                    submovie_summary[f'Ch{combo[0]+1}-Ch{combo[1]+1} Pcnt No Shifts'] = pcnt_no_shift
+                    for stat_name, func in stat_name_and_func.items():
+                        submovie_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} {stat_name} Shift'] = func(self.indv_shifts[submovie, combo_number])
+
+            if hasattr(self, 'ind_peak_widths'):
+                for channel in range(self.num_channels):
+                    # using widths, but because these are all assigned together it applies to all peak properties
+                    pcnt_no_peaks = np.count_nonzero(np.isnan(self.ind_peak_widths[submovie, channel])) / self.total_bins * 100
+                    submovie_summary[f'Ch {channel + 1} Pcnt No Peaks'] = pcnt_no_peaks
+                    for stat_name, func in stat_name_and_func.items():
+                        submovie_summary[f'Ch {channel + 1} {stat_name} Peak Width'] = func(self.ind_peak_widths[submovie, channel])
+                        submovie_summary[f'Ch {channel + 1} {stat_name} Peak Max'] = func(self.ind_peak_maxs[submovie, channel])
+                        submovie_summary[f'Ch {channel + 1} {stat_name} Peak Min'] = func(self.ind_peak_mins[submovie, channel])
+                        submovie_summary[f'Ch {channel + 1} {stat_name} Peak Amp'] = func(self.ind_peak_amps[submovie, channel])
+            all_submovie_summary.append(submovie_summary)
+        
+        col_names = [key for key in all_submovie_summary[0].keys()]
+        self.full_movie_summary = pd.DataFrame(all_submovie_summary, columns = col_names)
+                
+        return self.full_movie_summary
     
+     
     def summarize_image(self, file_name = None, group_name = None):
         """
         This method calculates and summarizes various measurements for each image, including statistics on periods,
@@ -857,57 +990,6 @@ class TotalSignalProcessor:
             
         return self.file_data_summary
     
-
-    def summarize_rolling_file(self):
-        """
-        This method calculates and summarizes various measurements for each submovie in a rolling analysis, including
-        statistics on periods, shifts, and peak properties. It returns a pandas DataFrame containing the summarized measurements.
-
-        Returns:
-            - pandas.DataFrame: A DataFrame containing the summarized measurements for each submovie in the rolling analysis.
-        """
-        all_submovie_summary = []
-
-        stat_name_and_func = {'Mean' : np.nanmean,
-                              'Median' : np.nanmedian,
-                              'StdDev' : np.nanstd
-                              }
-
-        for submovie in range(self.num_submovies):
-            submovie_summary = {}
-            submovie_summary['Submovie'] = submovie + 1 
-            
-            if hasattr(self, 'periods'):
-                for channel in range(self.num_channels):
-                    pcnt_no_period = (np.count_nonzero(np.isnan(self.periods[submovie, channel])) / self.total_bins) * 100
-                    submovie_summary[f'Ch {channel + 1} Pcnt No Periods'] = pcnt_no_period
-                    for stat_name, func in stat_name_and_func.items():
-                        submovie_summary[f'Ch {channel + 1} {stat_name} Period'] = func(self.periods[submovie, channel])
-
-            if hasattr(self, 'shifts'):
-                for combo_number, combo in enumerate(self.channel_combos):
-                    pcnt_no_shift = np.count_nonzero(np.isnan(self.indv_ccfs[submovie, combo_number])) / self.total_bins * 100
-                    submovie_summary[f'Ch{combo[0]+1}-Ch{combo[1]+1} Pcnt No Shifts'] = pcnt_no_shift
-                    for stat_name, func in stat_name_and_func.items():
-                        submovie_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} {stat_name} Shift'] = func(self.indv_shifts[submovie, combo_number])
-
-            if hasattr(self, 'peak_widths'):
-                for channel in range(self.num_channels):
-                    # using widths, but because these are all assigned together it applies to all peak properties
-                    pcnt_no_peaks = np.count_nonzero(np.isnan(self.ind_peak_widths[submovie, channel])) / self.total_bins * 100
-                    submovie_summary[f'Ch {channel + 1} Pcnt No Peaks'] = pcnt_no_peaks
-                    for stat_name, func in stat_name_and_func.items():
-                        submovie_summary[f'Ch {channel + 1} {stat_name} Peak Width'] = func(self.ind_peak_widths[submovie, channel])
-                        submovie_summary[f'Ch {channel + 1} {stat_name} Peak Max'] = func(self.ind_peak_maxs[submovie, channel])
-                        submovie_summary[f'Ch {channel + 1} {stat_name} Peak Min'] = func(self.ind_peak_mins[submovie, channel])
-                        submovie_summary[f'Ch {channel + 1} {stat_name} Peak Amp'] = func(self.ind_peak_amps[submovie, channel])
-            all_submovie_summary.append(submovie_summary)
-        
-        col_names = [key for key in all_submovie_summary[0].keys()]
-        self.full_movie_summary = pd.DataFrame(all_submovie_summary, columns = col_names)
-                
-        return self.full_movie_summary
-    
     def organize_measurements(self):
         """
         This method summarizes measurements statistics by appending them to the beginning of the measurement list
@@ -956,75 +1038,37 @@ class TotalSignalProcessor:
         # column names for the dataframe summarizing the bin results
         col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]
         col_names.extend([f'Bin {i}' for i in range(self.total_bins)])
-        
-        
-        if self.analysis_type != "rolling":
-            # combine all the statified measurements into a single list
-            statified_measurements = []
+    
+        # combine all the statified measurements into a single list
+        statified_measurements = []
 
-            # insert Mean, Median, StdDev, and SEM into the beginning of each  list
-            if hasattr(self, 'acfs'):
-                self.periods_with_stats = add_stats(self.periods, 'Period')
-                for channel in range(self.num_channels):
-                    statified_measurements.append(self.periods_with_stats[channel])
+        # insert Mean, Median, StdDev, and SEM into the beginning of each  list
+        if hasattr(self, 'acfs'):
+            self.periods_with_stats = add_stats(self.periods, 'Period')
+            for channel in range(self.num_channels):
+                statified_measurements.append(self.periods_with_stats[channel])
 
-            if hasattr(self, 'indv_ccfs'):
-                self.shifts_with_stats = add_stats(self.indv_shifts, 'Shift')
-                for combo_number, combo in enumerate(self.channel_combos):
-                    statified_measurements.append(self.shifts_with_stats[combo_number])
+        if hasattr(self, 'indv_ccfs'):
+            self.shifts_with_stats = add_stats(self.indv_shifts, 'Shift')
+            for combo_number, combo in enumerate(self.channel_combos):
+                statified_measurements.append(self.shifts_with_stats[combo_number])
 
-            if hasattr(self, 'ind_peak_widths'):
-                self.peak_widths_with_stats = add_stats(self.ind_peak_widths, 'Peak Width')
-                self.peak_maxs_with_stats = add_stats(self.ind_peak_maxs, 'Peak Max')
-                self.peak_mins_with_stats = add_stats(self.ind_peak_mins, 'Peak Min')
-                self.peak_amps_with_stats = add_stats(self.ind_peak_amps, 'Peak Amp')
-                self.peak_relamp_with_stats = add_stats(self.ind_peak_rel_amps, 'Peak Rel Amp')
-                for channel in range(self.num_channels):
-                    statified_measurements.append(self.peak_widths_with_stats[channel])
-                    statified_measurements.append(self.peak_maxs_with_stats[channel])
-                    statified_measurements.append(self.peak_mins_with_stats[channel])
-                    statified_measurements.append(self.peak_amps_with_stats[channel])
-                    statified_measurements.append(self.peak_relamp_with_stats[channel])
+        if hasattr(self, 'ind_peak_widths'):
+            self.peak_widths_with_stats = add_stats(self.ind_peak_widths, 'Peak Width')
+            self.peak_maxs_with_stats = add_stats(self.ind_peak_maxs, 'Peak Max')
+            self.peak_mins_with_stats = add_stats(self.ind_peak_mins, 'Peak Min')
+            self.peak_amps_with_stats = add_stats(self.ind_peak_amps, 'Peak Amp')
+            self.peak_relamp_with_stats = add_stats(self.ind_peak_rel_amps, 'Peak Rel Amp')
+            for channel in range(self.num_channels):
+                statified_measurements.append(self.peak_widths_with_stats[channel])
+                statified_measurements.append(self.peak_maxs_with_stats[channel])
+                statified_measurements.append(self.peak_mins_with_stats[channel])
+                statified_measurements.append(self.peak_amps_with_stats[channel])
+                statified_measurements.append(self.peak_relamp_with_stats[channel])
 
-            self.im_measurements = pd.DataFrame(statified_measurements, columns = col_names)
+        self.im_measurements = pd.DataFrame(statified_measurements, columns = col_names)
 
-            return self.im_measurements
-
-        else: 
-
-            self.submovie_measurements = []
-
-            for submovie in range(self.num_submovies):
-                statified_measurements = []
-
-                if hasattr(self, 'acfs'):
-                    submovie_periods_with_stats = add_stats(self.periods[submovie], 'Period')
-                    for channel in range(self.num_channels):
-                        statified_measurements.append(submovie_periods_with_stats[channel])
-                
-                if hasattr(self, 'indv_ccfs'):
-                    submovie_shifts_with_stats = add_stats(self.indv_ccfs[submovie], 'Shift')
-                    for combo_number, _ in enumerate(self.channel_combos):
-                        statified_measurements.append(submovie_shifts_with_stats[combo_number])
-                
-                if hasattr(self, 'peak_widths'):
-                    submovie_widths_with_stats = add_stats(self.ind_peak_widths[submovie], 'Peak Width')
-                    submovie_maxs_with_stats = add_stats(self.ind_peak_maxs[submovie], 'Peak Max')
-                    submovie_mins_with_stats = add_stats(self.ind_peak_mins[submovie], 'Peak Min')
-                    submovie_amps_with_stats = add_stats(self.ind_peak_amps[submovie], 'Peak Amp')
-                    submovie_rel_amps_with_stats = add_stats(self.ind_peak_rel_amps[submovie], 'Peak Rel Amp')
-                    for channel in range(self.num_channels):
-                        statified_measurements.append(submovie_widths_with_stats[channel])
-                        statified_measurements.append(submovie_maxs_with_stats[channel])
-                        statified_measurements.append(submovie_mins_with_stats[channel])
-                        statified_measurements.append(submovie_amps_with_stats[channel])
-                        statified_measurements.append(submovie_rel_amps_with_stats[channel])
-
-                submovie_meas_df = pd.DataFrame(statified_measurements, columns = col_names)
-                
-                self.submovie_measurements.append(submovie_meas_df)
-
-                return self.submovie_measurements       
+        return self.im_measurements
 
 
     def save_parameter_means_to_csv(self, main_save_path, group_names, summary_df):
