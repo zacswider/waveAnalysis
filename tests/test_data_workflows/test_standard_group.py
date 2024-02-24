@@ -24,11 +24,6 @@ def default_log_params():
         'Plotting errors': [],
     }
 
-# TODO: define default kymograph log params
-# TODO: define default rolling log params
-# TODO: create known output for kymograph analysis to test against
-# TODO: create known output for rolling analysis to test against
-
 def test_combined(default_log_params):
     # load csv
     known_results = pd.read_csv('tests/assets/standard/standard_known_results.csv')

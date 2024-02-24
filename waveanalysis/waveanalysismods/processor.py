@@ -8,8 +8,9 @@ import scipy.signal as sig
 import matplotlib.pyplot as plt
 from itertools import zip_longest
 
+from waveanalysis.image_signals.create_signals import create_standard_signals, create_kymo_signals  
+
 from waveanalysis.signal_processing import create_acf_curves_calc_period
-import waveanalysis.image_signals as sc
 
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -38,13 +39,13 @@ class TotalSignalProcessor:
             self.num_submovies = (self.num_frames - self.roll_size) // self.roll_by
             
         if self.analysis_type == "standard" or self.analysis_type == "rolling":
-            self.bin_values, self.total_bins, self.xpix, self.ypix = sc.create_standard_signals(kernel_size=self.kernel_size, step=self.step, num_channels=self.num_channels, num_frames=self.num_frames, image=self.image)
+            self.bin_values, self.total_bins, self.xpix, self.ypix = create_standard_signals(kernel_size=self.kernel_size, step=self.step, num_channels=self.num_channels, num_frames=self.num_frames, image=self.image)
 
         # Use lines for kymograph analysis
         else:
             self.total_columns = self.image.shape[-1]
             self.num_frames = self.image.shape[-2]
-            self.bin_values, self.total_bins = sc.create_kymo_signals(line_width=self.line_width, total_columns=self.total_columns, step=self.step, num_channels=self.num_channels, num_frames=self.num_frames, image=self.image)
+            self.bin_values, self.total_bins = create_kymo_signals(line_width=self.line_width, total_columns=self.total_columns, step=self.step, num_channels=self.num_channels, num_frames=self.num_frames, image=self.image)
         
 ############################################
 ######## INDIVIDUAL BIN CALCULATION ########

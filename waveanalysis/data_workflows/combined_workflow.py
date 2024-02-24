@@ -11,8 +11,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-import waveanalysis.image_signals as sc
-
+from waveanalysis.image_signals.convert_images import convert_kymos, convert_movies  
 
 from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
 from waveanalysis.housekeeping.housekeeping_functions import make_log, generate_group_comparison
@@ -85,9 +84,9 @@ def combined_workflow(
     col_headers = []
 
     if analysis_type == 'kymograph':
-        all_images = sc.convert_kymos(folder_path=folder_path)
+        all_images = convert_kymos(folder_path=folder_path)
     else:
-        all_images = sc.convert_movies(folder_path=folder_path)
+        all_images = convert_movies(folder_path=folder_path)
 
     print('Processing files...')
 

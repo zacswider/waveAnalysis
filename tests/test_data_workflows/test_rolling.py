@@ -1,4 +1,4 @@
-'''import pytest
+import pytest
 import warnings
 import numpy as np
 import pandas as pd
@@ -8,14 +8,14 @@ from waveanalysis.data_workflows.combined_workflow import combined_workflow
 
 # TODO: create a better known output for rolling analysis to test against
 
-
-@pytest.fixture(autouse=True)
+'''
+# @pytest.fixture(autouse=True)
 def ignore_warnings():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
         yield
 
-@pytest.fixture
+# @pytest.fixture
 def default_log_params():
     return {
         'Box Size(px)': 20,
@@ -28,6 +28,7 @@ def default_log_params():
         'Plotting errors': [],
         'Submovies Used' : []
         }
+
 
 def test_combined(default_log_params):
     # load csv
