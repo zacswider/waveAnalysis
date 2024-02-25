@@ -8,9 +8,8 @@ import scipy.signal as sig
 import matplotlib.pyplot as plt
 from itertools import zip_longest
 
-from waveanalysis.image_signals.create_signals import create_standard_signals, create_kymo_signals  
-
-from waveanalysis.signal_processing import calc_indv_ACFs_periods
+from waveanalysis.image_properties_signal.create_signals import create_standard_signals, create_kymo_signals  
+from waveanalysis.signal_processing import calc_indv_ACFs_periods, calc_indv_CCFs_shifts_channelCombos
 
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -153,127 +152,33 @@ class TotalSignalProcessor:
 
     def calc_indv_ACFs(self, peak_thresh=0.1):
         
-        self.acfs, self.periods = calc_indv_ACFs_periods(self.num_channels, self.total_bins, self.num_frames, self.bin_values, self.analysis_type, self.roll_size, self.roll_by, self.num_submovies, self.xpix, self.ypix, peak_thresh=peak_thresh)
-
+        self.acfs, self.periods = calc_indv_ACFs_periods(num_channels=self.num_channels, 
+                                                        total_bins=self.total_bins, 
+                                                        num_frames=self.num_frames, 
+                                                        bin_values=self.bin_values, 
+                                                        analysis_type=self.analysis_type, 
+                                                        roll_size=self.roll_size, 
+                                                        roll_by=self.roll_by, 
+                                                        num_submovies=self.num_submovies, 
+                                                        xpix=self.xpix, 
+                                                        ypix=self.ypix, 
+                                                        peak_thresh=peak_thresh
+                                                        )
 
         return self.acfs, self.periods
 
     def calc_indv_CCFs(self):
-        """
-        This method computes the cross-correlation functions (CCFs) for each combination of channels.
-        It also identifies peaks in the CCF curves to estimate shifts.
-
-        Returns:
-            - indv_shifts (numpy.ndarray): Array of shifts between signals.
-            - indv_ccfs (numpy.ndarray): Array of cross-correlation functions.
-            - channel_combos (list): List of channel combinations.
-        """
-        def calc_shifts(signal1, signal2, prominence=0.1, rolling = False):
-            """
-            This function calculates the shifts and cross-correlation curves between two signals.
-            It performs signal smoothing, peak finding, and computes the cross-correlation curve.
-
-            Parameters:
-                - signal1 (numpy.ndarray): First input signal.
-                - signal2 (numpy.ndarray): Second input signal.
-                - prominence (float): Minimum prominence of peaks for peak finding. Defaults to 0.1.
-                - rolling (bool): Flag indicating if the analysis is rolling. Defaults to False.
-
-            Returns:
-                - delay_frames (float): Delay between the signals.
-                - cc_curve (numpy.ndarray): Cross-correlation curve of the signals.
-            """
-            # Smoothing signals and finding peaks
-            signal1 = sig.savgol_filter(signal1, window_length=11, polyorder=3)
-            signal2 = sig.savgol_filter(signal2, window_length=11, polyorder=3)
-            peaks1, _ = sig.find_peaks(signal1, prominence=(np.max(signal1)-np.min(signal1))*0.25)
-            peaks2, _ = sig.find_peaks(signal2, prominence=(np.max(signal2)-np.min(signal2))*0.25)
-
-            # If peaks are found in both signals
-            if len(peaks1) > 0 and len(peaks2) > 0:
-                corr_signal1 = signal1 - signal1.mean()
-                corr_signal2 = signal2 - signal2.mean()
-                # Calculate cross-correlation curve
-                cc_curve = np.correlate(corr_signal1, corr_signal2, mode='full')
-                if rolling:
-                    cc_curve = cc_curve / (self.roll_size * signal1.std() * signal2.std())
-                else:
-                    cc_curve = sig.savgol_filter(cc_curve, window_length=11, polyorder=3)
-                    cc_curve = cc_curve / (self.num_frames * signal1.std() * signal2.std())
-                # Find peaks in the cross-correlation curve
-                peaks, _ = sig.find_peaks(cc_curve, prominence=prominence)
-                peaks_abs = abs(peaks - cc_curve.shape[0] // 2)
-                # If multiple peaks found, select the one closest to the center
-                if len(peaks) > 1:
-                    delay = np.argmin(peaks_abs[np.nonzero(peaks_abs)])
-                    delayIndex = peaks[delay]
-                    delay_frames = delayIndex - cc_curve.shape[0] // 2
-                # Otherwise, return NaNs
-                else:
-                    delay_frames = np.nan
-                    cc_curve = np.full((self.roll_size*2-1 if rolling else self.num_frames * 2 - 1), np.nan)
-            else:
-                # If no peaks found, return NaNs
-                delay_frames = np.nan
-                cc_curve = np.full((self.roll_size*2-1 if rolling else self.num_frames * 2 - 1), np.nan)
-
-            return delay_frames, cc_curve
         
-        # Initialize arrays to store shifts and cross-correlation curves
-        channels = list(range(self.num_channels))
-        self.channel_combos = []
-        for i in range(self.num_channels):
-            for j in channels[i+1:]:
-                self.channel_combos.append([channels[i],j])
-        num_combos = len(self.channel_combos)
-
-        # Initialize arrays to store shifts and cross-correlation curves
-        self.indv_shifts = np.zeros(shape=(num_combos, self.total_bins))
-        self.indv_ccfs = np.zeros(shape=(num_combos, self.total_bins, self.num_frames*2-1))
-
-        # Loop through combos for standard or kymograph analysis
-        if self.analysis_type != "rolling":
-            for combo_number, combo in enumerate(self.channel_combos):
-                for bin in range(self.total_bins):
-                    if self.analysis_type == "standard":
-                        signal1 = self.bin_values[:, combo[0], bin]
-                        signal2 = self.bin_values[:, combo[1], bin]
-                    else:
-                        signal1 = self.bin_values[combo[0], bin]
-                        signal2 = self.bin_values[combo[1], bin]
-     
-                    delay_frames, cc_curve = calc_shifts(signal1, signal2, prominence=0.1)
-
-                    # The script has issues when the shift is very small or none, so minus the average period from the two channels
-                    average_period = np.mean(self.periods[:, bin])
-                    if abs(delay_frames) > abs(average_period * .6):
-                        if delay_frames < 0:
-                            delay_frames = delay_frames + average_period
-                        elif delay_frames > 0:
-                            delay_frames = delay_frames - average_period
-
-                    self.indv_shifts[combo_number, bin] = delay_frames
-                    self.indv_ccfs[combo_number, bin] = cc_curve
-
-        # If rolling analysis
-        elif self.analysis_type == "rolling":
-            # Initialize arrays to store shifts and cross-correlation curves
-            self.indv_shifts = np.zeros(shape=(self.num_submovies, num_combos, self.total_bins))
-            self.indv_ccfs = np.zeros(shape=(self.num_submovies, num_combos, self.total_bins, self.roll_size*2-1))
-            its = self.num_submovies*num_combos*self.total_bins
-            with tqdm(total = its, miniters=its/100) as pbar:
-                pbar.set_description( 'Shifts: ')
-                for submovie in range(self.num_submovies):
-                    for combo_number, combo in enumerate(self.channel_combos):
-                        for bin in range(self.total_bins):
-                            pbar.update(1)
-                            signal1 = self.bin_values[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, combo[0], bin]
-                            signal2 = self.bin_values[self.roll_by*submovie : self.roll_size + self.roll_by*submovie, combo[1], bin]
-
-                            delay_frames, cc_curve = calc_shifts(signal1, signal2, prominence=0.1, rolling = True)
-
-                            self.indv_shifts[submovie, combo_number, bin] = delay_frames
-                            self.indv_ccfs[submovie, combo_number, bin] = cc_curve
+        self.indv_shifts, self.indv_ccfs, self.channel_combos = calc_indv_CCFs_shifts_channelCombos(num_channels=self.num_channels, 
+                                                                                                    total_bins=self.total_bins,
+                                                                                                    num_frames=self.num_frames, 
+                                                                                                    bin_values=self.bin_values, 
+                                                                                                    analysis_type=self.analysis_type, 
+                                                                                                    roll_size=self.roll_size, 
+                                                                                                    roll_by=self.roll_by, 
+                                                                                                    num_submovies=self.num_submovies, 
+                                                                                                    periods=self.periods
+                                                                                                    )
 
         return self.indv_shifts, self.indv_ccfs, self.channel_combos
 

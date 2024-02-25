@@ -1,5 +1,7 @@
-from .combined_workflow import combined_workflow
+from .standard_kymo_workflow import standard_kymo_workflow
+from .rolling_workflow import rolling_workflow
 
 __all__ = [
-    "combined_workflow"
+    "standard_kymo_workflow",
+    "rolling_workflow"
 ]

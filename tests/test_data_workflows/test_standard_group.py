@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from waveanalysis.data_workflows.combined_workflow import combined_workflow
+from waveanalysis.data_workflows.standard_kymo_workflow import standard_kymo_workflow
 
 @pytest.fixture
 def default_log_params():
@@ -24,11 +24,11 @@ def default_log_params():
         'Plotting errors': [],
     }
 
-def test_combined(default_log_params):
+def test_standard(default_log_params):
     # load csv
     known_results = pd.read_csv('tests/assets/standard/standard_known_results.csv')
     assert isinstance(known_results, pd.DataFrame)
-    exp_results = combined_workflow(
+    exp_results = standard_kymo_workflow(
         folder_path=str(Path('tests/assets/standard/')),
         group_names=['Group1','Group2'],
         log_params=default_log_params,
