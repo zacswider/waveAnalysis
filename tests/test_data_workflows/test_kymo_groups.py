@@ -12,7 +12,7 @@ def default_log_params():
         'Base Directory': 'tests/assets/kymo',
         'ACF Peak Prominence': 0.1,
         'Group Names': ['Group1, Group2'],
-        'Plot Summary ACFs': False,
+        'Plot Summary ACFs': True,
         'Plot Summary CCFs': False,
         'Plot Summary Peaks': False,
         'Plot Individual ACFs': False,

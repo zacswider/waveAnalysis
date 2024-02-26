@@ -7,7 +7,7 @@ from itertools import zip_longest
 
 from waveanalysis.image_properties_signal.create_signals import create_standard_signals, create_kymo_signals  
 from waveanalysis.signal_processing import calc_indv_ACFs_periods, calc_indv_CCFs_shifts_channelCombos, calc_indv_peak_props
-from waveanalysis.plotting import plot_indv_peak_props_workflow, plot_indv_acfs_workflow, plot_indv_ccfs_workflow, save_indv_ccfs_workflow
+from waveanalysis.plotting import plot_indv_peak_props_workflow, plot_indv_acfs_workflow, plot_indv_ccfs_workflow, save_indv_ccfs_workflow, plot_mean_ACFs_workflow
 
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -70,7 +70,7 @@ class TotalSignalProcessor:
     
     def calc_indv_peak_props(self):
        
-        self.ind_peak_widths, self.ind_peak_maxs, self.ind_peak_mins, self.ind_peak_amps, self.ind_peak_rel_amps, self.ind_peak_props = calc_indv_peak_props(
+        self.indv_peak_widths, self.indv_peak_maxs, self.indv_peak_mins, self.indv_peak_amps, self.indv_peak_rel_amps, self.indv_peak_props = calc_indv_peak_props(
             num_channels=self.num_channels,
             total_bins=self.total_bins,
             bin_values=self.bin_values,
@@ -82,11 +82,11 @@ class TotalSignalProcessor:
             ypix=self.ypix
             )
       
-        return self.ind_peak_widths, self.ind_peak_maxs, self.ind_peak_mins, self.ind_peak_amps, self.ind_peak_rel_amps, self.ind_peak_props
+        return self.indv_peak_widths, self.indv_peak_maxs, self.indv_peak_mins, self.indv_peak_amps, self.indv_peak_rel_amps, self.indv_peak_props
 
     def calc_indv_ACFs(self, peak_thresh=0.1):
         
-        self.acfs, self.periods = calc_indv_ACFs_periods(
+        self.indv_acfs, self.indv_periods = calc_indv_ACFs_periods(
             num_channels=self.num_channels, 
             total_bins=self.total_bins, 
             num_frames=self.num_frames, 
@@ -100,7 +100,7 @@ class TotalSignalProcessor:
             peak_thresh=peak_thresh
             )
 
-        return self.acfs, self.periods
+        return self.indv_acfs, self.indv_periods
 
     def calc_indv_CCFs(self):
         
@@ -113,7 +113,7 @@ class TotalSignalProcessor:
             roll_size=self.roll_size, 
             roll_by=self.roll_by, 
             num_submovies=self.num_submovies, 
-            periods=self.periods
+            periods=self.indv_periods
             )
 
         return self.indv_shifts, self.indv_ccfs, self.channel_combos
@@ -124,15 +124,14 @@ class TotalSignalProcessor:
     
     def plot_indv_peak_props(self):
         
-        if hasattr(self, 'ind_peak_widths'):
+        if hasattr(self, 'indv_peak_widths'):
             self.indv_peak_figs = plot_indv_peak_props_workflow(
                 num_channels=self.num_channels,
                 total_bins=self.total_bins,
                 bin_values=self.bin_values,
                 analysis_type=self.analysis_type,
-                ind_peak_props=self.ind_peak_props
+                indv_peak_props=self.indv_peak_props
                 )
-
 
         return self.indv_peak_figs
 
@@ -143,8 +142,8 @@ class TotalSignalProcessor:
             total_bins=self.total_bins,
             bin_values=self.bin_values,
             analysis_type=self.analysis_type,
-            acfs=self.acfs,
-            periods=self.periods,
+            acfs=self.indv_acfs,
+            periods=self.indv_periods,
             num_frames=self.num_frames
             )
         
@@ -242,74 +241,26 @@ class TotalSignalProcessor:
         # Empty dictionary to fill with figures for each channel
         self.peak_figs = {}
     
-        if hasattr(self, 'ind_peak_widths'):
+        if hasattr(self, 'indv_peak_widths'):
             for channel in range(self.num_channels):
-                self.peak_figs[f'Ch{channel + 1} Peak Props'] = return_figure(self.ind_peak_mins[channel], 
-                                                                              self.ind_peak_maxs[channel], 
-                                                                              self.ind_peak_amps[channel], 
-                                                                              self.ind_peak_widths[channel], 
+                self.peak_figs[f'Ch{channel + 1} Peak Props'] = return_figure(self.indv_peak_mins[channel], 
+                                                                              self.indv_peak_maxs[channel], 
+                                                                              self.indv_peak_amps[channel], 
+                                                                              self.indv_peak_widths[channel], 
                                                                               f'Ch{channel + 1}')
 
         return self.peak_figs
     
     def plot_mean_ACF(self):
-        """
-        This method generates and plots the mean autocorrelation curve with shaded standard deviation area,
-        a histogram of period values, and a boxplot of period values for each channel.
+        if hasattr(self, 'indv_acfs'):
+            self.mean_acf_figs = plot_mean_ACFs_workflow(
+                acfs=self.indv_acfs,
+                periods=self.indv_periods,
+                num_channels=self.num_channels,
+                num_frames=self.num_frames
+            )
 
-        Returns:
-            - dict: Dictionary containing generated figures of mean ACF plots.
-        """
-        def return_figure(arr: np.ndarray, shifts_or_periods: np.ndarray, channel: str):
-            '''
-            Space saving function to generate the plots for the mean ACF plots
-            '''
-            # Plot mean autocorrelation curve with shaded area representing standard deviation
-            arr_mean = np.nanmean(arr, axis = 0)
-            arr_std = np.nanstd(arr, axis = 0)
-            x_axis = np.arange(-self.num_frames + 1, self.num_frames)
-
-            # Create the figure with subplots
-            fig, ax = plt.subplot_mosaic(mosaic = '''
-                                                  AA
-                                                  BC
-                                                  ''')
-            
-            # Plot mean autocorrelation curve with shaded area representing standard deviation
-            ax['A'].plot(x_axis, arr_mean, color='blue')
-            ax['A'].fill_between(x_axis, 
-                                 arr_mean - arr_std, 
-                                 arr_mean + arr_std, 
-                                 color='blue', 
-                                 alpha=0.2)
-            ax['A'].set_title(f'{channel} Mean Autocorrelation Curve ± Standard Deviation') 
-
-            # Plot histogram of period values
-            ax['B'].hist(shifts_or_periods)
-            shifts_or_periods = [val for val in shifts_or_periods if not np.isnan(val)]
-            ax['B'].set_xlabel(f'Histogram of period values (frames)')
-            ax['B'].set_ylabel('Occurances')
-
-            # Plot boxplot of period values
-            ax['C'].boxplot(shifts_or_periods)
-            ax['C'].set_xlabel(f'Boxplot of period values')
-            ax['C'].set_ylabel(f'Measured period (frames)')
-
-            fig.subplots_adjust(hspace=0.25, wspace=0.5)  
-            plt.close(fig)
-            return fig
-
-        # Dictionary to store generated figures
-        self.acf_figs = {}
-        
-        if hasattr(self, 'acfs'):
-            # Generate plots for each channel
-            for channel in range(self.num_channels):
-                self.acf_figs[f'Ch{channel + 1} Mean ACF'] = return_figure(self.acfs[channel], 
-                                                                         self.periods[channel], 
-                                                                         f'Ch{channel + 1}')        
-
-        return self.acf_figs
+        return self.mean_acf_figs
     
     def plot_mean_CCF(self):
         """
@@ -432,14 +383,14 @@ class TotalSignalProcessor:
                                                                             f'Ch {channel} StdDev Peak {prop_name}',
                                                                             f'Ch {channel} Mean ± StdDev Peak {prop_name} (frames)')
         
-        if hasattr(self, 'periods'):
+        if hasattr(self, 'indv_periods'):
             for channel in range(self.num_channels):
                 self.plot_list[f'Ch {channel + 1} Period'] = return_plot('Submovie',
                                                                           f'Ch {channel + 1} Mean Period',
                                                                           f'Ch {channel + 1} StdDev Period',
                                                                           f'Ch {channel + 1} Mean ± StdDev Period (frames)')
         
-        if hasattr(self, 'shifts'):
+        if hasattr(self, 'indv_shifts'):
             for combo_number, combo in enumerate(self.channel_combos):
                 self.plot_list[f'Ch{combo[0]+1}-Ch{combo[1]+1} Shift'] = return_plot('Submovie',
                                                                                       f'Ch{combo[0]+1}-Ch{combo[1]+1} Mean Shift',
@@ -511,22 +462,22 @@ class TotalSignalProcessor:
         for submovie in range(self.num_submovies):
             statified_measurements = []
 
-            if hasattr(self, 'acfs'):
-                submovie_periods_with_stats = add_stats(self.periods[submovie], 'Period')
+            if hasattr(self, 'indv_acfs'):
+                submovie_periods_with_stats = add_stats(self.indv_periods[submovie], 'Period')
                 for channel in range(self.num_channels):
                     statified_measurements.append(submovie_periods_with_stats[channel])
             
-            if hasattr(self, 'ccfs'):
-                submovie_shifts_with_stats = add_stats(self.ccfs[submovie], 'Shift')
+            if hasattr(self, 'indv_ccfs'):
+                submovie_shifts_with_stats = add_stats(self.indv_ccfs[submovie], 'Shift')
                 for combo_number, _ in enumerate(self.channel_combos):
                     statified_measurements.append(submovie_shifts_with_stats[combo_number])
             
             if hasattr(self, 'peak_widths'):
-                submovie_widths_with_stats = add_stats(self.ind_peak_widths[submovie], 'Peak Width')
-                submovie_maxs_with_stats = add_stats(self.ind_peak_maxs[submovie], 'Peak Max')
-                submovie_mins_with_stats = add_stats(self.ind_peak_mins[submovie], 'Peak Min')
-                submovie_amps_with_stats = add_stats(self.ind_peak_amps[submovie], 'Peak Amp')
-                submovie_rel_amps_with_stats = add_stats(self.ind_peak_rel_amps[submovie], 'Peak Rel Amp')
+                submovie_widths_with_stats = add_stats(self.indv_peak_widths[submovie], 'Peak Width')
+                submovie_maxs_with_stats = add_stats(self.indv_peak_maxs[submovie], 'Peak Max')
+                submovie_mins_with_stats = add_stats(self.indv_peak_mins[submovie], 'Peak Min')
+                submovie_amps_with_stats = add_stats(self.indv_peak_amps[submovie], 'Peak Amp')
+                submovie_rel_amps_with_stats = add_stats(self.indv_peak_rel_amps[submovie], 'Peak Rel Amp')
                 for channel in range(self.num_channels):
                     statified_measurements.append(submovie_widths_with_stats[channel])
                     statified_measurements.append(submovie_maxs_with_stats[channel])
@@ -559,12 +510,12 @@ class TotalSignalProcessor:
             submovie_summary = {}
             submovie_summary['Submovie'] = submovie + 1 
             
-            if hasattr(self, 'acfs'):
+            if hasattr(self, 'indv_acfs'):
                 for channel in range(self.num_channels):
-                    pcnt_no_period = (np.count_nonzero(np.isnan(self.periods[submovie, channel])) / self.total_bins) * 100
+                    pcnt_no_period = (np.count_nonzero(np.isnan(self.indv_periods[submovie, channel])) / self.total_bins) * 100
                     submovie_summary[f'Ch {channel + 1} Pcnt No Periods'] = pcnt_no_period
                     for stat_name, func in stat_name_and_func.items():
-                        submovie_summary[f'Ch {channel + 1} {stat_name} Period'] = func(self.periods[submovie, channel])
+                        submovie_summary[f'Ch {channel + 1} {stat_name} Period'] = func(self.indv_periods[submovie, channel])
 
             if hasattr(self, 'indv_ccfs'):
                 for combo_number, combo in enumerate(self.channel_combos):
@@ -573,16 +524,16 @@ class TotalSignalProcessor:
                     for stat_name, func in stat_name_and_func.items():
                         submovie_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} {stat_name} Shift'] = func(self.indv_shifts[submovie, combo_number])
 
-            if hasattr(self, 'ind_peak_widths'):
+            if hasattr(self, 'indv_peak_widths'):
                 for channel in range(self.num_channels):
                     # using widths, but because these are all assigned together it applies to all peak properties
-                    pcnt_no_peaks = np.count_nonzero(np.isnan(self.ind_peak_widths[submovie, channel])) / self.total_bins * 100
+                    pcnt_no_peaks = np.count_nonzero(np.isnan(self.indv_peak_widths[submovie, channel])) / self.total_bins * 100
                     submovie_summary[f'Ch {channel + 1} Pcnt No Peaks'] = pcnt_no_peaks
                     for stat_name, func in stat_name_and_func.items():
-                        submovie_summary[f'Ch {channel + 1} {stat_name} Peak Width'] = func(self.ind_peak_widths[submovie, channel])
-                        submovie_summary[f'Ch {channel + 1} {stat_name} Peak Max'] = func(self.ind_peak_maxs[submovie, channel])
-                        submovie_summary[f'Ch {channel + 1} {stat_name} Peak Min'] = func(self.ind_peak_mins[submovie, channel])
-                        submovie_summary[f'Ch {channel + 1} {stat_name} Peak Amp'] = func(self.ind_peak_amps[submovie, channel])
+                        submovie_summary[f'Ch {channel + 1} {stat_name} Peak Width'] = func(self.indv_peak_widths[submovie, channel])
+                        submovie_summary[f'Ch {channel + 1} {stat_name} Peak Max'] = func(self.indv_peak_maxs[submovie, channel])
+                        submovie_summary[f'Ch {channel + 1} {stat_name} Peak Min'] = func(self.indv_peak_mins[submovie, channel])
+                        submovie_summary[f'Ch {channel + 1} {stat_name} Peak Amp'] = func(self.indv_peak_amps[submovie, channel])
             all_submovie_summary.append(submovie_summary)
         
         col_names = [key for key in all_submovie_summary[0].keys()]
@@ -615,7 +566,7 @@ class TotalSignalProcessor:
         stats_location = ['Mean', 'Median', 'StdDev', 'SEM']
 
         if hasattr(self, 'periods_with_stats'):
-            pcnt_no_period = [np.count_nonzero(np.isnan(self.periods[channel])) / self.periods[channel].shape[0] * 100 for channel in range(self.num_channels)]
+            pcnt_no_period = [np.count_nonzero(np.isnan(self.indv_periods[channel])) / self.indv_periods[channel].shape[0] * 100 for channel in range(self.num_channels)]
             for channel in range(self.num_channels):
                 self.file_data_summary[f'Ch {channel + 1} Pcnt No Periods'] = pcnt_no_period[channel]
                 for ind, stat in enumerate(stats_location):
@@ -630,7 +581,7 @@ class TotalSignalProcessor:
 
         if hasattr(self, 'peak_widths_with_stats'):
             # using widths, but because these are all assigned together it applies to all peak properties
-            pcnt_no_peaks = [np.count_nonzero(np.isnan(self.ind_peak_widths[channel])) / self.ind_peak_widths[channel].shape[0] * 100 for channel in range(self.num_channels)]
+            pcnt_no_peaks = [np.count_nonzero(np.isnan(self.indv_peak_widths[channel])) / self.indv_peak_widths[channel].shape[0] * 100 for channel in range(self.num_channels)]
             for channel in range(self.num_channels):
                 self.file_data_summary[f'Ch {channel + 1} Pcnt No Peaks'] = pcnt_no_peaks[channel]
                 for ind, stat in enumerate(stats_location):
@@ -695,8 +646,8 @@ class TotalSignalProcessor:
         statified_measurements = []
 
         # insert Mean, Median, StdDev, and SEM into the beginning of each  list
-        if hasattr(self, 'acfs'):
-            self.periods_with_stats = add_stats(self.periods, 'Period')
+        if hasattr(self, 'indv_acfs'):
+            self.periods_with_stats = add_stats(self.indv_periods, 'Period')
             for channel in range(self.num_channels):
                 statified_measurements.append(self.periods_with_stats[channel])
 
@@ -705,12 +656,12 @@ class TotalSignalProcessor:
             for combo_number, combo in enumerate(self.channel_combos):
                 statified_measurements.append(self.shifts_with_stats[combo_number])
 
-        if hasattr(self, 'ind_peak_widths'):
-            self.peak_widths_with_stats = add_stats(self.ind_peak_widths, 'Peak Width')
-            self.peak_maxs_with_stats = add_stats(self.ind_peak_maxs, 'Peak Max')
-            self.peak_mins_with_stats = add_stats(self.ind_peak_mins, 'Peak Min')
-            self.peak_amps_with_stats = add_stats(self.ind_peak_amps, 'Peak Amp')
-            self.peak_relamp_with_stats = add_stats(self.ind_peak_rel_amps, 'Peak Rel Amp')
+        if hasattr(self, 'indv_peak_widths'):
+            self.peak_widths_with_stats = add_stats(self.indv_peak_widths, 'Peak Width')
+            self.peak_maxs_with_stats = add_stats(self.indv_peak_maxs, 'Peak Max')
+            self.peak_mins_with_stats = add_stats(self.indv_peak_mins, 'Peak Min')
+            self.peak_amps_with_stats = add_stats(self.indv_peak_amps, 'Peak Amp')
+            self.peak_relamp_with_stats = add_stats(self.indv_peak_rel_amps, 'Peak Rel Amp')
             for channel in range(self.num_channels):
                 statified_measurements.append(self.peak_widths_with_stats[channel])
                 statified_measurements.append(self.peak_maxs_with_stats[channel])
