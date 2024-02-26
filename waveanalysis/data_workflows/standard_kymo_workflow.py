@@ -69,6 +69,7 @@ def standard_kymo_workflow(
                                              roll_size = subframe_size, 
                                              roll_by = subframe_roll, 
                                              line_width = line_width)
+            
             # log error and skip image if frames < 2 
             if processor.num_frames < 2:
                 print(f"****** ERROR ******",

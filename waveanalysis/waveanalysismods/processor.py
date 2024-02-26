@@ -280,7 +280,7 @@ class TotalSignalProcessor:
                                                                                       f'Ch{combo[0]+1}-Ch{combo[1]+1} StdDev Shift',
                                                                                       f'Ch{combo[0]+1}-Ch{combo[1]+1} Mean ± StdDev Shift (frames)')
 
-        if hasattr(self, 'peak_widths'):
+        if hasattr(self, 'indv_peak_widths'):
             for channel in range(self.num_channels):
                 for prop_name in ['Width', 'Max', 'Min', 'Amp']:
                     add_peak_plots(channel + 1, prop_name)
@@ -355,7 +355,7 @@ class TotalSignalProcessor:
                 for combo_number, _ in enumerate(self.channel_combos):
                     statified_measurements.append(submovie_shifts_with_stats[combo_number])
             
-            if hasattr(self, 'peak_widths'):
+            if hasattr(self, 'indv_peak_widths'):
                 submovie_widths_with_stats = add_stats(self.indv_peak_widths[submovie], 'Peak Width')
                 submovie_maxs_with_stats = add_stats(self.indv_peak_maxs[submovie], 'Peak Max')
                 submovie_mins_with_stats = add_stats(self.indv_peak_mins[submovie], 'Peak Min')

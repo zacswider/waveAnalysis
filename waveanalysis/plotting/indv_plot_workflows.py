@@ -99,6 +99,9 @@ def plot_indv_ccfs_workflow(
     
     return indv_ccf_plots
 
+
+# TODO: move this save folder when created
+
 def save_indv_ccfs_workflow(
     indv_ccfs:np.ndarray,
     channel_combos:np.ndarray,

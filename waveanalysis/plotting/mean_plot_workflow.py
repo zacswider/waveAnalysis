@@ -62,7 +62,9 @@ def plot_mean_CCFs_workflow(
             num_frames= num_frames)
     
     return mean_ccf_figs
-        
+
+
+# TODO: move this save folder when created
 def save_mean_CCF_values_workflow(
     channel_combos: list, 
     indv_ccfs: np.ndarray, 
