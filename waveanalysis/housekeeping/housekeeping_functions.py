@@ -1,5 +1,6 @@
 import os
 import sys
+import csv
 import datetime
 import numpy as np
 import pandas as pd
@@ -101,3 +102,18 @@ def check_and_make_save_path(path=str):
 def save_plots(dict_of_plots: dict, save_path: str):
     for plot_name, plot in dict_of_plots.items():
         plot.savefig(f'{save_path}/{plot_name}.png')
+
+def save_values_to_csv(
+    ind_ccf_values: dict, 
+    ind_ccf_val_path: str
+):
+    
+    #save the indv CCF values for each bin to csv file
+    for indv_ccfs_filename, measurements in ind_ccf_values.items():
+        ind_ccf_path = os.path.join(ind_ccf_val_path, f'{indv_ccfs_filename}.csv')
+        # Write measurements to CSV file
+        with open(ind_ccf_path, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['Time', 'Ch1_Value', 'Ch2_Value', 'CCF_Value'])
+            for time, ch1_val, ch2_val, ccf_val in measurements:
+                writer.writerow([time, ch1_val, ch2_val, ccf_val])                

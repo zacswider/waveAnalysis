@@ -1,6 +1,9 @@
 from tqdm import tqdm
 import numpy as np
-from .indv_figure_creation import return_indv_peak_prop_figure, return_indv_acf_figure
+from .indv_figure_creation import return_indv_peak_prop_figure, return_indv_acf_figure, return_indv_ccf_figure
+from waveanalysis.signal_processing import normalize
+from itertools import zip_longest
+
 
 def plot_indv_peak_props_workflow(
     num_channels:int,
@@ -8,13 +11,8 @@ def plot_indv_peak_props_workflow(
     bin_values:np.ndarray,
     analysis_type:str,
     ind_peak_props:dict
-):
-    """
-    This method generates and plots individual peak properties for each channel and bin.
+) -> dict:
 
-    Returns:
-        - dict: Dictionary containing generated figures of individual peak property plots.
-    """
     # Dictionary to store generated figures
     indv_peak_figs = {}
 
@@ -44,13 +42,7 @@ def plot_indv_acfs_workflow(
     acfs:np.ndarray,
     periods:np.ndarray,
     num_frames:int
- ):
-        """
-        This method generates and plots individual autocorrelation functions (ACFs) for each channel and bin.
-
-        Returns:
-            - dict: Dictionary containing generated figures of individual ACF plots.
-        """
+  )  -> dict:
         
         # Empty dictionary to store generated figures
         indv_acf_plots = {}
@@ -73,3 +65,59 @@ def plot_indv_acfs_workflow(
                         )
                     
         return indv_acf_plots
+
+def plot_indv_ccfs_workflow(
+    total_bins:int,
+    bin_values:np.ndarray,
+    analysis_type:str,
+    channel_combos:np.ndarray,
+    indv_shifts:np.ndarray,
+    indv_ccfs:np.ndarray,
+    num_frames:int
+) -> dict:
+     # Empty dictionary to store generated figures
+    indv_ccf_plots = {}
+
+    # Iterate through channel combinations and bins to plot individual cross-correlation curves
+    its = len(channel_combos)*total_bins
+    with tqdm(total=its, miniters=its/100) as pbar:
+        pbar.set_description('ind ccfs')
+        for combo_number, combo in enumerate(channel_combos):
+            for bin in range(total_bins):
+                pbar.update(1)
+                to_plot1 = bin_values[:, combo[0], bin] if analysis_type == "standard" else bin_values[combo[0], bin, :]
+                to_plot2 = bin_values[:, combo[1], bin] if analysis_type == "standard" else bin_values[combo[1], bin, :]
+                # Generate and store the figure for the current channel combination and bin
+                indv_ccf_plots[f'Ch{combo[0]}-Ch{combo[1]} Bin {bin + 1} CCF'] = return_indv_ccf_figure(
+                    ch1 = normalize(to_plot1),
+                    ch2 = normalize(to_plot2),
+                    ccf_curve = indv_ccfs[combo_number, bin],
+                    ch1_name = f'Ch{combo[0] + 1}',
+                    ch2_name = f'Ch{combo[1] + 1}',
+                    shift = indv_shifts[combo_number, bin],
+                    num_frames = num_frames)
+    
+    return indv_ccf_plots
+
+def save_indv_ccfs_workflow(
+    indv_ccfs:np.ndarray,
+    channel_combos:np.ndarray,
+    bin_values:np.ndarray,
+    analysis_type:str,
+    total_bins:int
+) -> dict:
+    
+    indv_ccf_values = {}
+
+    for combo_number, combo in enumerate(channel_combos):
+        for bin in range(total_bins):      
+            # Save the individual bin values
+            to_plot1 = bin_values[:, combo[0], bin] if analysis_type == "standard" else bin_values[combo[0], bin, :]
+            to_plot2 = bin_values[:, combo[1], bin] if analysis_type == "standard" else bin_values[combo[1], bin, :]
+            ccf_curve = indv_ccfs[combo_number, bin]
+            measurements = list(zip_longest(range(1, len(ccf_curve) + 1),  normalize(to_plot1), normalize(to_plot2), ccf_curve, fillvalue=None))
+
+            indv_ccf_values[f'Ch{combo[0]}-Ch{combo[1]} Bin {bin + 1} CCF'] = measurements
+            
+    
+    return indv_ccf_values

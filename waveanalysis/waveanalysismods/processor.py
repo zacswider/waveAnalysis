@@ -1,16 +1,13 @@
 import os
-import csv
 import tifffile
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
-import scipy.signal as sig
 import matplotlib.pyplot as plt
 from itertools import zip_longest
 
 from waveanalysis.image_properties_signal.create_signals import create_standard_signals, create_kymo_signals  
 from waveanalysis.signal_processing import calc_indv_ACFs_periods, calc_indv_CCFs_shifts_channelCombos, calc_indv_peak_props
-from waveanalysis.plotting import plot_indv_peak_props_workflow, plot_indv_acfs_workflow
+from waveanalysis.plotting import plot_indv_peak_props_workflow, plot_indv_acfs_workflow, plot_indv_ccfs_workflow, save_indv_ccfs_workflow
 
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -148,88 +145,33 @@ class TotalSignalProcessor:
         
         return self.indv_acf_plots
 
-    def plot_indv_ccfs(self, save_folder):
-        """
-        This method generates and plots individual cross-correlation functions (CCFs) for each channel and bin.
+    def plot_indv_ccfs(self):
 
-        It then saves the measurements to CSV files for each channel combination and bin.
-
-        Parameters:
-            - save_folder (str): Path to the folder where CSV files will be saved.
-
-        Returns:
-            - dict: Dictionary containing generated figures of individual CCF plots.
-        """
-        # Create subplots for raw signals and cross-correlation curve
-        def return_figure(ch1: np.ndarray, ch2: np.ndarray, ccf_curve: np.ndarray, ch1_name: str, ch2_name: str, shift: int):
-            '''
-            Space saving function to generate the plots for the individual CCF plots
-            '''
-            fig, (ax1, ax2) = plt.subplots(2, 1)
-            ax1.plot(ch1, color = 'tab:blue', label = ch1_name)
-            ax1.plot(ch2, color = 'tab:orange', label = ch2_name)
-            ax1.set_xlabel('time (frames)')
-            ax1.set_ylabel('Mean bin px value')
-            ax1.legend(loc='upper right', fontsize = 'small', ncol = 1)
-            ax2.plot(np.arange(-self.num_frames + 1, self.num_frames), ccf_curve)
-            ax2.set_ylabel('Crosscorrelation')
-            
-            # Annotate the first peak identified as the shift if available
-            if not shift == np.nan:
-                color = 'red'
-                ax2.axvline(x = shift, alpha = 0.5, c = color, linestyle = '--')
-                if shift < 1:
-                    ax2.set_xlabel(f'{ch1_name} leads by {int(abs(shift))} frames')
-                elif shift > 1:
-                    ax2.set_xlabel(f'{ch2_name} leads by {int(abs(shift))} frames')
-                else:
-                    ax2.set_xlabel('no shift detected')
-            else:
-                ax2.set_xlabel(f'No peaks identified')
-            
-            fig.subplots_adjust(hspace=0.5)
-            plt.close(fig)
-            return(fig)
-        
-        def normalize(signal: np.ndarray):
-            # Normalize between 0 and 1
-            return (signal - np.min(signal)) / (np.max(signal) - np.min(signal))
-        
-        # Empty dictionary to store generated figures
-        self.indv_ccf_plots = {}
-
-        # Iterate through channel combinations and bins to plot individual cross-correlation curves
         if self.num_channels > 1:
-            its = len(self.channel_combos)*self.total_bins
-            with tqdm(total=its, miniters=its/100) as pbar:
-                pbar.set_description('ind ccfs')
-                for combo_number, combo in enumerate(self.channel_combos):
-                    for bin in range(self.total_bins):
-                        pbar.update(1)
-                        to_plot1 = self.bin_values[:, combo[0], bin] if self.analysis_type == "standard" else self.bin_values[combo[0], bin, :]
-                        to_plot2 = self.bin_values[:, combo[1], bin] if self.analysis_type == "standard" else self.bin_values[combo[1], bin, :]
-                        # Generate and store the figure for the current channel combination and bin
-                        self.indv_ccf_plots[f'Ch{combo[0]}-Ch{combo[1]} Bin {bin + 1} CCF'] = return_figure(ch1 = normalize(to_plot1),
-                                                                                                        ch2 = normalize(to_plot2),
-                                                                                                        ccf_curve = self.indv_ccfs[combo_number, bin],
-                                                                                                        ch1_name = f'Ch{combo[0] + 1}',
-                                                                                                        ch2_name = f'Ch{combo[1] + 1}',
-                                                                                                        shift = self.indv_shifts[combo_number, bin])
-                        
-                        # Save the individual bin values
-                        ccf_curve = self.indv_ccfs[combo_number, bin]
-                        measurements = list(zip_longest(range(1, len(ccf_curve) + 1),  normalize(to_plot1), normalize(to_plot2), ccf_curve, fillvalue=None))
-                        indv_ccfs_filename = os.path.join(save_folder, f'Bin {bin + 1}_CCF_values.csv')
-                    
-                        # Write measurements to CSV file
-                        with open(indv_ccfs_filename, 'w', newline='') as csvfile:
-                            writer = csv.writer(csvfile)
-                            writer.writerow(['Time', 'Ch1_Value', 'Ch2_Value', 'CCF_Value'])
-                            for time, ch1_val, ch2_val, ccf_val in measurements:
-                                writer.writerow([time, ch1_val, ch2_val, ccf_val])
+            self.indv_ccf_plots = plot_indv_ccfs_workflow(
+                total_bins=self.total_bins,
+                bin_values=self.bin_values,
+                analysis_type=self.analysis_type,
+                channel_combos=self.channel_combos,
+                indv_shifts=self.indv_shifts,
+                indv_ccfs=self.indv_ccfs,
+                num_frames=self.num_frames
+            )
         
         return self.indv_ccf_plots
+    
+    def save_indv_ccf_values(self):
+        
+        self.indv_ccf_values = save_indv_ccfs_workflow(
+            indv_ccfs=self.indv_ccfs,
+            channel_combos=self.channel_combos,
+            bin_values=self.bin_values,
+            analysis_type=self.analysis_type,
+            total_bins=self.total_bins
+        )
 
+        return self.indv_ccf_values
+        
 ############################################
 ############## MEAN BIN PLOTS ##############
 ############################################

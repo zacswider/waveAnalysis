@@ -4,10 +4,8 @@ import matplotlib.pyplot as plt
 def return_indv_peak_prop_figure(
         bin_signal: np.ndarray, 
         prop_dict: dict, 
-        Ch_name: str):
-    '''
-    Space saving function to generate the plots for the individual peak prop plots
-    '''
+        Ch_name: str) -> plt.Figure:
+
     # Extract peak properties from the dictionary
     smoothed_signal = prop_dict['smoothed']
     peaks = prop_dict['peaks']
@@ -60,10 +58,8 @@ def return_indv_acf_figure(
         acf_curve: np.ndarray, 
         Ch_name: str, 
         period: int,
-        num_frames: int):
-        '''
-        Space saving function to generate the plots for the individual ACF plots
-        '''
+        num_frames: int) -> plt.Figure:
+
         # Create subplots for raw signal and autocorrelation curve
         fig, (ax1, ax2) = plt.subplots(2, 1)
         ax1.plot(raw_signal)
@@ -85,3 +81,38 @@ def return_indv_acf_figure(
                 plt.close(fig)
 
         return(fig)
+
+def return_indv_ccf_figure(
+        ch1: np.ndarray, 
+        ch2: np.ndarray, 
+        ccf_curve: np.ndarray, 
+        ch1_name: str, 
+        ch2_name: str, 
+        shift: int,
+        num_frames: int
+) -> plt.Figure:
+            fig, (ax1, ax2) = plt.subplots(2, 1)
+            ax1.plot(ch1, color = 'tab:blue', label = ch1_name)
+            ax1.plot(ch2, color = 'tab:orange', label = ch2_name)
+            ax1.set_xlabel('time (frames)')
+            ax1.set_ylabel('Mean bin px value')
+            ax1.legend(loc='upper right', fontsize = 'small', ncol = 1)
+            ax2.plot(np.arange(-num_frames + 1, num_frames), ccf_curve)
+            ax2.set_ylabel('Crosscorrelation')
+            
+            # Annotate the first peak identified as the shift if available
+            if not shift == np.nan:
+                color = 'red'
+                ax2.axvline(x = shift, alpha = 0.5, c = color, linestyle = '--')
+                if shift < 1:
+                    ax2.set_xlabel(f'{ch1_name} leads by {int(abs(shift))} frames')
+                elif shift > 1:
+                    ax2.set_xlabel(f'{ch2_name} leads by {int(abs(shift))} frames')
+                else:
+                    ax2.set_xlabel('no shift detected')
+            else:
+                ax2.set_xlabel(f'No peaks identified')
+            
+            fig.subplots_adjust(hspace=0.5)
+            plt.close(fig)
+            return(fig)

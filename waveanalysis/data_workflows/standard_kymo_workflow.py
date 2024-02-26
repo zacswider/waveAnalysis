@@ -8,7 +8,7 @@ from typing import Any
 
 from waveanalysis.image_properties_signal.convert_images import convert_kymos, convert_movies  
 from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
-from waveanalysis.housekeeping.housekeeping_functions import make_log, generate_group_comparison, group_name_error_check, check_and_make_save_path, save_plots
+from waveanalysis.housekeeping.housekeeping_functions import make_log, generate_group_comparison, group_name_error_check, check_and_make_save_path, save_plots, save_values_to_csv
 
 def standard_kymo_workflow(
     folder_path: str,
@@ -110,6 +110,7 @@ def standard_kymo_workflow(
                 summ_ccf_plots, mean_ccf_values = processor.plot_mean_CCF()
                 save_plots(summ_ccf_plots, im_save_path)
 
+                # TODO: refactor saving the mean CCF values to a csv file to a manner similar to the indv CCF values
                 #save the mean CCF values to a csv file
                 for csv_filename, CCF_values in mean_ccf_values.items():
                     with open(os.path.join(im_save_path, csv_filename), 'w', newline='') as csvfile:
@@ -129,7 +130,6 @@ def standard_kymo_workflow(
                 check_and_make_save_path(ind_peak_path)
                 save_plots(ind_peak_plots, ind_peak_path)
                 
-
             if plot_ind_ACFs:
                 ind_acf_plots = processor.plot_indv_acfs()
                 ind_acf_path = os.path.join(im_save_path, 'Individual_ACF_plots')
@@ -139,17 +139,18 @@ def standard_kymo_workflow(
             if plot_ind_CCFs and processor.num_channels > 1:
                 if processor.num_channels == 1:
                     log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
+
+                ind_ccf_plots = processor.plot_indv_ccfs()
+                ind_ccf_plots_path = os.path.join(im_save_path, 'Individual_CCF_plots')
+                check_and_make_save_path(ind_ccf_plots_path)
+                save_plots(ind_ccf_plots, ind_ccf_plots_path)
+
+                #save the indv CCF values to a csv file
+                ind_ccf_values = processor.save_indv_ccf_values()
                 ind_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')
                 check_and_make_save_path(ind_ccf_val_path)
+                save_values_to_csv(ind_ccf_values, ind_ccf_val_path)
                 
-                ind_ccf_plots = processor.plot_indv_ccfs(save_folder=ind_ccf_val_path)
-
-                # TODO: save the individual CCF plots in the same manner as all the other individual plots
-
-                ind_ccf_path = os.path.join(im_save_path, 'Individual_CCF_plots')
-                check_and_make_save_path(ind_ccf_path)
-                save_plots(ind_ccf_plots, ind_ccf_path)
-
             # Summarize the data for current image as dataframe, and save as .csv
             im_measurements_df = processor.organize_measurements()
             im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)  # type: ignore
