@@ -11,6 +11,9 @@ from waveanalysis.plotting import plot_indv_peak_props_workflow, plot_indv_acfs_
 
 np.seterr(divide='ignore', invalid='ignore')
 
+# TODO: remove all of these functions out of the class and into the main workflow file. 
+# TODO: change all functions such that they take in less than 5 parameters, and are less than 20 lines of code.
+
 class TotalSignalProcessor:
     def __init__(self, analysis_type, image_path, image, kern=None, step=None, roll_size=None, roll_by=None, line_width=None):
         # Import variables
@@ -20,6 +23,8 @@ class TotalSignalProcessor:
         self.roll_by = roll_by
         self.kernel_size = kern
         self.step = step
+
+        # save other values to np.nan for now
         self.num_submovies = np.nan
         self.xpix, self.ypix  = np.nan, np.nan
 
