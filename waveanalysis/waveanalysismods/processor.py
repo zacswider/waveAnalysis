@@ -3,11 +3,10 @@ import tifffile
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from itertools import zip_longest
 
 from waveanalysis.image_properties_signal.create_signals import create_standard_signals, create_kymo_signals  
 from waveanalysis.signal_processing import calc_indv_ACFs_periods, calc_indv_CCFs_shifts_channelCombos, calc_indv_peak_props
-from waveanalysis.plotting import plot_indv_peak_props_workflow, plot_indv_acfs_workflow, plot_indv_ccfs_workflow, save_indv_ccfs_workflow, plot_mean_ACFs_workflow, plot_mean_prop_peaks_workflow
+from waveanalysis.plotting import plot_indv_peak_props_workflow, plot_indv_acfs_workflow, plot_indv_ccfs_workflow, save_indv_ccfs_workflow, plot_mean_ACFs_workflow, plot_mean_prop_peaks_workflow, plot_mean_CCFs_workflow, save_mean_CCF_values_workflow
 
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -203,83 +202,26 @@ class TotalSignalProcessor:
 
         return self.mean_acf_figs
     
-    def plot_mean_CCF(self):
-        """
-        This method generates and plots the mean cross-correlation curve with shaded standard deviation area,
-        a histogram of shift values, and a boxplot of shift values for each channel combination.
+    def plot_mean_CCF(self): 
+        if hasattr(self, 'indv_ccfs') and self.num_channels > 1:
+            self.mean_ccf_figs = plot_mean_CCFs_workflow(
+                signal=self.indv_ccfs,
+                shifts=self.indv_shifts,
+                channel_combos=self.channel_combos,
+                num_frames=self.num_frames
+            )
 
-        Returns:
-            - dict: The first dictionary contains generated figures of mean CCF plots.
-            - dict: The second dictionary contains calculated mean CCF values for each channel combination.
-        """
-        def return_figure(arr: np.ndarray, shifts_or_periods: np.ndarray, channel_combo: str):
-            '''
-            Space saving function to generate the plots for the mean CCF plots
-            '''
-            # Plot mean cross-correlation curve with shaded area representing standard deviation
-            arr_mean = np.nanmean(arr, axis = 0)
-            arr_std = np.nanstd(arr, axis = 0)
-            x_axis = np.arange(-self.num_frames + 1, self.num_frames)
+        return self.mean_ccf_figs
+    
+    def save_mean_CCF_values(self):
+        if hasattr(self, 'indv_ccfs') and self.num_channels > 1:
+            self.mean_ccf_values = save_mean_CCF_values_workflow(
+                channel_combos=self.channel_combos,
+                indv_ccfs=self.indv_ccfs
+            )
 
-            # Calculate mean and standard deviation of cross-correlation curves
-            fig, ax = plt.subplot_mosaic(mosaic = '''
-                                                  AA
-                                                  BC
-                                                  ''')
-            
-            # Plot mean cross-correlation curve with shaded area representing standard deviation
-            ax['A'].plot(x_axis, arr_mean, color='blue')
-            ax['A'].fill_between(x_axis, 
-                                 arr_mean - arr_std, 
-                                 arr_mean + arr_std, 
-                                 color='blue', 
-                                 alpha=0.2)
-            ax['A'].set_title(f'{channel_combo} Mean Crosscorrelation Curve ± Standard Deviation') 
+        return self.mean_ccf_values
 
-            # Plot histogram of period values
-            ax['B'].hist(shifts_or_periods)
-            shifts_or_periods = [val for val in shifts_or_periods if not np.isnan(val)]
-            ax['B'].set_xlabel(f'Histogram of shift values (frames)')
-            ax['B'].set_ylabel('Occurances')
-
-            # Plot boxplot of period values
-            ax['C'].boxplot(shifts_or_periods)
-            ax['C'].set_xlabel(f'Boxplot of shift values')
-            ax['C'].set_ylabel(f'Measured shift (frames)')
-
-            fig.subplots_adjust(hspace=0.25, wspace=0.5)   
-            plt.close(fig)
-            return fig
-        
-        def return_mean_CCF_val(arr: np.ndarray):
-            '''
-            Space saving function to save the values for the mean CCF curves
-            '''
-            # Calculate mean and standard deviation of cross-correlation curve
-            arr_mean = np.nanmean(arr, axis = 0)
-            arr_std = np.nanstd(arr, axis = 0)
-
-            # Combine mean and standard deviation into a list of tuples
-            mean_CCF_values = list(zip_longest(range(1, len(arr_mean) + 1), arr_mean, arr_std, fillvalue=None))
-
-            return mean_CCF_values
-
-        # Dictionary to store generated figures and mean CCF values
-        self.ccf_figs = {}
-        self.mean_ccf_values = {}
-                       
-        if hasattr(self, 'indv_ccfs'):
-            if self.num_channels > 1:
-                # Iterate over each channel combination
-                for combo_number, combo in enumerate(self.channel_combos):
-                    # Generate figure for mean CCF
-                    self.ccf_figs[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF'] = return_figure(self.indv_ccfs[combo_number], 
-                                                                                                self.indv_shifts[combo_number], 
-                                                                                                f'Ch{combo[0] + 1}-Ch{combo[1] + 1}')
-                    # Calculate and store mean CCF values
-                    self.mean_ccf_values[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF values.csv'] = return_mean_CCF_val(self.indv_ccfs[combo_number])
-
-        return self.ccf_figs, self.mean_ccf_values
     
     def plot_rolling_summary(self):
         """

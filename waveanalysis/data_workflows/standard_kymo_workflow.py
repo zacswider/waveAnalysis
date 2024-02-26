@@ -107,17 +107,14 @@ def standard_kymo_workflow(
                 save_plots(summ_acf_plots, im_save_path)
 
             if plot_summary_CCFs:
-                summ_ccf_plots, mean_ccf_values = processor.plot_mean_CCF()
+                summ_ccf_plots = processor.plot_mean_CCF()
                 save_plots(summ_ccf_plots, im_save_path)
 
-                # TODO: refactor saving the mean CCF values to a csv file to a manner similar to the indv CCF values
                 #save the mean CCF values to a csv file
-                for csv_filename, CCF_values in mean_ccf_values.items():
-                    with open(os.path.join(im_save_path, csv_filename), 'w', newline='') as csvfile:
-                        writer = csv.writer(csvfile)
-                        writer.writerow(['Time', 'CCF_Value', 'STD'])
-                        for time, ccf_val, arr_std in CCF_values:
-                            writer.writerow([time, ccf_val, arr_std])
+                mean_ccf_values = processor.save_mean_CCF_values()
+                save_values_to_csv(mean_ccf_values, im_save_path, indv_ccfs_bool = False)
+                # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
+
 
             if plot_summary_peaks:
                 summ_peak_plots = processor.plot_mean_peak_props()
@@ -149,7 +146,8 @@ def standard_kymo_workflow(
                 ind_ccf_values = processor.save_indv_ccf_values()
                 ind_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')
                 check_and_make_save_path(ind_ccf_val_path)
-                save_values_to_csv(ind_ccf_values, ind_ccf_val_path)
+                save_values_to_csv(ind_ccf_values, ind_ccf_val_path, indv_ccfs_bool = True)
+                # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
                 
             # Summarize the data for current image as dataframe, and save as .csv
             im_measurements_df = processor.organize_measurements()

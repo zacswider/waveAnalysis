@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 def return_mean_ACF_figure(
     signal: np.ndarray, 
-    shifts_or_periods: np.ndarray, 
+    periods: np.ndarray, 
     channel: str,
     num_frames: int
 ) -> plt.Figure:
@@ -31,13 +31,13 @@ def return_mean_ACF_figure(
     ax['A'].set_title(f'{channel} Mean Autocorrelation Curve ± Standard Deviation') 
 
     # Plot histogram of period values
-    ax['B'].hist(shifts_or_periods)
-    shifts_or_periods = [val for val in shifts_or_periods if not np.isnan(val)]
+    ax['B'].hist(periods)
+    periods = [val for val in periods if not np.isnan(val)]
     ax['B'].set_xlabel(f'Histogram of period values (frames)')
     ax['B'].set_ylabel('Occurances')
 
     # Plot boxplot of period values
-    ax['C'].boxplot(shifts_or_periods)
+    ax['C'].boxplot(periods)
     ax['C'].set_xlabel(f'Boxplot of period values')
     ax['C'].set_ylabel(f'Measured period (frames)')
 
@@ -98,4 +98,46 @@ def return_mean_prop_peaks_figure(
     fig.subplots_adjust(hspace=0.6, wspace=0.6)
     plt.close(fig)
 
+    return fig
+
+def return_mean_CCF_figure(
+    signal: np.ndarray, 
+    shifts: np.ndarray, 
+    channel_combo: str, 
+    num_frames: int):
+
+
+    # Plot mean cross-correlation curve with shaded area representing standard deviation
+    arr_mean = np.nanmean(signal, axis = 0)
+    arr_std = np.nanstd(signal, axis = 0)
+    x_axis = np.arange(-num_frames + 1, num_frames)
+
+    # Calculate mean and standard deviation of cross-correlation curves
+    fig, ax = plt.subplot_mosaic(mosaic = '''
+                                            AA
+                                            BC
+                                            ''')
+    
+    # Plot mean cross-correlation curve with shaded area representing standard deviation
+    ax['A'].plot(x_axis, arr_mean, color='blue')
+    ax['A'].fill_between(x_axis, 
+                            arr_mean - arr_std, 
+                            arr_mean + arr_std, 
+                            color='blue', 
+                            alpha=0.2)
+    ax['A'].set_title(f'{channel_combo} Mean Crosscorrelation Curve ± Standard Deviation') 
+
+    # Plot histogram of period values
+    ax['B'].hist(shifts)
+    shifts = [val for val in shifts if not np.isnan(val)]
+    ax['B'].set_xlabel(f'Histogram of shift values (frames)')
+    ax['B'].set_ylabel('Occurances')
+
+    # Plot boxplot of period values
+    ax['C'].boxplot(shifts)
+    ax['C'].set_xlabel(f'Boxplot of shift values')
+    ax['C'].set_ylabel(f'Measured shift (frames)')
+
+    fig.subplots_adjust(hspace=0.25, wspace=0.5)   
+    plt.close(fig)
     return fig

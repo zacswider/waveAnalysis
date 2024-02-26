@@ -104,16 +104,25 @@ def save_plots(dict_of_plots: dict, save_path: str):
         plot.savefig(f'{save_path}/{plot_name}.png')
 
 def save_values_to_csv(
-    ind_ccf_values: dict, 
-    ind_ccf_val_path: str
+    values: dict, 
+    path: str,
+    indv_ccfs_bool: bool = False
 ):
     
+    # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
+
     #save the indv CCF values for each bin to csv file
-    for indv_ccfs_filename, measurements in ind_ccf_values.items():
-        ind_ccf_path = os.path.join(ind_ccf_val_path, f'{indv_ccfs_filename}.csv')
+    for filename, measurements in values.items():
+        path = os.path.join(path, f'{filename}.csv')
         # Write measurements to CSV file
-        with open(ind_ccf_path, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(['Time', 'Ch1_Value', 'Ch2_Value', 'CCF_Value'])
-            for time, ch1_val, ch2_val, ccf_val in measurements:
-                writer.writerow([time, ch1_val, ch2_val, ccf_val])                
+        with open(path, 'w', newline='') as csvfile:
+            if indv_ccfs_bool:
+                writer = csv.writer(csvfile)
+                writer.writerow(['Time', 'Ch1_Value', 'Ch2_Value', 'CCF_Value'])
+                for time, ch1_val, ch2_val, ccf_val in measurements:
+                    writer.writerow([time, ch1_val, ch2_val, ccf_val])                
+            else:
+                writer = csv.writer(csvfile)
+                writer.writerow(['Time', 'Mean', 'StDev'])
+                for time, mean, stdev in measurements:
+                    writer.writerow([time, mean, stdev])         
