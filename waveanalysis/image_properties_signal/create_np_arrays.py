@@ -2,7 +2,7 @@ import numpy as np
 import scipy.ndimage as nd
 from scipy import signal as sig
 
-def create_kymo_signals(
+def create_array_from_kymo(
     line_width: int,
     total_columns: int,
     step: int,
@@ -33,7 +33,7 @@ def create_kymo_signals(
 
     return line_values, total_bins
 
-def create_standard_signals(
+def create_array_from_standard_rolling(
     kernel_size: int, 
     step: int, 
     num_channels: int, 

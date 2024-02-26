@@ -1,9 +1,9 @@
-from image_signals.create_signals import create_kymo_signals, create_standard_signals
+from image_signals.create_np_arrays import create_array_from_kymo, create_array_from_standard_rolling
 from image_signals.convert_images import convert_kymos, convert_movies  
 
 __all__ = [
-    "create_kymo_signals",
-    "create_standard_signals",
+    "create_array_from_kymo",
+    "create_array_from_standard_rolling",
     "convert_kymos",
     "convert_movies"
 ]

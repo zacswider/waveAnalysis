@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from waveanalysis.image_properties_signal.create_signals import create_standard_signals, create_kymo_signals  
+from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling, create_array_from_kymo  
 from waveanalysis.signal_processing import calc_indv_ACFs_periods, calc_indv_CCFs_shifts_channelCombos, calc_indv_peak_props
 from waveanalysis.plotting import plot_indv_peak_props_workflow, plot_indv_acfs_workflow, plot_indv_ccfs_workflow, save_indv_ccfs_workflow, plot_mean_ACFs_workflow, plot_mean_prop_peaks_workflow, plot_mean_CCFs_workflow, save_mean_CCF_values_workflow
 
@@ -42,7 +42,7 @@ class TotalSignalProcessor:
             self.num_submovies = (self.num_frames - self.roll_size) // self.roll_by
             
         if self.analysis_type == "standard" or self.analysis_type == "rolling":
-            self.bin_values, self.total_bins, self.xpix, self.ypix = create_standard_signals(
+            self.bin_values, self.total_bins, self.xpix, self.ypix = create_array_from_standard_rolling(
                 kernel_size=self.kernel_size, 
                 step=self.step, 
                 num_channels=self.num_channels, 
@@ -54,7 +54,7 @@ class TotalSignalProcessor:
         else:
             self.total_columns = self.image.shape[-1]
             self.num_frames = self.image.shape[-2]
-            self.bin_values, self.total_bins = create_kymo_signals(
+            self.bin_values, self.total_bins = create_array_from_kymo(
                 line_width=self.line_width, 
                 total_columns=self.total_columns, 
                 step=self.step, 
