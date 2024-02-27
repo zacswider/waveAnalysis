@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling, create_array_from_kymo  
 from waveanalysis.signal_processing import calc_indv_ACFs_periods, calc_indv_CCFs_shifts_channelCombos, calc_indv_peak_props
-from waveanalysis.plotting import plot_indv_peak_props_workflow, plot_indv_acfs_workflow, plot_indv_ccfs_workflow, save_indv_ccfs_workflow, plot_mean_ACFs_workflow, plot_mean_prop_peaks_workflow, plot_mean_CCFs_workflow, save_mean_CCF_values_workflow
+from waveanalysis.plotting import plot_indv_peak_props_workflow, plot_indv_acfs_workflow, plot_indv_ccfs_workflow, save_indv_ccfs_workflow, plot_mean_ACFs_workflow, plot_mean_prop_peaks_workflow, plot_mean_CCFs_workflow, save_mean_CCF_values_workflow, plot_rolling_mean_periods, plot_rolling_mean_shifts, plot_rolling_mean_peak_props
 
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -223,71 +223,40 @@ class TotalSignalProcessor:
         return self.mean_ccf_values
 
     
-    def plot_rolling_summary(self):
-        """
-        This method plots a rolling summary of the measurements over time.
+    def plot_rolling_summary(self):        
 
-        Returns:
-            - dict: A dictionary containing the generated plots.
-        """
-        def return_plot(independent_variable, dependent_variable, dependent_error, y_label):    
-            '''
-            Space saving function to generate the rolling summary plots'''      
-            fig, ax = plt.subplots()
+        self.rolling_mean_plots_dict = {}
 
-            # plot the dataframe
-            ax.plot(self.full_movie_summary[independent_variable], 
-                         self.full_movie_summary[dependent_variable])
-            
-            # fill between the ± standard deviation of the dependent variable
-            ax.fill_between(x = self.full_movie_summary[independent_variable],
-                            y1 = self.full_movie_summary[dependent_variable] - self.full_movie_summary[dependent_error],
-                            y2 = self.full_movie_summary[dependent_variable] + self.full_movie_summary[dependent_error],
-                            color = 'blue',
-                            alpha = 0.25)
-
-            # set axis labels
-            ax.set_xlabel('Frame Number')
-            ax.set_ylabel(y_label)
-            ax.set_title(f'{y_label} over time')
-            
-            plt.close(fig)
-            return fig
-        
-        # empty dictionary to fill with plots
-        self.plot_list = {}
-
-        def add_peak_plots(channel, prop_name):
-            '''
-            Space saving function
-            '''
-            self.plot_list[f'Ch {channel} Peak {prop_name}'] = return_plot('Submovie',
-                                                                            f'Ch {channel} Mean Peak {prop_name}',
-                                                                            f'Ch {channel} StdDev Peak {prop_name}',
-                                                                            f'Ch {channel} Mean ± StdDev Peak {prop_name} (frames)')
-        
         if hasattr(self, 'indv_periods'):
-            for channel in range(self.num_channels):
-                self.plot_list[f'Ch {channel + 1} Period'] = return_plot('Submovie',
-                                                                          f'Ch {channel + 1} Mean Period',
-                                                                          f'Ch {channel + 1} StdDev Period',
-                                                                          f'Ch {channel + 1} Mean ± StdDev Period (frames)')
+            self.rolling_mean_period_plots = plot_rolling_mean_periods(
+                num_channels=self.num_channels,
+                fullmovie_summary=self.full_movie_summary
+            )
+
+            self.rolling_mean_plots_dict.update(self.rolling_mean_period_plots)
         
         if hasattr(self, 'indv_shifts'):
-            for combo_number, combo in enumerate(self.channel_combos):
-                self.plot_list[f'Ch{combo[0]+1}-Ch{combo[1]+1} Shift'] = return_plot('Submovie',
-                                                                                      f'Ch{combo[0]+1}-Ch{combo[1]+1} Mean Shift',
-                                                                                      f'Ch{combo[0]+1}-Ch{combo[1]+1} StdDev Shift',
-                                                                                      f'Ch{combo[0]+1}-Ch{combo[1]+1} Mean ± StdDev Shift (frames)')
+            self.rolling_mean_shifts_plots = (plot_rolling_mean_shifts(
+                channel_combos=self.channel_combos,
+                fullmovie_summary=self.full_movie_summary
+            ))
+
+            self.rolling_mean_plots_dict.update(self.rolling_mean_shifts_plots)
+
 
         if hasattr(self, 'indv_peak_widths'):
-            for channel in range(self.num_channels):
-                for prop_name in ['Width', 'Max', 'Min', 'Amp']:
-                    add_peak_plots(channel + 1, prop_name)
+            self.rolling_mean_prop_plots = (plot_rolling_mean_peak_props(
+                num_channels=self.num_channels,
+                fullmovie_summary=self.full_movie_summary
+            ))
 
-        
-        return self.plot_list
+            self.rolling_mean_plots_dict.update(self.rolling_mean_prop_plots)
+            
+        return self.rolling_mean_plots_dict
     
+
+
+
 ############################################
 ############ DATA ORGANIZATION #############
 ############################################ 
