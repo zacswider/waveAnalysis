@@ -5,12 +5,18 @@ import datetime
 import pandas as pd
 from tqdm import tqdm
 from typing import Any
+from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
 
 from waveanalysis.image_properties_signal.convert_images import convert_kymos, convert_movies  
-from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
 from waveanalysis.housekeeping.housekeeping_functions import make_log, generate_group_comparison, group_name_error_check, check_and_make_save_path, save_plots, save_values_to_csv
 from waveanalysis.image_properties_signal.image_properties import get_standard_image_properties, get_kymo_image_properties
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_kymo, create_array_from_standard_rolling
+from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling, create_array_from_kymo  
+from waveanalysis.signal_processing import calc_indv_ACFs_periods, calc_indv_CCFs_shifts_channelCombos, calc_indv_peak_props
+from waveanalysis.plotting import plot_indv_peak_props_workflow, plot_indv_acfs_workflow, plot_indv_ccfs_workflow, save_indv_ccfs_workflow, plot_mean_ACFs_workflow, plot_mean_prop_peaks_workflow, plot_mean_CCFs_workflow, save_mean_CCF_values_workflow, plot_rolling_mean_periods, plot_rolling_mean_shifts, plot_rolling_mean_peak_props
+
+
+
 
 def standard_kymo_workflow(
     folder_path: str,
@@ -77,7 +83,7 @@ def standard_kymo_workflow(
 
             # Create the array for which all future processing will be based on
             if analysis_type == 'kymograph':
-                line_values, num_bins = create_array_from_kymo(
+                bin_values, num_bins = create_array_from_kymo(
                                             line_width = line_width,
                                             total_columns = total_columns,
                                             step = box_shift,
@@ -86,13 +92,15 @@ def standard_kymo_workflow(
                                             image = all_images[file_name]
                                         )
             else:
-                box_values, num_bins, num_x_bins, num_y_bins = create_array_from_standard_rolling(
+                bin_values, num_bins, num_x_bins, num_y_bins = create_array_from_standard_rolling(
                                                                     kernel_size = box_size, 
                                                                     step = box_shift, 
                                                                     num_channels = num_channels, 
                                                                     num_frames = num_frames, 
                                                                     image = all_images[file_name]
                                                                 )
+                
+
 
             processor = TotalSignalProcessor(analysis_type = analysis_type, 
                                              image_path = f'{folder_path}/{file_name}',
@@ -104,7 +112,7 @@ def standard_kymo_workflow(
                                              line_width = line_width)
             
             # log error and skip image if frames < 2 
-            if processor.num_frames < 2:
+            if num_frames < 2:
                 print(f"****** ERROR ******",
                     f"\n{file_name} has less than 2 frames",
                     "\n****** ERROR ******")
@@ -124,6 +132,29 @@ def standard_kymo_workflow(
                     group_name = [group for group in group_names if group in name_wo_ext][0]
                 except IndexError:
                     pass
+
+
+            '''calc_indv_ACFs_periods(
+                num_channels=num_channels, 
+                num_bins=num_bins, 
+                num_frames=num_frames, 
+                bin_values=bin_values, 
+                analysis_type=analysis_type, 
+                roll_size=roll_size, 
+                roll_by=roll_by, 
+                num_submovies=num_submovies, 
+                xpix=xpix, 
+                ypix=ypix, 
+                peak_thresh=acf_peak_thresh
+                )'''
+                
+
+
+
+
+
+
+                ##################################################################################
 
             # calculate the population signal properties
             processor.calc_indv_ACFs(peak_thresh = acf_peak_thresh)
