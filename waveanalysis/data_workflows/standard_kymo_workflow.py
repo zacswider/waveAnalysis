@@ -9,6 +9,8 @@ from typing import Any
 from waveanalysis.image_properties_signal.convert_images import convert_kymos, convert_movies  
 from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
 from waveanalysis.housekeeping.housekeeping_functions import make_log, generate_group_comparison, group_name_error_check, check_and_make_save_path, save_plots, save_values_to_csv
+from waveanalysis.image_properties_signal.image_properties import get_standard_image_properties, get_kymo_image_properties
+from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_kymo, create_array_from_standard_rolling
 
 def standard_kymo_workflow(
     folder_path: str,
@@ -64,9 +66,34 @@ def standard_kymo_workflow(
             print('******'*10)
             print(f'Processing {file_name}...')
 
+            # Get image properties
+            image_path = f'{folder_path}/{file_name}'
+            if analysis_type == 'kymograph':
+                num_channels, total_columns, num_frames = get_kymo_image_properties(image_path=image_path, image=all_images[file_name])
+            else:
+                num_channels, num_frames = get_standard_image_properties(image_path=image_path)
 
+            # TODO: Set the parameters for the signal processor that were not set in the log parameters
 
-            
+            # Create the array for which all future processing will be based on
+            if analysis_type == 'kymograph':
+                line_values, num_bins = create_array_from_kymo(
+                                            line_width = line_width,
+                                            total_columns = total_columns,
+                                            step = box_shift,
+                                            num_channels = num_channels,
+                                            num_frames = num_frames,
+                                            image = all_images[file_name]
+                                        )
+            else:
+                box_values, num_bins, num_x_bins, num_y_bins = create_array_from_standard_rolling(
+                                                                    kernel_size = box_size, 
+                                                                    step = box_shift, 
+                                                                    num_channels = num_channels, 
+                                                                    num_frames = num_frames, 
+                                                                    image = all_images[file_name]
+                                                                )
+
             processor = TotalSignalProcessor(analysis_type = analysis_type, 
                                              image_path = f'{folder_path}/{file_name}',
                                              image = all_images[file_name], 

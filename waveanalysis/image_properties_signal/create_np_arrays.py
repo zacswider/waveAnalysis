@@ -15,10 +15,10 @@ def create_array_from_kymo(
         raise ValueError("Line width must be at least 1")
     
     # Calculate the total amount of bins based on the step size
-    total_bins = (total_columns // step) 
+    num_bins = (total_columns // step) 
 
     # Initialize array to store line values
-    line_values = np.full(shape=(num_channels, total_bins, num_frames), fill_value=np.nan)
+    line_values = np.full(shape=(num_channels, num_bins, num_frames), fill_value=np.nan)
 
     for channel in range(num_channels):
         for col_num in range(0, total_columns, step):
@@ -31,7 +31,7 @@ def create_array_from_kymo(
                     idx = col_num // step
                     line_values[channel, idx] = signal
 
-    return line_values, total_bins
+    return line_values, num_bins
 
 def create_array_from_standard_rolling(
     kernel_size: int, 
@@ -43,12 +43,13 @@ def create_array_from_standard_rolling(
     
     # Calculate the index for the center of the kernel
     ind = kernel_size // 2
+    
     # Apply uniform filter to calculate mean signal over specified box size
     box_values = nd.uniform_filter(image[:, 0, :, :, :], size=(1, 1, kernel_size, kernel_size))[:, :, ind::step, ind::step]
-    # Get the dimensions of the resulting mean image
-    xpix, ypix = box_values.shape[-2:]
-    # We are either binning the image into boxes (standard) or columns (kymographs), so just call bins for simplicity
-    total_bins = xpix * ypix
-    box_values = box_values.reshape(num_frames, num_channels, total_bins)
 
-    return box_values, total_bins, xpix, ypix
+    # Get the dimensions of the resulting mean image
+    num_x_bins, num_y_bins = box_values.shape[-2:]
+    num_bins = num_x_bins * num_y_bins
+    box_values = box_values.reshape(num_frames, num_channels, num_bins)
+
+    return box_values, num_bins, num_x_bins, num_y_bins
