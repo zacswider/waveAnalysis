@@ -32,15 +32,16 @@ def standard_kymo_workflow(
     # list of file names in specified directory
     file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
               
+    # check for group name errors          
     group_name_error_check(file_names=file_names,
                            group_names=group_names, 
                            log_params=log_params)
 
     # performance tracker
     start = timeit.default_timer()
+
     # create main save path
     now = datetime.datetime.now()
-
     main_save_path = os.path.join(folder_path, f"0_signalProcessing-{now.strftime('%Y%m%d%H%M')}")
     check_and_make_save_path(main_save_path)
 
@@ -49,6 +50,7 @@ def standard_kymo_workflow(
     # column headers to use with summary data during conversion to dataframe
     col_headers = []
 
+    # convert images to numpy arrays
     if analysis_type == 'kymograph':
         all_images = convert_kymos(folder_path=folder_path)
     else:
@@ -61,6 +63,10 @@ def standard_kymo_workflow(
         for file_name in file_names: 
             print('******'*10)
             print(f'Processing {file_name}...')
+
+
+
+            
             processor = TotalSignalProcessor(analysis_type = analysis_type, 
                                              image_path = f'{folder_path}/{file_name}',
                                              image = all_images[file_name], 
@@ -176,9 +182,8 @@ def standard_kymo_workflow(
         # create dataframe from summary list
         summary_df = pd.DataFrame(summary_list, columns=col_headers)
 
-        # save the summary csv file
+        # sort and save the summary csv file
         summary_df = summary_df.sort_values('File Name', ascending=True)
-
         summary_df.to_csv(f"{main_save_path}/!{now.strftime('%Y%m%d%H%M')}_summary.csv", index = False)
 
         # if group names were entered into the gui, generate comparisons between each group

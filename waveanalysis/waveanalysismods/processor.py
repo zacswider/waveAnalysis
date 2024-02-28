@@ -2,7 +2,6 @@ import os
 import tifffile
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling, create_array_from_kymo  
 from waveanalysis.signal_processing import calc_indv_ACFs_periods, calc_indv_CCFs_shifts_channelCombos, calc_indv_peak_props
