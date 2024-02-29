@@ -24,7 +24,7 @@ class TotalSignalProcessor:
 
         # save other values to np.nan for now
         self.num_submovies = np.nan
-        self.xpix, self.ypix  = np.nan, np.nan
+        self.num_x_bins, self.num_y_bins  = np.nan, np.nan
 
         # Import image and extract metadata
         self.image_path = image_path
@@ -41,7 +41,7 @@ class TotalSignalProcessor:
             self.num_submovies = (self.num_frames - self.roll_size) // self.roll_by
             
         if self.analysis_type == "standard" or self.analysis_type == "rolling":
-            self.bin_values, self.total_bins, self.xpix, self.ypix = create_array_from_standard_rolling(
+            self.bin_values, self.num_bins, self.num_x_bins, self.num_y_bins = create_array_from_standard_rolling(
                 kernel_size=self.kernel_size, 
                 step=self.step, 
                 num_channels=self.num_channels, 
@@ -53,7 +53,7 @@ class TotalSignalProcessor:
         else:
             self.total_columns = self.image.shape[-1]
             self.num_frames = self.image.shape[-2]
-            self.bin_values, self.total_bins = create_array_from_kymo(
+            self.bin_values, self.num_bins = create_array_from_kymo(
                 line_width=self.line_width, 
                 total_columns=self.total_columns, 
                 step=self.step, 
@@ -70,14 +70,14 @@ class TotalSignalProcessor:
        
         self.indv_peak_widths, self.indv_peak_maxs, self.indv_peak_mins, self.indv_peak_amps, self.indv_peak_rel_amps, self.indv_peak_props = calc_indv_peak_props(
             num_channels=self.num_channels,
-            total_bins=self.total_bins,
+            num_bins=self.num_bins,
             bin_values=self.bin_values,
             analysis_type=self.analysis_type,
             num_submovies=self.num_submovies,
             roll_by=self.roll_by,
             roll_size=self.roll_size,
-            xpix=self.xpix,
-            ypix=self.ypix
+            num_x_bins=self.num_x_bins,
+            num_y_bins=self.num_y_bins
             )
       
         return self.indv_peak_widths, self.indv_peak_maxs, self.indv_peak_mins, self.indv_peak_amps, self.indv_peak_rel_amps, self.indv_peak_props
@@ -86,15 +86,15 @@ class TotalSignalProcessor:
         
         self.indv_acfs, self.indv_periods = calc_indv_ACFs_periods(
             num_channels=self.num_channels, 
-            total_bins=self.total_bins, 
+            num_bins=self.num_bins, 
             num_frames=self.num_frames, 
             bin_values=self.bin_values, 
             analysis_type=self.analysis_type, 
             roll_size=self.roll_size, 
             roll_by=self.roll_by, 
             num_submovies=self.num_submovies, 
-            xpix=self.xpix, 
-            ypix=self.ypix, 
+            num_x_bins=self.num_x_bins, 
+            num_y_bins=self.num_y_bins, 
             peak_thresh=peak_thresh
             )
 
@@ -104,7 +104,7 @@ class TotalSignalProcessor:
         
         self.indv_shifts, self.indv_ccfs, self.channel_combos = calc_indv_CCFs_shifts_channelCombos(
             num_channels=self.num_channels, 
-            total_bins=self.total_bins,
+            num_bins=self.num_bins,
             num_frames=self.num_frames, 
             bin_values=self.bin_values, 
             analysis_type=self.analysis_type, 
@@ -125,7 +125,7 @@ class TotalSignalProcessor:
         if hasattr(self, 'indv_peak_widths'):
             self.indv_peak_figs = plot_indv_peak_props_workflow(
                 num_channels=self.num_channels,
-                total_bins=self.total_bins,
+                num_bins=self.num_bins,
                 bin_values=self.bin_values,
                 analysis_type=self.analysis_type,
                 indv_peak_props=self.indv_peak_props
@@ -137,7 +137,7 @@ class TotalSignalProcessor:
         
         self.indv_acf_plots = plot_indv_acfs_workflow(
             num_channels=self.num_channels,
-            total_bins=self.total_bins,
+            num_bins=self.num_bins,
             bin_values=self.bin_values,
             analysis_type=self.analysis_type,
             acfs=self.indv_acfs,
@@ -151,7 +151,7 @@ class TotalSignalProcessor:
 
         if self.num_channels > 1:
             self.indv_ccf_plots = plot_indv_ccfs_workflow(
-                total_bins=self.total_bins,
+                num_bins=self.num_bins,
                 bin_values=self.bin_values,
                 analysis_type=self.analysis_type,
                 channel_combos=self.channel_combos,
@@ -169,7 +169,7 @@ class TotalSignalProcessor:
             channel_combos=self.channel_combos,
             bin_values=self.bin_values,
             analysis_type=self.analysis_type,
-            total_bins=self.total_bins
+            num_bins=self.num_bins
         )
 
         return self.indv_ccf_values
@@ -306,7 +306,7 @@ class TotalSignalProcessor:
 
         # column names for the dataframe summarizing the box results
         col_names = ["Parameter", "Mean", "Median", "StdDev"]
-        col_names.extend([f'Box{i}' for i in range(self.total_bins)])
+        col_names.extend([f'Box{i}' for i in range(self.num_bins)])
         
         self.submovie_measurements = []
 
@@ -363,14 +363,14 @@ class TotalSignalProcessor:
             
             if hasattr(self, 'indv_acfs'):
                 for channel in range(self.num_channels):
-                    pcnt_no_period = (np.count_nonzero(np.isnan(self.indv_periods[submovie, channel])) / self.total_bins) * 100
+                    pcnt_no_period = (np.count_nonzero(np.isnan(self.indv_periods[submovie, channel])) / self.num_bins) * 100
                     submovie_summary[f'Ch {channel + 1} Pcnt No Periods'] = pcnt_no_period
                     for stat_name, func in stat_name_and_func.items():
                         submovie_summary[f'Ch {channel + 1} {stat_name} Period'] = func(self.indv_periods[submovie, channel])
 
             if hasattr(self, 'indv_ccfs'):
                 for combo_number, combo in enumerate(self.channel_combos):
-                    pcnt_no_shift = np.count_nonzero(np.isnan(self.indv_ccfs[submovie, combo_number])) / self.total_bins * 100
+                    pcnt_no_shift = np.count_nonzero(np.isnan(self.indv_ccfs[submovie, combo_number])) / self.num_bins * 100
                     submovie_summary[f'Ch{combo[0]+1}-Ch{combo[1]+1} Pcnt No Shifts'] = pcnt_no_shift
                     for stat_name, func in stat_name_and_func.items():
                         submovie_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} {stat_name} Shift'] = func(self.indv_shifts[submovie, combo_number])
@@ -378,7 +378,7 @@ class TotalSignalProcessor:
             if hasattr(self, 'indv_peak_widths'):
                 for channel in range(self.num_channels):
                     # using widths, but because these are all assigned together it applies to all peak properties
-                    pcnt_no_peaks = np.count_nonzero(np.isnan(self.indv_peak_widths[submovie, channel])) / self.total_bins * 100
+                    pcnt_no_peaks = np.count_nonzero(np.isnan(self.indv_peak_widths[submovie, channel])) / self.num_bins * 100
                     submovie_summary[f'Ch {channel + 1} Pcnt No Peaks'] = pcnt_no_peaks
                     for stat_name, func in stat_name_and_func.items():
                         submovie_summary[f'Ch {channel + 1} {stat_name} Peak Width'] = func(self.indv_peak_widths[submovie, channel])
@@ -412,7 +412,7 @@ class TotalSignalProcessor:
             self.file_data_summary['File Name'] = file_name
         if group_name:
             self.file_data_summary['Group Name'] = group_name
-        self.file_data_summary['Num Bins'] = self.total_bins
+        self.file_data_summary['Num Bins'] = self.num_bins
 
         stats_location = ['Mean', 'Median', 'StdDev', 'SEM']
 
@@ -491,7 +491,7 @@ class TotalSignalProcessor:
 
         # column names for the dataframe summarizing the bin results
         col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]
-        col_names.extend([f'Bin {i}' for i in range(self.total_bins)])
+        col_names.extend([f'Bin {i}' for i in range(self.num_bins)])
     
         # combine all the statified measurements into a single list
         statified_measurements = []

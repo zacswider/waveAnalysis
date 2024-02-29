@@ -6,15 +6,15 @@ from scipy import signal as sig
 # TODO: likely will need to make separate functions for the different types of analysis
 
 def calc_indv_ACFs_periods(num_channels: int,
-                           total_bins: int,
+                           num_bins: int,
                            num_frames: int,
                            bin_values: np.ndarray,
                            analysis_type: str,
                            roll_size: int,
                            roll_by: int,
                            num_submovies: int,
-                           xpix: int,
-                           ypix: int,
+                           num_x_bins: int,
+                           num_y_bins: int,
                            peak_thresh: float = 0.1
 ):
     """
@@ -30,13 +30,13 @@ def calc_indv_ACFs_periods(num_channels: int,
     """
     
     # Initialize arrays to store period measurements and autocorrelation curves
-    periods = np.zeros(shape=(num_channels, total_bins))
-    acfs = np.zeros(shape=(num_channels, total_bins, num_frames * 2 - 1))
+    periods = np.zeros(shape=(num_channels, num_bins))
+    acfs = np.zeros(shape=(num_channels, num_bins, num_frames * 2 - 1))
 
     # Loop through channels and bins for standard or kymograph analysis
     if analysis_type != "rolling":
         for channel in range(num_channels):
-            for bin in range(total_bins):
+            for bin in range(num_bins):
                 signal = bin_values[:, channel, bin] if analysis_type == "standard" else bin_values[channel, bin, :]
 
                 corr_signal = signal - np.mean(signal)
@@ -59,15 +59,15 @@ def calc_indv_ACFs_periods(num_channels: int,
                 acfs[channel, bin] = acf_curve
     # If rolling analysis
     else:
-        periods = np.zeros(shape=(num_submovies, num_channels, total_bins))
-        acfs = np.zeros(shape=(num_submovies, num_channels, total_bins, roll_size * 2 - 1))
+        periods = np.zeros(shape=(num_submovies, num_channels, num_bins))
+        acfs = np.zeros(shape=(num_submovies, num_channels, num_bins, roll_size * 2 - 1))
         # Loop through submovies, channels, and bins
-        its = num_submovies*num_channels*xpix*ypix
+        its = num_submovies*num_channels*num_x_bins*num_y_bins
         with tqdm(total = its, miniters=its/100) as pbar:
             pbar.set_description( 'Periods: ')
             for submovie in range(num_submovies):
                 for channel in range(num_channels):
-                    for bin in range(total_bins):
+                    for bin in range(num_bins):
                         pbar.update(1)
                         # Extract signal for rolling autocorrelation calculation
                         signal = bin_values[roll_by * submovie: roll_size + roll_by * submovie, channel, bin]
@@ -96,14 +96,14 @@ def calc_indv_ACFs_periods(num_channels: int,
 
 def calc_indv_CCFs_shifts_channelCombos(
     num_channels: int,
-    total_bins: int,
+    num_bins: int,
     num_frames: int,
     bin_values: np.ndarray,
     analysis_type: str,
     roll_size: int = np.nan,
     roll_by: int = np.nan,
     num_submovies: int = np.nan,
-    periods: np.ndarray = np.nan,
+    periods: np.ndarray = np.nan
  ):
     """
     This method computes the cross-correlation functions (CCFs) for each combination of channels.
@@ -124,13 +124,13 @@ def calc_indv_CCFs_shifts_channelCombos(
     num_combos = len(channel_combos)
 
     # Initialize arrays to store shifts and cross-correlation curves
-    indv_shifts = np.zeros(shape=(num_combos, total_bins))
-    indv_ccfs = np.zeros(shape=(num_combos, total_bins, num_frames*2-1))
+    indv_shifts = np.zeros(shape=(num_combos, num_bins))
+    indv_ccfs = np.zeros(shape=(num_combos, num_bins, num_frames*2-1))
 
     # Loop through combos for standard or kymograph analysis
     if analysis_type != "rolling":
         for combo_number, combo in enumerate(channel_combos):
-            for bin in range(total_bins):
+            for bin in range(num_bins):
                 if analysis_type == "standard":
                     signal1 = bin_values[:, combo[0], bin]
                     signal2 = bin_values[:, combo[1], bin]
@@ -183,14 +183,14 @@ def calc_indv_CCFs_shifts_channelCombos(
     # If rolling analysis
     elif analysis_type == "rolling":
         # Initialize arrays to store shifts and cross-correlation curves
-        indv_shifts = np.zeros(shape=(num_submovies, num_combos, total_bins))
-        indv_ccfs = np.zeros(shape=(num_submovies, num_combos, total_bins, roll_size*2-1))
-        its = num_submovies*num_combos*total_bins
+        indv_shifts = np.zeros(shape=(num_submovies, num_combos, num_bins))
+        indv_ccfs = np.zeros(shape=(num_submovies, num_combos, num_bins, roll_size*2-1))
+        its = num_submovies*num_combos*num_bins
         with tqdm(total = its, miniters=its/100) as pbar:
             pbar.set_description( 'Shifts: ')
             for submovie in range(num_submovies):
                 for combo_number, combo in enumerate(channel_combos):
-                    for bin in range(total_bins):
+                    for bin in range(num_bins):
                         pbar.update(1)
                         signal1 = bin_values[roll_by*submovie : roll_size + roll_by*submovie, combo[0], bin]
                         signal2 = bin_values[roll_by*submovie : roll_size + roll_by*submovie, combo[1], bin]

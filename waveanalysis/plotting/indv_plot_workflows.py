@@ -7,7 +7,7 @@ from itertools import zip_longest
 
 def plot_indv_peak_props_workflow(
     num_channels:int,
-    total_bins:int,
+    num_bins:int,
     bin_values:np.ndarray,
     analysis_type:str,
     ind_peak_props:dict
@@ -18,11 +18,11 @@ def plot_indv_peak_props_workflow(
 
     # Generate plots for each channel
 
-    its = num_channels*total_bins
+    its = num_channels*num_bins
     with tqdm(total=its, miniters=its/100) as pbar:
         pbar.set_description('ind peaks')
         for channel in range(num_channels):
-            for bin in range(total_bins):
+            for bin in range(num_bins):
                 pbar.update(1)
                 to_plot = bin_values[:,channel, bin] if analysis_type == "standard" else bin_values[channel,bin, :]
                 # Generate and store the figure for the current channel and bin
@@ -36,7 +36,7 @@ def plot_indv_peak_props_workflow(
 
 def plot_indv_acfs_workflow(
     num_channels:int,
-    total_bins:int,
+    num_bins:int,
     bin_values:np.ndarray,
     analysis_type:str,
     acfs:np.ndarray,
@@ -48,11 +48,11 @@ def plot_indv_acfs_workflow(
         indv_acf_plots = {}
 
         # Iterate through channels and bins to plot individual autocorrelation curves
-        its = num_channels*total_bins
+        its = num_channels*num_bins
         with tqdm(total=its, miniters=its/100) as pbar:
             pbar.set_description('ind acfs')
             for channel in range(num_channels):
-                for bin in range(total_bins):
+                for bin in range(num_bins):
                     pbar.update(1) 
                     to_plot = bin_values[:,channel, bin] if analysis_type == "standard" else bin_values[channel,bin, :]
                     # Generate and store the figure for the current channel and bin
@@ -67,7 +67,7 @@ def plot_indv_acfs_workflow(
         return indv_acf_plots
 
 def plot_indv_ccfs_workflow(
-    total_bins:int,
+    num_bins:int,
     bin_values:np.ndarray,
     analysis_type:str,
     channel_combos:np.ndarray,
@@ -79,11 +79,11 @@ def plot_indv_ccfs_workflow(
     indv_ccf_plots = {}
 
     # Iterate through channel combinations and bins to plot individual cross-correlation curves
-    its = len(channel_combos)*total_bins
+    its = len(channel_combos)*num_bins
     with tqdm(total=its, miniters=its/100) as pbar:
         pbar.set_description('ind ccfs')
         for combo_number, combo in enumerate(channel_combos):
-            for bin in range(total_bins):
+            for bin in range(num_bins):
                 pbar.update(1)
                 to_plot1 = bin_values[:, combo[0], bin] if analysis_type == "standard" else bin_values[combo[0], bin, :]
                 to_plot2 = bin_values[:, combo[1], bin] if analysis_type == "standard" else bin_values[combo[1], bin, :]
@@ -101,19 +101,18 @@ def plot_indv_ccfs_workflow(
 
 
 # TODO: move this save folder when created
-
 def save_indv_ccfs_workflow(
     indv_ccfs:np.ndarray,
     channel_combos:np.ndarray,
     bin_values:np.ndarray,
     analysis_type:str,
-    total_bins:int
+    num_bins:int
 ) -> dict:
     
     indv_ccf_values = {}
 
     for combo_number, combo in enumerate(channel_combos):
-        for bin in range(total_bins):      
+        for bin in range(num_bins):      
             # Save the individual bin values
             to_plot1 = bin_values[:, combo[0], bin] if analysis_type == "standard" else bin_values[combo[0], bin, :]
             to_plot2 = bin_values[:, combo[1], bin] if analysis_type == "standard" else bin_values[combo[1], bin, :]

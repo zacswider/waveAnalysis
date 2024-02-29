@@ -4,14 +4,14 @@ import scipy.signal as sig
 
 def calc_indv_peak_props(
     num_channels:int,
-    total_bins:int,
+    num_bins:int,
     bin_values:np.ndarray,
     analysis_type:str,
     num_submovies:int = None,
     roll_by:int = None,
     roll_size:int = None,
-    xpix:int = None,
-    ypix:int = None
+    num_x_bins:int = None,
+    num_y_bins:int = None
 ):
     """
     This method computes various peak properties for each channel and bin of the analyzed data.
@@ -26,15 +26,15 @@ def calc_indv_peak_props(
     """
 
     # Initialize arrays/dictionary to store peak measurements
-    ind_peak_widths = np.zeros(shape=(num_channels, total_bins))
-    ind_peak_maxs = np.zeros(shape=(num_channels, total_bins))
-    ind_peak_mins = np.zeros(shape=(num_channels, total_bins))
+    ind_peak_widths = np.zeros(shape=(num_channels, num_bins))
+    ind_peak_maxs = np.zeros(shape=(num_channels, num_bins))
+    ind_peak_mins = np.zeros(shape=(num_channels, num_bins))
     ind_peak_props = {}
 
     # Loop through channels and bins for standard or kymograph analysis
     if analysis_type != "rolling":
         for channel in range(num_channels):
-            for bin in range(total_bins):
+            for bin in range(num_bins):
                 if analysis_type == "standard":
                     signal = sig.savgol_filter(bin_values[:,channel, bin], window_length = 11, polyorder = 2)   
                 else:                     
@@ -72,16 +72,16 @@ def calc_indv_peak_props(
 
     # If rolling analysis
     else:
-        ind_peak_widths = np.zeros(shape=(num_submovies, num_channels, total_bins))
-        ind_peak_maxs = np.zeros(shape=(num_submovies, num_channels, total_bins))
-        ind_peak_mins = np.zeros(shape=(num_submovies, num_channels, total_bins))
+        ind_peak_widths = np.zeros(shape=(num_submovies, num_channels, num_bins))
+        ind_peak_maxs = np.zeros(shape=(num_submovies, num_channels, num_bins))
+        ind_peak_mins = np.zeros(shape=(num_submovies, num_channels, num_bins))
 
-        its = num_submovies*num_channels*xpix*ypix
+        its = num_submovies*num_channels*num_x_bins*num_y_bins
         with tqdm(total = its, miniters=its/100) as pbar:
             pbar.set_description('Peak Props: ')
             for submovie in range(num_submovies):
                 for channel in range(num_channels):
-                    for bin in range(total_bins):
+                    for bin in range(num_bins):
                         pbar.update(1)
                         signal = sig.savgol_filter(bin_values[roll_by*submovie : roll_size + roll_by*submovie, channel, bin], window_length=11, polyorder=2)
                         
