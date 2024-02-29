@@ -1,6 +1,5 @@
 import pytest
 import warnings
-import numpy as np
 import pandas as pd
 from pathlib import Path
 from waveanalysis.data_workflows import rolling_workflow
@@ -32,14 +31,12 @@ def test_rolling(default_log_params):
     assert isinstance(known_results, pd.DataFrame)
     exp_results = rolling_workflow(
         folder_path=str(Path('tests/assets/rolling/')),
-        group_names=[''],
         log_params=default_log_params,
         analysis_type='rolling',
         box_size=default_log_params['Box Size(px)'],
         box_shift=default_log_params['Box Shift(px)'],
         subframe_size=50,
         subframe_roll=5,       
-        line_width=np.nan,          # type: ignore ;not part of standard analysis
         acf_peak_thresh=default_log_params['ACF Peak Prominence']
     )
     assert pd.testing.assert_frame_equal(known_results, exp_results) is None

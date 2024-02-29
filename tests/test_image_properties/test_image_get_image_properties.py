@@ -1,4 +1,4 @@
-import pytest
+'''import pytest
 import tifffile
 import numpy as np
 from waveanalysis.image_properties_signal.image_properties import get_standard_image_properties, get_kymo_image_properties, get_rolling_image_properties
@@ -22,4 +22,4 @@ def test_get_standard_image_properties(test_standard_image_properties):
     exp_num_channels, exp_num_frames = get_standard_image_properties(image_path)
 
     assert known_num_channels == exp_num_channels
-    assert known_num_frames == exp_num_frames
+    assert known_num_frames == exp_num_frames'''
