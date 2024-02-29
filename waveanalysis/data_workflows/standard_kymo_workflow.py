@@ -275,22 +275,8 @@ def standard_kymo_workflow(
                 save_values_to_csv(ind_ccf_values, ind_ccf_val_path, indv_ccfs_bool = True)
                 # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
             ##################################################################################
+                # TODO: DELETE THIS CODE BLOCK AFTER refactoring the summarize code
 
             # calculate the population signal properties
             processor.calc_indv_ACFs(peak_thresh = acf_peak_thresh)
@@ -349,6 +335,11 @@ def standard_kymo_workflow(
                 check_and_make_save_path(ind_ccf_val_path)
                 save_values_to_csv(ind_ccf_values, ind_ccf_val_path, indv_ccfs_bool = True)
                 # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
+
+
+                # TODO: DELETE THIS CODE BLOCK AFTER refactoring the code below
+                ##################################################################################
+
                 
             # Summarize the data for current image as dataframe, and save as .csv
             im_measurements_df = processor.organize_measurements()
@@ -383,20 +374,15 @@ def standard_kymo_workflow(
 
         if group_names != ['']:
             # generate comparisons between each group
-            mean_parameter_figs = generate_group_comparison(
-                summary_df = summary_df, 
-                log_params = log_params
-                )
+            mean_parameter_figs = generate_group_comparison(summary_df = summary_df, 
+                                                            log_params = log_params)
             group_plots_save_path = os.path.join(main_save_path, "!group_comparison_graphs")
             check_and_make_save_path(group_plots_save_path)
             save_plots(mean_parameter_figs, group_plots_save_path)
 
             # save the means each parameter for the attributes to make them easier to work with in prism
-            parameter_tables_dict = save_parameter_means_to_csv(
-                summary_df=summary_df,
-                group_names=group_names
-                )
-            
+            parameter_tables_dict = save_parameter_means_to_csv(summary_df=summary_df,
+                                                                group_names=group_names)
             mean_measurements_save_path = os.path.join(main_save_path, "!mean_parameter_measurements")
             check_and_make_save_path(mean_measurements_save_path)
             for filename, table in parameter_tables_dict.items():
