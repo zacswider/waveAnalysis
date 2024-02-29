@@ -77,16 +77,13 @@ def standard_workflow(
         for file_name in file_names: 
             print('******'*10)
             print(f'Processing {file_name}...')
-
             # TODO: remove the need to set these to None
             num_submovies = None # set to none for now, but will completely remove this parameter in the future
             roll_size = None # set to none for now because kymo needs to be none
             roll_by = None # set to none for now because kymo needs to be none
-
             # Get image properties
             image_path = f'{folder_path}/{file_name}'        
             num_channels, num_frames = get_image_properties(image_path=image_path)
-
             # Create the array for which all future processing will be based on
             bin_values, num_bins, num_x_bins, num_y_bins = create_array_from_standard_rolling(
                                                                 kernel_size = box_size, 
@@ -193,10 +190,7 @@ def standard_workflow(
                 hf.save_plots(mean_ccf_plots, im_save_path)
 
                 # save the mean CCF values for the file
-                mean_ccf_values = save_mean_CCF_values_workflow(
-                    channel_combos=channel_combos,
-                    indv_ccfs=indv_ccfs
-                )
+                mean_ccf_values = save_mean_CCF_values_workflow(channel_combos=channel_combos,indv_ccfs=indv_ccfs)
                 hf.save_values_to_csv(mean_ccf_values, im_save_path, indv_ccfs_bool = False)
                 # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
             
@@ -317,15 +311,13 @@ def standard_workflow(
 
         if group_names != ['']:
             # generate comparisons between each group
-            mean_parameter_figs = generate_group_comparison(summary_df = summary_df, 
-                                                            log_params = log_params)
+            mean_parameter_figs = generate_group_comparison(summary_df = summary_df, log_params = log_params)
             group_plots_save_path = os.path.join(main_save_path, "!group_comparison_graphs")
             hf.os.makedirs(group_plots_save_path, exist_ok=True)
             hf.save_plots(mean_parameter_figs, group_plots_save_path)
 
             # save the means each parameter for the attributes to make them easier to work with in prism
-            parameter_tables_dict = save_parameter_means_to_csv(summary_df=summary_df,
-                                                                group_names=group_names)
+            parameter_tables_dict = save_parameter_means_to_csv(summary_df=summary_df,group_names=group_names)
             mean_measurements_save_path = os.path.join(main_save_path, "!mean_parameter_measurements")
             hf.os.makedirs(mean_measurements_save_path, exist_ok=True)
             for filename, table in parameter_tables_dict.items():
