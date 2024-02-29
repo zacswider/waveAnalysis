@@ -179,6 +179,7 @@ def calc_indv_CCFs_shifts_channelCombos(
 
                 indv_shifts[combo_number, bin] = delay_frames
                 indv_ccfs[combo_number, bin] = cc_curve
+    
 
     # If rolling analysis
     elif analysis_type == "rolling":

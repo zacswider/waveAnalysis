@@ -42,8 +42,8 @@ def test_kymo(default_log_params):
         plot_summary_ACFs=default_log_params['Plot Summary ACFs'],
         plot_summary_CCFs=default_log_params['Plot Summary CCFs'],
         plot_summary_peaks=default_log_params['Plot Summary Peaks'],
-        plot_ind_ACFs=default_log_params['Plot Individual ACFs'],
-        plot_ind_CCFs=default_log_params['Plot Individual CCFs'],
-        plot_ind_peaks=default_log_params['Plot Individual Peaks'],
+        plot_indv_ACFs=default_log_params['Plot Individual ACFs'],
+        plot_indv_CCFs=default_log_params['Plot Individual CCFs'],
+        plot_indv_peaks=default_log_params['Plot Individual Peaks'],
     )
     assert pd.testing.assert_frame_equal(known_results, exp_results) is None

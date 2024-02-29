@@ -1,20 +1,19 @@
 import os
-import csv
 import timeit
 import datetime
 import pandas as pd
 from tqdm import tqdm
 from typing import Any
-from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
 
-from waveanalysis.image_properties_signal.convert_images import convert_kymos, convert_movies  
+# TODO: import these functions "as ____" to avoid importing so many functions
 from waveanalysis.housekeeping.housekeeping_functions import make_log, generate_group_comparison, group_name_error_check, check_and_make_save_path, save_plots, save_values_to_csv
+from waveanalysis.image_properties_signal.convert_images import convert_kymos, convert_movies  
 from waveanalysis.image_properties_signal.image_properties import get_standard_image_properties, get_kymo_image_properties
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_kymo, create_array_from_standard_rolling
-from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling, create_array_from_kymo  
 from waveanalysis.signal_processing import calc_indv_ACFs_periods, calc_indv_CCFs_shifts_channelCombos, calc_indv_peak_props
 from waveanalysis.plotting import plot_indv_peak_props_workflow, plot_indv_acfs_workflow, plot_indv_ccfs_workflow, save_indv_ccfs_workflow, plot_mean_ACFs_workflow, plot_mean_prop_peaks_workflow, plot_mean_CCFs_workflow, save_mean_CCF_values_workflow, plot_rolling_mean_periods, plot_rolling_mean_shifts, plot_rolling_mean_peak_props
 from waveanalysis.summarize_organize_savize.add_stats_for_parameter import save_parameter_means_to_csv
+from waveanalysis.summarize_organize_savize.summarize_kymo_standard import organize_standard_kymo_measurements_for_file, summarize_standard_kymo_measurements_for_file
 
 
 
@@ -32,9 +31,9 @@ def standard_kymo_workflow(
     plot_summary_ACFs: bool,
     plot_summary_CCFs: bool,
     plot_summary_peaks: bool,
-    plot_ind_ACFs: bool,
-    plot_ind_CCFs: bool,
-    plot_ind_peaks: bool,
+    plot_indv_ACFs: bool,
+    plot_indv_CCFs: bool,
+    plot_indv_peaks: bool,
 ) -> pd.DataFrame:             
 
     # list of file names in specified directory
@@ -76,17 +75,8 @@ def standard_kymo_workflow(
             image_path = f'{folder_path}/{file_name}'
             if analysis_type == 'kymograph':
                 num_channels, total_columns, num_frames = get_kymo_image_properties(image_path=image_path, image=all_images[file_name])
-            else:
-                num_channels, num_frames = get_standard_image_properties(image_path=image_path)
 
-            # TODO: Set the parameters for the signal processor that were not set in the log parameters
-                
-            num_submovies = None # set to none for now, but will completely remove this parameter in the future
-            num_x_bins = None # set to none for now because kymo needs to be none
-            num_y_bins = None # set to none for now because kymo needs to be none
-
-            # Create the array for which all future processing will be based on
-            if analysis_type == 'kymograph':
+                # Create the array for which all future processing will be based on
                 bin_values, num_bins = create_array_from_kymo(
                                             line_width = line_width,
                                             total_columns = total_columns,
@@ -96,6 +86,9 @@ def standard_kymo_workflow(
                                             image = all_images[file_name]
                                         )
             else:
+                num_channels, num_frames = get_standard_image_properties(image_path=image_path)
+
+                # Create the array for which all future processing will be based on
                 bin_values, num_bins, num_x_bins, num_y_bins = create_array_from_standard_rolling(
                                                                     kernel_size = box_size, 
                                                                     step = box_shift, 
@@ -103,18 +96,12 @@ def standard_kymo_workflow(
                                                                     num_frames = num_frames, 
                                                                     image = all_images[file_name]
                                                                 )
-                
 
+            # TODO: remove the need to set these to None
+            num_submovies = None # set to none for now, but will completely remove this parameter in the future
+            num_x_bins = None # set to none for now because kymo needs to be none
+            num_y_bins = None # set to none for now because kymo needs to be none
 
-            processor = TotalSignalProcessor(analysis_type = analysis_type, 
-                                             image_path = f'{folder_path}/{file_name}',
-                                             image = all_images[file_name], 
-                                             kern = box_size, 
-                                             step = box_shift, 
-                                             roll_size = subframe_size, 
-                                             roll_by = subframe_roll, 
-                                             line_width = line_width)
-            
             # log error and skip image if frames < 2 
             if num_frames < 2:
                 print(f"****** ERROR ******",
@@ -153,7 +140,7 @@ def standard_kymo_workflow(
                 )
                 
             # calculate the individual peak properties for each channel
-            ind_peak_widths, ind_peak_maxs, ind_peak_mins, ind_peak_amps, ind_peak_rel_amps, ind_peak_props = calc_indv_peak_props(
+            indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_amps, indv_peak_rel_amps, indv_peak_props = calc_indv_peak_props(
                 num_channels=num_channels,
                 num_bins=num_bins,
                 bin_values=bin_values,
@@ -196,16 +183,18 @@ def standard_kymo_workflow(
             # plot the mean peak properties figures for the file
             if plot_summary_peaks:
                 mean_peak_plots = plot_mean_prop_peaks_workflow(
-                    indv_peak_mins=ind_peak_mins,
-                    indv_peak_maxs=ind_peak_maxs,
-                    indv_peak_amps=ind_peak_amps,
-                    indv_peak_widths=ind_peak_widths,
+                    indv_peak_mins=indv_peak_mins,
+                    indv_peak_maxs=indv_peak_maxs,
+                    indv_peak_amps=indv_peak_amps,
+                    indv_peak_widths=indv_peak_widths,
                     num_channels=num_channels
                 )
                 save_plots(mean_peak_plots, im_save_path)
 
             # plot the mean CCF figures for the file
-            if plot_summary_CCFs:
+            if plot_summary_CCFs and num_channels > 1:
+                if num_channels == 1:
+                    log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
                 mean_ccf_plots = plot_mean_CCFs_workflow(
                     signal=indv_ccfs,
                     shifts=indv_shifts,
@@ -223,15 +212,8 @@ def standard_kymo_workflow(
                 # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
             
             # plot the individual ACF figures for the file
-            if plot_ind_ACFs:
-                ind_acf_plots = processor.plot_indv_acfs()
-                ind_acf_path = os.path.join(im_save_path, 'Individual_ACF_plots')
-                check_and_make_save_path(ind_acf_path)
-                save_plots(ind_acf_plots, ind_acf_path)
-
-            # plot the individual peak properties figures for the file
-            if plot_ind_peaks:        
-                ind_peak_plots = plot_indv_peak_props_workflow(
+            if plot_indv_ACFs:
+                indv_acf_plots = plot_indv_acfs_workflow(
                     num_channels=num_channels,
                     num_bins=num_bins,
                     bin_values=bin_values,
@@ -240,16 +222,29 @@ def standard_kymo_workflow(
                     periods=indv_periods,
                     num_frames=num_frames
                 )
-                ind_peak_path = os.path.join(im_save_path, 'Individual_peak_plots')
-                check_and_make_save_path(ind_peak_path)
-                save_plots(ind_peak_plots, ind_peak_path)
+                indv_acf_path = os.path.join(im_save_path, 'Individual_ACF_plots')
+                check_and_make_save_path(indv_acf_path)
+                save_plots(indv_acf_plots, indv_acf_path)
+
+            # plot the individual peak properties figures for the file
+            if plot_indv_peaks:        
+                indv_peak_plots = plot_indv_peak_props_workflow(
+                    num_channels=num_channels,
+                    num_bins=num_bins,
+                    bin_values=bin_values,
+                    analysis_type=analysis_type,
+                    indv_peak_props=indv_peak_props
+                )
+                indv_peak_path = os.path.join(im_save_path, 'Individual_peak_plots')
+                check_and_make_save_path(indv_peak_path)
+                save_plots(indv_peak_plots, indv_peak_path)
                 
             # plot the individual CCF figures for the file
-            if plot_ind_CCFs and processor.num_channels > 1:
-                if processor.num_channels == 1:
+            if plot_indv_CCFs and num_channels > 1:
+                if num_channels == 1:
                     log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
 
-                ind_ccf_plots = plot_indv_ccfs_workflow(
+                indv_ccf_plots = plot_indv_ccfs_workflow(
                     num_bins=num_bins,
                     bin_values=bin_values,
                     analysis_type=analysis_type,
@@ -258,97 +253,56 @@ def standard_kymo_workflow(
                     indv_ccfs=indv_ccfs,
                     num_frames=num_frames
                 )
-                ind_ccf_plots_path = os.path.join(im_save_path, 'Individual_CCF_plots')
-                check_and_make_save_path(ind_ccf_plots_path)
-                save_plots(ind_ccf_plots, ind_ccf_plots_path)
+                indv_ccf_plots_path = os.path.join(im_save_path, 'Individual_CCF_plots')
+                check_and_make_save_path(indv_ccf_plots_path)
+                save_plots(indv_ccf_plots, indv_ccf_plots_path)
 
                 # save the individual CCF values for the file
-                ind_ccf_values = save_indv_ccfs_workflow(
+                indv_ccf_values = save_indv_ccfs_workflow(
                     indv_ccfs=indv_ccfs,
                     channel_combos=channel_combos,
                     bin_values=bin_values,
                     analysis_type=analysis_type,
                     num_bins=num_bins
                 )
-                ind_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')
-                check_and_make_save_path(ind_ccf_val_path)
-                save_values_to_csv(ind_ccf_values, ind_ccf_val_path, indv_ccfs_bool = True)
+                indv_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')
+                check_and_make_save_path(indv_ccf_val_path)
+                save_values_to_csv(indv_ccf_values, indv_ccf_val_path, indv_ccfs_bool = True)
                 # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
-
-            ##################################################################################
-                # TODO: DELETE THIS CODE BLOCK AFTER refactoring the summarize code
-
-            # calculate the population signal properties
-            processor.calc_indv_ACFs(peak_thresh = acf_peak_thresh)
-            processor.calc_indv_peak_props()
-            if processor.num_channels > 1:
-                processor.calc_indv_CCFs()
-
-            # create a subfolder within the main save path with the same name as the image file
-            im_save_path = os.path.join(main_save_path, name_wo_ext)
-            check_and_make_save_path(im_save_path)
-
-            # plot and save the mean autocorrelation, crosscorrelation, and peak properties for each channel
-            if plot_summary_ACFs:
-                mean_acf_plots = processor.plot_mean_ACF()
-                save_plots(mean_acf_plots, im_save_path)
-
-            if plot_summary_CCFs:
-                mean_ccf_plots = processor.plot_mean_CCF()
-                save_plots(mean_ccf_plots, im_save_path)
-
-                #save the mean CCF values to a csv file
-                mean_ccf_values = processor.save_mean_CCF_values()
-                save_values_to_csv(mean_ccf_values, im_save_path, indv_ccfs_bool = False)
-                # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
-
-
-            if plot_summary_peaks:
-                mean_peak_plots = processor.plot_mean_peak_props()
-                save_plots(mean_peak_plots, im_save_path)
-            
-            # plot and save the individual autocorrelation, crosscorrelation, and peak properties for each bin in channel
-            if plot_ind_peaks:        
-                ind_peak_plots = processor.plot_indv_peak_props()
-                ind_peak_path = os.path.join(im_save_path, 'Individual_peak_plots')
-                check_and_make_save_path(ind_peak_path)
-                save_plots(ind_peak_plots, ind_peak_path)
-                
-            if plot_ind_ACFs:
-                ind_acf_plots = processor.plot_indv_acfs()
-                ind_acf_path = os.path.join(im_save_path, 'Individual_ACF_plots')
-                check_and_make_save_path(ind_acf_path)
-                save_plots(ind_acf_plots, ind_acf_path)
-
-            if plot_ind_CCFs and processor.num_channels > 1:
-                if processor.num_channels == 1:
-                    log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
-
-                ind_ccf_plots = processor.plot_indv_ccfs()
-                ind_ccf_plots_path = os.path.join(im_save_path, 'Individual_CCF_plots')
-                check_and_make_save_path(ind_ccf_plots_path)
-                save_plots(ind_ccf_plots, ind_ccf_plots_path)
-
-                #save the indv CCF values to a csv file
-                ind_ccf_values = processor.save_indv_ccf_values()
-                ind_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')
-                check_and_make_save_path(ind_ccf_val_path)
-                save_values_to_csv(ind_ccf_values, ind_ccf_val_path, indv_ccfs_bool = True)
-                # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
-
-
-                # TODO: DELETE THIS CODE BLOCK AFTER refactoring the code below
-                ##################################################################################
 
                 
             # Summarize the data for current image as dataframe, and save as .csv
-            im_measurements_df = processor.organize_measurements()
+            im_measurements_df, periods_with_stats, shifts_with_stats, peak_widths_with_stats, peak_maxs_with_stats, peak_mins_with_stats, peak_amps_with_stats, peak_relamp_with_stats = organize_standard_kymo_measurements_for_file(
+                num_bins=num_bins,
+                num_channels=num_channels,
+                channel_combos=channel_combos,
+                indv_periods=indv_periods,
+                indv_shifts=indv_shifts,
+                indv_peak_widths=indv_peak_widths,
+                indv_peak_maxs=indv_peak_maxs,
+                indv_peak_mins=indv_peak_mins,
+                indv_peak_amps=indv_peak_amps,
+                indv_peak_rel_amps=indv_peak_rel_amps
+            )
             im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)  # type: ignore
 
             # generate summary data for current image
-            im_summary_dict = processor.summarize_image(
+            im_summary_dict = summarize_standard_kymo_measurements_for_file(
                 file_name=file_name, 
-                group_name=group_name
+                group_name=group_name,
+                num_bins=num_bins,
+                num_channels=num_channels,
+                channel_combos=channel_combos,
+                indv_periods=indv_periods,
+                periods_with_stats=periods_with_stats,
+                indv_shifts=indv_shifts,
+                shifts_with_stats=shifts_with_stats,
+                indv_peak_widths=indv_peak_widths,
+                peak_widths_with_stats=peak_widths_with_stats,
+                peak_maxs_with_stats=peak_maxs_with_stats,
+                peak_mins_with_stats=peak_mins_with_stats,
+                peak_amps_with_stats=peak_amps_with_stats,
+                peak_relamp_with_stats=peak_relamp_with_stats
                 )
 
             # populate column headers list with keys from the measurements dictionary
