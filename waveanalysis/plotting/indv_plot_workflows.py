@@ -24,7 +24,7 @@ def plot_indv_peak_props_workflow(
         for channel in range(num_channels):
             for bin in range(num_bins):
                 pbar.update(1)
-                to_plot = bin_values[:,channel, bin] if analysis_type == "standard" else bin_values[channel,bin, :]
+                to_plot = bin_values[:,channel, bin] if analysis_type == "standard" else bin_values[channel,bin]
                 # Generate and store the figure for the current channel and bin
                 indv_peak_figs[f'Ch{channel + 1} Bin {bin + 1} Peak Props'] = return_indv_peak_prop_figure(
                     bin_signal=to_plot,
@@ -54,7 +54,7 @@ def plot_indv_acfs_workflow(
             for channel in range(num_channels):
                 for bin in range(num_bins):
                     pbar.update(1) 
-                    to_plot = bin_values[:,channel, bin] if analysis_type == "standard" else bin_values[channel,bin, :]
+                    to_plot = bin_values[:,channel, bin] if analysis_type == "standard" else bin_values[channel,bin]
                     # Generate and store the figure for the current channel and bin
                     indv_acf_plots[f'Ch{channel + 1} Bin {bin + 1} ACF'] = return_indv_acf_figure(
                         raw_signal=to_plot, 
@@ -85,8 +85,8 @@ def plot_indv_ccfs_workflow(
         for combo_number, combo in enumerate(channel_combos):
             for bin in range(num_bins):
                 pbar.update(1)
-                to_plot1 = bin_values[:, combo[0], bin] if analysis_type == "standard" else bin_values[combo[0], bin, :]
-                to_plot2 = bin_values[:, combo[1], bin] if analysis_type == "standard" else bin_values[combo[1], bin, :]
+                to_plot1 = bin_values[:, combo[0], bin] if analysis_type == "standard" else bin_values[combo[0], bin]
+                to_plot2 = bin_values[:, combo[1], bin] if analysis_type == "standard" else bin_values[combo[1], bin]
                 # Generate and store the figure for the current channel combination and bin
                 indv_ccf_plots[f'Ch{combo[0]}-Ch{combo[1]} Bin {bin + 1} CCF'] = return_indv_ccf_figure(
                     ch1 = normalize_signal(to_plot1),
@@ -114,8 +114,8 @@ def save_indv_ccfs_workflow(
     for combo_number, combo in enumerate(channel_combos):
         for bin in range(num_bins):      
             # Save the individual bin values
-            to_plot1 = bin_values[:, combo[0], bin] if analysis_type == "standard" else bin_values[combo[0], bin, :]
-            to_plot2 = bin_values[:, combo[1], bin] if analysis_type == "standard" else bin_values[combo[1], bin, :]
+            to_plot1 = bin_values[:, combo[0], bin] if analysis_type == "standard" else bin_values[combo[0], bin]
+            to_plot2 = bin_values[:, combo[1], bin] if analysis_type == "standard" else bin_values[combo[1], bin]
             ccf_curve = indv_ccfs[combo_number, bin]
             measurements = list(zip_longest(range(1, len(ccf_curve) + 1),  normalize_signal(to_plot1), normalize_signal(to_plot2), ccf_curve, fillvalue=None))
 

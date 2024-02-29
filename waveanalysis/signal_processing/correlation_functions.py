@@ -37,7 +37,7 @@ def calc_indv_ACFs_periods(num_channels: int,
     if analysis_type != "rolling":
         for channel in range(num_channels):
             for bin in range(num_bins):
-                signal = bin_values[:, channel, bin] if analysis_type == "standard" else bin_values[channel, bin, :]
+                signal = bin_values[:, channel, bin] if analysis_type == "standard" else bin_values[channel, bin]
 
                 corr_signal = signal - np.mean(signal)
                 acf_curve = np.correlate(corr_signal, corr_signal, mode='full')

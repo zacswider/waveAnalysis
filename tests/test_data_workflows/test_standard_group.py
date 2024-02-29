@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from waveanalysis.data_workflows.standard_kymo_workflow import standard_kymo_workflow
+from waveanalysis.data_workflows.standard_workflow import standard_workflow
 
 @pytest.fixture
 def default_log_params():
@@ -28,16 +28,13 @@ def test_standard(default_log_params):
     # load csv
     known_results = pd.read_csv('tests/assets/standard/standard_known_results.csv')
     assert isinstance(known_results, pd.DataFrame)
-    exp_results = standard_kymo_workflow(
+    exp_results = standard_workflow(
         folder_path=str(Path('tests/assets/standard/')),
         group_names=['Group1','Group2'],
         log_params=default_log_params,
         analysis_type='standard',
         box_size=default_log_params['Box Size(px)'],
         box_shift=default_log_params['Box Shift(px)'],
-        subframe_size=np.nan,       # type: ignore ; not part of standard analysis
-        subframe_roll=np.nan,       # type: ignore ;not part of standard analysis
-        line_width=np.nan,          # type: ignore ;not part of standard analysis
         acf_peak_thresh=default_log_params['ACF Peak Prominence'],
         plot_summary_ACFs=default_log_params['Plot Summary ACFs'],
         plot_summary_CCFs=default_log_params['Plot Summary CCFs'],

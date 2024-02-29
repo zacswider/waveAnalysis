@@ -7,7 +7,7 @@ from typing import Any
 
 from waveanalysis.housekeeping.housekeeping_functions import make_log, check_and_make_save_path, save_plots
 from waveanalysis.image_properties_signal.convert_images import convert_movies  
-from waveanalysis.image_properties_signal.image_properties import get_rolling_image_properties
+from waveanalysis.image_properties_signal.image_properties import get_image_properties
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling
 from waveanalysis.signal_processing import calc_indv_ACFs_periods, calc_indv_CCFs_shifts_channelCombos, calc_indv_peak_props
 from waveanalysis.plotting import plot_rolling_summary
@@ -19,8 +19,8 @@ def rolling_workflow(
     analysis_type: str,
     box_size: int,
     box_shift: int,
-    subframe_size: int,
-    subframe_roll: int,
+    roll_size: int,
+    roll_by: int,
     acf_peak_thresh: float
 ) -> pd.DataFrame:             
 
@@ -49,8 +49,12 @@ def rolling_workflow(
             print('******'*10)
             print(f'Processing {file_name}...')
 
+            # Get image properties
             image_path = f'{folder_path}/{file_name}'
-            num_channels, num_frames, num_submovies = get_rolling_image_properties(image_path=image_path, roll_size=subframe_size, roll_by=subframe_roll)
+            num_channels, num_frames = get_image_properties(image_path=image_path)
+            assert isinstance(roll_size, int) and isinstance(roll_by, int), 'Roll size and roll by must be integers'
+            num_submovies = (num_frames - roll_size) // roll_by
+            
             # Create the array for which all future processing will be based on
             bin_values, num_bins, num_x_bins, num_y_bins = create_array_from_standard_rolling(
                                                                 kernel_size = box_size, 
@@ -81,8 +85,8 @@ def rolling_workflow(
                 num_frames=num_frames, 
                 bin_values=bin_values, 
                 analysis_type=analysis_type, 
-                roll_size=subframe_size, 
-                roll_by=subframe_roll, 
+                roll_size=roll_size, 
+                roll_by=roll_by, 
                 num_submovies=num_submovies, 
                 num_x_bins=num_x_bins, 
                 num_y_bins=num_y_bins, 
@@ -96,8 +100,8 @@ def rolling_workflow(
                 bin_values=bin_values,
                 analysis_type=analysis_type,
                 num_submovies=num_submovies,
-                roll_by=subframe_roll,
-                roll_size=subframe_size,
+                roll_by=roll_by,
+                roll_size=roll_size,
                 num_x_bins=num_x_bins,
                 num_y_bins=num_y_bins
             )
@@ -110,8 +114,8 @@ def rolling_workflow(
                     num_frames=num_frames,
                     bin_values=bin_values,
                     analysis_type=analysis_type,
-                    roll_size=subframe_size,
-                    roll_by=subframe_roll,
+                    roll_size=roll_size,
+                    roll_by=roll_by,
                     num_submovies=num_submovies,
                     periods=indv_periods
                 )
