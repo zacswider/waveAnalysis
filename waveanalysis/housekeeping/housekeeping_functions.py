@@ -23,44 +23,31 @@ def make_log(
         logFile.write('%s: %s\n' % (key, value))                    
     logFile.close()           
 
+# TODO: move this to the plotting module
 def generate_group_comparison(
-    main_save_path: str,
-    processor: object,
     summary_df: pd.DataFrame,
     log_params: dict
 ):
     print('Generating group comparisons...')
-    # make a group comparisons save path in the main save directory
-    group_save_path = os.path.join(main_save_path, "!groupComparisons")
-    if not os.path.exists(group_save_path):
-        os.makedirs(group_save_path)
     
-    # make a list of parameters to compare
-    stats_to_compare = ['Mean']
-    channels_to_compare = [f'Ch {i+1}' for i in range(processor.num_channels)]
-    measurements_to_compare = ['Period', 'Shift', 'Peak Width', 'Peak Max', 'Peak Min', 'Peak Amp', 'Peak Rel Amp']
-    params_to_compare = []
-    for channel in channels_to_compare:
-        for stat in stats_to_compare:
-            for measurement in measurements_to_compare:
-                params_to_compare.append(f'{channel} {stat} {measurement}')
-
-    # will compare the shifts if multichannel movie
-    if hasattr(processor, 'channel_combos'):
-        shifts_to_compare = [f'Ch{combo[0]+1}-Ch{combo[1]+1} Mean Shift' for combo in processor.channel_combos]
-        params_to_compare.extend(shifts_to_compare)
+    mean_parameter_figs = {}
+    parameters_to_compare = [column for column in summary_df.columns if 'Mean' in column]
 
     # generate and save figures for each parameter
-    for param in params_to_compare:
+    for param in parameters_to_compare:
         try:
             ax = sns.boxplot(x='Group Name', y=param, data=summary_df, palette = "Set2", showfliers = False)
             ax = sns.swarmplot(x='Group Name', y=param, data=summary_df, color=".25")	
             ax.set_xticklabels(ax.get_xticklabels(),rotation=45)
             fig = ax.get_figure()
-            fig.savefig(f'{group_save_path}/{param}.png')  # type: ignore
+            
+            mean_parameter_figs[param] = fig
             plt.close(fig)
+
         except ValueError:
             log_params['Plotting errors'].append(f'No data to compare for {param}')
+
+    return mean_parameter_figs
 
 def group_name_error_check(
     file_names: list,
@@ -103,6 +90,7 @@ def save_plots(dict_of_plots: dict, save_path: str):
     for plot_name, plot in dict_of_plots.items():
         plot.savefig(f'{save_path}/{plot_name}.png')
 
+# TODO: move this to the saving module
 def save_values_to_csv(
     values: dict, 
     path: str,

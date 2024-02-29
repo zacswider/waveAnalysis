@@ -381,15 +381,16 @@ def standard_kymo_workflow(
         summary_df = summary_df.sort_values('File Name', ascending=True)
         summary_df.to_csv(f"{main_save_path}/!{now.strftime('%Y%m%d%H%M')}_summary.csv", index = False)
 
-        # if group names were entered into the gui, generate comparisons between each group
         if group_names != ['']:
-            generate_group_comparison(
-                main_save_path = main_save_path, 
-                processor = processor, 
+            # generate comparisons between each group
+            mean_parameter_figs = generate_group_comparison(
                 summary_df = summary_df, 
                 log_params = log_params
                 )
-            
+            group_plots_save_path = os.path.join(main_save_path, "!group_comparison_graphs")
+            check_and_make_save_path(group_plots_save_path)
+            save_plots(mean_parameter_figs, group_plots_save_path)
+
             # save the means each parameter for the attributes to make them easier to work with in prism
             parameter_tables_dict = save_parameter_means_to_csv(
                 summary_df=summary_df,
