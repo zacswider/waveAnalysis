@@ -56,10 +56,6 @@ def group_name_error_check(
             "\n****** ERROR ******")
         sys.exit()
 
-def check_and_make_save_path(path=str):
-    if not os.path.exists(path):
-        os.makedirs(path)
-
 def save_plots(dict_of_plots: dict, save_path: str):
     for plot_name, plot in dict_of_plots.items():
         plot.savefig(f'{save_path}/{plot_name}.png')

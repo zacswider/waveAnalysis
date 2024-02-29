@@ -5,13 +5,13 @@ import pandas as pd
 from tqdm import tqdm
 from typing import Any
 
-from waveanalysis.housekeeping.housekeeping_functions import make_log, check_and_make_save_path, save_plots
+from waveanalysis.plotting import plot_rolling_summary
 from waveanalysis.image_properties_signal.convert_images import convert_movies  
+from waveanalysis.housekeeping.housekeeping_functions import make_log, save_plots
 from waveanalysis.image_properties_signal.image_properties import get_image_properties
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling
-from waveanalysis.signal_processing import calc_indv_ACFs_periods, calc_indv_CCFs_shifts_channelCombos, calc_indv_peak_props
-from waveanalysis.plotting import plot_rolling_summary
 from waveanalysis.summarize_organize_savize.summarize_rolling import summarize_rolling_file, organize_submovie_measurements
+from waveanalysis.signal_processing import calc_indv_ACFs_periods, calc_indv_CCFs_shifts_channelCombos, calc_indv_peak_props
 
 def rolling_workflow(
     folder_path: str,
@@ -33,7 +33,7 @@ def rolling_workflow(
     # create main save path
     now = datetime.datetime.now()
     main_save_path = os.path.join(folder_path, f"0_signalProcessing-{now.strftime('%Y%m%d%H%M')}")
-    check_and_make_save_path(main_save_path)
+    os.makedirs(main_save_path, exist_ok=True)
 
 
     # list of file names in specified directory
@@ -122,7 +122,7 @@ def rolling_workflow(
 
             # create a subfolder within the main save path with the same name as the image file
             im_save_path = os.path.join(main_save_path, name_wo_ext)
-            check_and_make_save_path(im_save_path)
+            os.makedirs(im_save_path, exist_ok=True)
 
             # calculate the number of subframes used
             log_params['Submovies Used'].append(num_submovies)
@@ -142,7 +142,7 @@ def rolling_workflow(
                 channel_combos=channel_combos
             )
             csv_save_path = os.path.join(im_save_path, 'rolling_measurements')
-            check_and_make_save_path(csv_save_path)
+            os.makedirs(csv_save_path, exist_ok=True)
             for measurement_index, submovie_meas_df in enumerate(submovie_meas_list):  # type: ignore
                 submovie_meas_df.to_csv(f'{csv_save_path}/{name_wo_ext}_subframe{measurement_index}_measurements.csv', index = False)
             
@@ -169,7 +169,7 @@ def rolling_workflow(
                 channel_combos=channel_combos
             )
             plot_save_path = os.path.join(im_save_path, 'summary_plots')
-            check_and_make_save_path(plot_save_path)
+            os.makedirs(plot_save_path, exist_ok=True)
             save_plots(summary_plots, plot_save_path)
 
             end = timeit.default_timer()

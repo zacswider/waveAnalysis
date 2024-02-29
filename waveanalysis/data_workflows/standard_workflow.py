@@ -5,17 +5,30 @@ import pandas as pd
 from tqdm import tqdm
 from typing import Any
 
-# TODO: import these functions "as ____" to avoid importing so many functions
 import waveanalysis.housekeeping.housekeeping_functions as hf 
-from waveanalysis.image_properties_signal.convert_images import convert_movies  
+
+from waveanalysis.image_properties_signal.convert_images import convert_movies 
 from waveanalysis.image_properties_signal.image_properties import get_image_properties
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling
-from waveanalysis.signal_processing import calc_indv_ACFs_periods, calc_indv_CCFs_shifts_channelCombos, calc_indv_peak_props
-from waveanalysis.plotting import plot_indv_peak_props_workflow, plot_indv_acfs_workflow, plot_indv_ccfs_workflow, save_indv_ccfs_workflow, plot_mean_ACFs_workflow, plot_mean_prop_peaks_workflow, plot_mean_CCFs_workflow, save_mean_CCF_values_workflow, generate_group_comparison
 from waveanalysis.summarize_organize_savize.add_stats_for_parameter import save_parameter_means_to_csv
-from waveanalysis.summarize_organize_savize.summarize_kymo_standard import organize_standard_kymo_measurements_for_file, summarize_standard_kymo_measurements_for_file
 
-
+from waveanalysis.signal_processing import (
+    calc_indv_ACFs_periods, 
+    calc_indv_CCFs_shifts_channelCombos, 
+    calc_indv_peak_props)
+from waveanalysis.plotting import (
+    plot_indv_peak_props_workflow, 
+    plot_indv_acfs_workflow, 
+    plot_indv_ccfs_workflow, 
+    save_indv_ccfs_workflow, 
+    plot_mean_ACFs_workflow, 
+    plot_mean_prop_peaks_workflow, 
+    plot_mean_CCFs_workflow, 
+    save_mean_CCF_values_workflow, 
+    generate_group_comparison)
+from waveanalysis.summarize_organize_savize.summarize_kymo_standard import (
+    organize_standard_kymo_measurements_for_file, 
+    summarize_standard_kymo_measurements_for_file)
 
 def standard_workflow(
     folder_path: str,
@@ -47,7 +60,7 @@ def standard_workflow(
     # create main save path
     now = datetime.datetime.now()
     main_save_path = os.path.join(folder_path, f"0_signalProcessing-{now.strftime('%Y%m%d%H%M')}")
-    hf.check_and_make_save_path(main_save_path)
+    hf.os.makedirs(main_save_path, exist_ok=True)
 
     # empty list to fill with summary data for each file
     summary_list = []
@@ -144,7 +157,7 @@ def standard_workflow(
 
             # The code snippet above creates a subfolder within the main save path with the same name as the image file. Will store all associated files in this subfolder
             im_save_path = os.path.join(main_save_path, name_wo_ext)
-            hf.check_and_make_save_path(im_save_path)
+            hf.os.makedirs(im_save_path, exist_ok=True)
 
             # plot the mean ACF figures for the file
             if plot_summary_ACFs:
@@ -199,7 +212,7 @@ def standard_workflow(
                     num_frames=num_frames
                 )
                 indv_acf_path = os.path.join(im_save_path, 'Individual_ACF_plots')
-                hf.check_and_make_save_path(indv_acf_path)
+                hf.os.makedirs(indv_acf_path, exist_ok=True)
                 hf.save_plots(indv_acf_plots, indv_acf_path)
 
             # plot the individual peak properties figures for the file
@@ -212,7 +225,7 @@ def standard_workflow(
                     indv_peak_props=indv_peak_props
                 )
                 indv_peak_path = os.path.join(im_save_path, 'Individual_peak_plots')
-                hf.check_and_make_save_path(indv_peak_path)
+                hf.os.makedirs(indv_peak_path, exist_ok=True)
                 hf.save_plots(indv_peak_plots, indv_peak_path)
                 
             # plot the individual CCF figures for the file
@@ -230,7 +243,7 @@ def standard_workflow(
                     num_frames=num_frames
                 )
                 indv_ccf_plots_path = os.path.join(im_save_path, 'Individual_CCF_plots')
-                hf.check_and_make_save_path(indv_ccf_plots_path)
+                hf.os.makedirs(indv_ccf_plots_path, exist_ok=True)
                 hf.save_plots(indv_ccf_plots, indv_ccf_plots_path)
 
                 # save the individual CCF values for the file
@@ -242,7 +255,7 @@ def standard_workflow(
                     num_bins=num_bins
                 )
                 indv_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')
-                hf.check_and_make_save_path(indv_ccf_val_path)
+                hf.os.makedirs(indv_ccf_val_path, exist_ok=True)
                 hf.save_values_to_csv(indv_ccf_values, indv_ccf_val_path, indv_ccfs_bool = True)
                 # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
 
@@ -307,14 +320,14 @@ def standard_workflow(
             mean_parameter_figs = generate_group_comparison(summary_df = summary_df, 
                                                             log_params = log_params)
             group_plots_save_path = os.path.join(main_save_path, "!group_comparison_graphs")
-            hf.check_and_make_save_path(group_plots_save_path)
+            hf.os.makedirs(group_plots_save_path, exist_ok=True)
             hf.save_plots(mean_parameter_figs, group_plots_save_path)
 
             # save the means each parameter for the attributes to make them easier to work with in prism
             parameter_tables_dict = save_parameter_means_to_csv(summary_df=summary_df,
                                                                 group_names=group_names)
             mean_measurements_save_path = os.path.join(main_save_path, "!mean_parameter_measurements")
-            hf.check_and_make_save_path(mean_measurements_save_path)
+            hf.os.makedirs(mean_measurements_save_path, exist_ok=True)
             for filename, table in parameter_tables_dict.items():
                 table.to_csv(f"{mean_measurements_save_path}/{filename}", index = False)
 
