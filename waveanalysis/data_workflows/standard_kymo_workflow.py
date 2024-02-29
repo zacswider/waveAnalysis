@@ -14,7 +14,7 @@ from waveanalysis.image_properties_signal.create_np_arrays import create_array_f
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling, create_array_from_kymo  
 from waveanalysis.signal_processing import calc_indv_ACFs_periods, calc_indv_CCFs_shifts_channelCombos, calc_indv_peak_props
 from waveanalysis.plotting import plot_indv_peak_props_workflow, plot_indv_acfs_workflow, plot_indv_ccfs_workflow, save_indv_ccfs_workflow, plot_mean_ACFs_workflow, plot_mean_prop_peaks_workflow, plot_mean_CCFs_workflow, save_mean_CCF_values_workflow, plot_rolling_mean_periods, plot_rolling_mean_shifts, plot_rolling_mean_peak_props
-
+from waveanalysis.summarize_organize_savize.add_stats_for_parameter import save_parameter_means_to_csv
 
 
 
@@ -231,7 +231,7 @@ def standard_kymo_workflow(
 
             # plot the individual peak properties figures for the file
             if plot_ind_peaks:        
-                ind_peak_plots = plot_indv_acfs_workflow(
+                ind_peak_plots = plot_indv_peak_props_workflow(
                     num_channels=num_channels,
                     num_bins=num_bins,
                     bin_values=bin_values,
@@ -355,7 +355,10 @@ def standard_kymo_workflow(
             im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)  # type: ignore
 
             # generate summary data for current image
-            im_summary_dict = processor.summarize_image(file_name = file_name, group_name = group_name)
+            im_summary_dict = processor.summarize_image(
+                file_name=file_name, 
+                group_name=group_name
+                )
 
             # populate column headers list with keys from the measurements dictionary
             for key in im_summary_dict.keys(): 
@@ -373,23 +376,36 @@ def standard_kymo_workflow(
 
             pbar.update(1)
 
-        # create dataframe from summary list
+        # create dataframe from summary list, then sort and save the summary to a csv file
         summary_df = pd.DataFrame(summary_list, columns=col_headers)
-
-        # sort and save the summary csv file
         summary_df = summary_df.sort_values('File Name', ascending=True)
         summary_df.to_csv(f"{main_save_path}/!{now.strftime('%Y%m%d%H%M')}_summary.csv", index = False)
 
         # if group names were entered into the gui, generate comparisons between each group
         if group_names != ['']:
-            generate_group_comparison(main_save_path = main_save_path, processor = processor, summary_df = summary_df, log_params = log_params)
+            generate_group_comparison(
+                main_save_path = main_save_path, 
+                processor = processor, 
+                summary_df = summary_df, 
+                log_params = log_params
+                )
             
             # save the means each parameter for the attributes to make them easier to work with in prism
-            processor.save_parameter_means_to_csv(main_save_path, group_names, summary_df)
+            parameter_tables_dict = save_parameter_means_to_csv(
+                summary_df=summary_df,
+                group_names=group_names
+                )
+            
+            mean_measurements_save_path = os.path.join(main_save_path, "!mean_parameter_measurements")
+            check_and_make_save_path(mean_measurements_save_path)
+            for filename, table in parameter_tables_dict.items():
+                table.to_csv(f"{mean_measurements_save_path}/{filename}", index = False)
 
+        # performance tracker end
         end = timeit.default_timer()
-        log_params["Time Elapsed"] = f"{end - start:.2f} seconds"
+
         # log parameters and errors
+        log_params["Time Elapsed"] = f"{end - start:.2f} seconds"
         make_log(main_save_path, log_params)
 
-        return summary_df
+        return summary_df # only here for testing for now

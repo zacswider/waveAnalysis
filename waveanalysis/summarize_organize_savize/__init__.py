@@ -1,5 +1,5 @@
-from add_stats_for_parameter import add_stats_for_parameter
+from .add_stats_for_parameter import save_parameter_means_to_csv
 
 __all__ = [
-    'add_stats_for_parameter'
+    'save_parameter_means_to_csv'
     ]
