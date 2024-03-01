@@ -6,10 +6,10 @@ from tqdm import tqdm
 from typing import Any
 
 import waveanalysis.signal_processing as sp
+import waveanalysis.housekeeping.housekeeping_functions as hf
 
 from waveanalysis.plotting import plot_rolling_summary
 from waveanalysis.image_properties_signal.convert_images import convert_movies  
-from waveanalysis.housekeeping.housekeeping_functions import make_log, save_plots
 from waveanalysis.image_properties_signal.image_properties import get_image_properties
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling
 from waveanalysis.summarize_organize_savize.summarize_rolling import summarize_rolling_file, organize_submovie_measurements
@@ -104,10 +104,12 @@ def rolling_workflow(
                 num_y_bins=num_y_bins
             )
 
+            channel_combos = hf.get_channel_combos(num_channels=num_channels)
+
             # calculate the individual CCFs for each channel
             if num_channels > 1:
-                indv_shifts, indv_ccfs, channel_combos = sp.calc_indv_CCFs_shifts_channelCombos(
-                    num_channels=num_channels,
+                indv_shifts, indv_ccfs = sp.calc_indv_CCFs_shifts_channelCombos(
+                    channel_combos = channel_combos,
                     num_bins=num_bins,
                     num_frames=num_frames,
                     bin_values=bin_values,
@@ -168,12 +170,12 @@ def rolling_workflow(
             )
             plot_save_path = os.path.join(im_save_path, 'summary_plots')
             os.makedirs(plot_save_path, exist_ok=True)
-            save_plots(summary_plots, plot_save_path)
+            hf.save_plots(summary_plots, plot_save_path)
 
             end = timeit.default_timer()
             log_params["Time Elapsed"] = f"{end - start:.2f} seconds"
             # log parameters and errors
-            make_log(main_save_path, log_params)
+            hf.make_log(main_save_path, log_params)
 
             pbar.update(1)
 

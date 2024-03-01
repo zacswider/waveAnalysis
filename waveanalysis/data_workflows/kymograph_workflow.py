@@ -139,10 +139,12 @@ def kymograph_workflow(
                 num_y_bins=num_y_bins
             )
 
+            channel_combos = hf.get_channel_combos(num_channels=num_channels)
+
             # calculate the individual CCFs for each channel
             if num_channels > 1:
-                indv_shifts, indv_ccfs, channel_combos = sp.calc_indv_CCFs_shifts_channelCombos(
-                    num_channels=num_channels,
+                indv_shifts, indv_ccfs = sp.calc_indv_CCFs_shifts_channelCombos(
+                    channel_combos=channel_combos,
                     num_bins=num_bins,
                     num_frames=num_frames,
                     bin_values=bin_values,

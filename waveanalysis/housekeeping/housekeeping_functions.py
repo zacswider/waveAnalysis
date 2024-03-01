@@ -97,3 +97,12 @@ def save_values_to_csv(
                 writer.writerow(['Time', 'Mean', 'StDev'])
                 for time, mean, stdev in measurements:
                     writer.writerow([time, mean, stdev])         
+
+def get_channel_combos(num_channels: int):
+    channels = list(range(num_channels))
+    channel_combos = []
+    for i in range(num_channels):
+        for j in channels[i+1:]:
+            channel_combos.append([channels[i],j])
+
+    return channel_combos

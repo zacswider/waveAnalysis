@@ -3,7 +3,6 @@ import numpy as np
 from scipy import signal as sig
 
 # TODO: combine the rolling, standard, and kymograph analysis into one function
-# TODO: likely will need to make separate functions for the different types of analysis
 
 def calc_indv_standard_kymo_ACFs_periods(
                            num_channels: int,
@@ -22,23 +21,23 @@ def calc_indv_standard_kymo_ACFs_periods(
         for bin in range(num_bins):
             signal = bin_values[:, channel, bin] if analysis_type == "standard" else bin_values[channel, bin]
 
+            # calc autocorrelation and normalize
             corr_signal = signal - np.mean(signal)
             acf_curve = np.correlate(corr_signal, corr_signal, mode='full')
-            # Normalize the autocorrelation curve
             acf_curve = acf_curve / (num_frames * np.std(signal) ** 2)
-            # Find peaks in the autocorrelation curve
+
+            # Find peaks in the autocorrelation curve, Calculate absolute differences between peaks and center
             peaks, _ = sig.find_peaks(acf_curve, prominence=peak_thresh)
-            # Calculate absolute differences between peaks and center
             peaks_abs = np.abs(peaks - acf_curve.shape[0] // 2)
-            # If peaks are identified, pick the closest one to the center
+
+            # If peaks are identified, pick the closest one to the center as the period
             if len(peaks) > 1:
-                delay = np.min(peaks_abs[np.nonzero(peaks_abs)])
+                period = np.min(peaks_abs[np.nonzero(peaks_abs)])
             else:
-                # Otherwise, return NaNs for both delay and autocorrelation curve
-                delay = np.nan
+                period = np.nan
                 acf_curve = np.full((num_frames * 2 - 1), np.nan)
 
-            periods[channel, bin] = delay
+            periods[channel, bin] = period
             acfs[channel, bin] = acf_curve
                         
     return acfs, periods
@@ -104,7 +103,7 @@ def calc_indv_rolling_ACFs_periods(
 
 
 def calc_indv_CCFs_shifts_channelCombos(
-    num_channels: int,
+    channel_combos: list,
     num_bins: int,
     num_frames: int,
     bin_values: np.ndarray,
@@ -123,15 +122,8 @@ def calc_indv_CCFs_shifts_channelCombos(
         - indv_ccfs (numpy.ndarray): Array of cross-correlation functions.
         - channel_combos (list): List of channel combinations.
     """
-    
-    # Initialize arrays to store shifts and cross-correlation curves
-    channels = list(range(num_channels))
-    channel_combos = []
-    for i in range(num_channels):
-        for j in channels[i+1:]:
-            channel_combos.append([channels[i],j])
     num_combos = len(channel_combos)
-
+    
     # Initialize arrays to store shifts and cross-correlation curves
     indv_shifts = np.zeros(shape=(num_combos, num_bins))
     indv_ccfs = np.zeros(shape=(num_combos, num_bins, num_frames*2-1))
@@ -240,4 +232,4 @@ def calc_indv_CCFs_shifts_channelCombos(
                         indv_shifts[submovie, combo_number, bin] = delay_frames
                         indv_ccfs[submovie, combo_number, bin] = cc_curve
 
-    return indv_shifts, indv_ccfs, channel_combos
+    return indv_shifts, indv_ccfs
