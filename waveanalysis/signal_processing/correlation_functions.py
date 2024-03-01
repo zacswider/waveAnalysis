@@ -5,11 +5,48 @@ from scipy import signal as sig
 # TODO: combine the rolling, standard, and kymograph analysis into one function
 # TODO: likely will need to make separate functions for the different types of analysis
 
-def calc_indv_ACFs_periods(num_channels: int,
+def calc_indv_standard_kymo_ACFs_periods(
+                           num_channels: int,
                            num_bins: int,
                            num_frames: int,
                            bin_values: np.ndarray,
                            analysis_type: str,
+                           peak_thresh: float = 0.1
+) -> (np.ndarray, np.ndarray):
+    # Initialize arrays to store period measurements and autocorrelation curves
+    periods = np.zeros(shape=(num_channels, num_bins))
+    acfs = np.zeros(shape=(num_channels, num_bins, num_frames * 2 - 1))
+
+# Loop through channels and bins for standard or kymograph analysis
+    for channel in range(num_channels):
+        for bin in range(num_bins):
+            signal = bin_values[:, channel, bin] if analysis_type == "standard" else bin_values[channel, bin]
+
+            corr_signal = signal - np.mean(signal)
+            acf_curve = np.correlate(corr_signal, corr_signal, mode='full')
+            # Normalize the autocorrelation curve
+            acf_curve = acf_curve / (num_frames * np.std(signal) ** 2)
+            # Find peaks in the autocorrelation curve
+            peaks, _ = sig.find_peaks(acf_curve, prominence=peak_thresh)
+            # Calculate absolute differences between peaks and center
+            peaks_abs = np.abs(peaks - acf_curve.shape[0] // 2)
+            # If peaks are identified, pick the closest one to the center
+            if len(peaks) > 1:
+                delay = np.min(peaks_abs[np.nonzero(peaks_abs)])
+            else:
+                # Otherwise, return NaNs for both delay and autocorrelation curve
+                delay = np.nan
+                acf_curve = np.full((num_frames * 2 - 1), np.nan)
+
+            periods[channel, bin] = delay
+            acfs[channel, bin] = acf_curve
+                        
+    return acfs, periods
+
+def calc_indv_rolling_ACFs_periods(
+                           num_channels: int,
+                           num_bins: int,
+                           bin_values: np.ndarray,
                            roll_size: int,
                            roll_by: int,
                            num_submovies: int,
@@ -30,67 +67,39 @@ def calc_indv_ACFs_periods(num_channels: int,
     """
     
     # Initialize arrays to store period measurements and autocorrelation curves
-    periods = np.zeros(shape=(num_channels, num_bins))
-    acfs = np.zeros(shape=(num_channels, num_bins, num_frames * 2 - 1))
 
-    # Loop through channels and bins for standard or kymograph analysis
-    if analysis_type != "rolling":
-        for channel in range(num_channels):
-            for bin in range(num_bins):
-                signal = bin_values[:, channel, bin] if analysis_type == "standard" else bin_values[channel, bin]
+    periods = np.zeros(shape=(num_submovies, num_channels, num_bins))
+    acfs = np.zeros(shape=(num_submovies, num_channels, num_bins, roll_size * 2 - 1))
+    # Loop through submovies, channels, and bins
+    its = num_submovies*num_channels*num_x_bins*num_y_bins
+    with tqdm(total = its, miniters=its/100) as pbar:
+        pbar.set_description( 'Periods: ')
+        for submovie in range(num_submovies):
+            for channel in range(num_channels):
+                for bin in range(num_bins):
+                    pbar.update(1)
+                    # Extract signal for rolling autocorrelation calculation
+                    signal = bin_values[roll_by * submovie: roll_size + roll_by * submovie, channel, bin]
 
-                corr_signal = signal - np.mean(signal)
-                acf_curve = np.correlate(corr_signal, corr_signal, mode='full')
-                # Normalize the autocorrelation curve
-                acf_curve = acf_curve / (num_frames * np.std(signal) ** 2)
-                # Find peaks in the autocorrelation curve
-                peaks, _ = sig.find_peaks(acf_curve, prominence=peak_thresh)
-                # Calculate absolute differences between peaks and center
-                peaks_abs = np.abs(peaks - acf_curve.shape[0] // 2)
-                # If peaks are identified, pick the closest one to the center
-                if len(peaks) > 1:
-                    delay = np.min(peaks_abs[np.nonzero(peaks_abs)])
-                else:
-                    # Otherwise, return NaNs for both delay and autocorrelation curve
-                    delay = np.nan
-                    acf_curve = np.full((num_frames * 2 - 1), np.nan)
+                    corr_signal = signal - np.mean(signal)
+                    acf_curve = np.correlate(corr_signal, corr_signal, mode='full')
+                    # Normalize the autocorrelation curve
+                    acf_curve = acf_curve / (roll_size * np.std(signal) ** 2)
+                    # Find peaks in the autocorrelation curve
+                    peaks, _ = sig.find_peaks(acf_curve, prominence=peak_thresh)
+                    # Calculate absolute differences between peaks and center
+                    peaks_abs = np.abs(peaks - acf_curve.shape[0] // 2)
+                    # If peaks are identified, pick the closest one to the center
+                    if len(peaks) > 1:
+                        delay = np.min(peaks_abs[np.nonzero(peaks_abs)])
+                    else:
+                        # Otherwise, return NaNs for both delay and autocorrelation curve
+                        delay = np.nan
+                        acf_curve = np.full((roll_size * 2 - 1), np.nan)
 
-                periods[channel, bin] = delay
-                acfs[channel, bin] = acf_curve
-    # If rolling analysis
-    else:
-        periods = np.zeros(shape=(num_submovies, num_channels, num_bins))
-        acfs = np.zeros(shape=(num_submovies, num_channels, num_bins, roll_size * 2 - 1))
-        # Loop through submovies, channels, and bins
-        its = num_submovies*num_channels*num_x_bins*num_y_bins
-        with tqdm(total = its, miniters=its/100) as pbar:
-            pbar.set_description( 'Periods: ')
-            for submovie in range(num_submovies):
-                for channel in range(num_channels):
-                    for bin in range(num_bins):
-                        pbar.update(1)
-                        # Extract signal for rolling autocorrelation calculation
-                        signal = bin_values[roll_by * submovie: roll_size + roll_by * submovie, channel, bin]
-
-                        corr_signal = signal - np.mean(signal)
-                        acf_curve = np.correlate(corr_signal, corr_signal, mode='full')
-                        # Normalize the autocorrelation curve
-                        acf_curve = acf_curve / (roll_size * np.std(signal) ** 2)
-                        # Find peaks in the autocorrelation curve
-                        peaks, _ = sig.find_peaks(acf_curve, prominence=peak_thresh)
-                        # Calculate absolute differences between peaks and center
-                        peaks_abs = np.abs(peaks - acf_curve.shape[0] // 2)
-                        # If peaks are identified, pick the closest one to the center
-                        if len(peaks) > 1:
-                            delay = np.min(peaks_abs[np.nonzero(peaks_abs)])
-                        else:
-                            # Otherwise, return NaNs for both delay and autocorrelation curve
-                            delay = np.nan
-                            acf_curve = np.full((roll_size * 2 - 1), np.nan)
-
-                        periods[submovie, channel, bin] = delay
-                        acfs[submovie, channel, bin] = acf_curve
-                        
+                    periods[submovie, channel, bin] = delay
+                    acfs[submovie, channel, bin] = acf_curve
+                    
     return acfs, periods
 
 

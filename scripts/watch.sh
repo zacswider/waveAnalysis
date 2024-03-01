@@ -11,5 +11,5 @@ echo "Watching for file changes. Running pytest on file save..."
 watchmedo shell-command \
     --patterns="*.py" \
     --recursive \
-    --command='echo "Changes detected. Running pytest..."; pytest; echo "Waiting for changes..."' \
+    --command='echo "Changes detected. Running pytest..."; pytest -W ignore:np.find_common_type is deprecated:DeprecationWarning; echo "Waiting for changes..."' \
     .

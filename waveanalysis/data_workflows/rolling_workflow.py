@@ -5,13 +5,14 @@ import pandas as pd
 from tqdm import tqdm
 from typing import Any
 
+import waveanalysis.signal_processing as sp
+
 from waveanalysis.plotting import plot_rolling_summary
 from waveanalysis.image_properties_signal.convert_images import convert_movies  
 from waveanalysis.housekeeping.housekeeping_functions import make_log, save_plots
 from waveanalysis.image_properties_signal.image_properties import get_image_properties
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling
 from waveanalysis.summarize_organize_savize.summarize_rolling import summarize_rolling_file, organize_submovie_measurements
-from waveanalysis.signal_processing import calc_indv_ACFs_periods, calc_indv_CCFs_shifts_channelCombos, calc_indv_peak_props
 
 def rolling_workflow(
     folder_path: str,
@@ -78,12 +79,10 @@ def rolling_workflow(
             name_wo_ext = file_name.rsplit(".",1)[0]
 
             # calculate the individual ACFs for each channel
-            indv_acfs, indv_periods = calc_indv_ACFs_periods(
+            indv_acfs, indv_periods = sp.calc_indv_rolling_ACFs_periods(
                 num_channels=num_channels, 
                 num_bins=num_bins, 
-                num_frames=num_frames, 
                 bin_values=bin_values, 
-                analysis_type=analysis_type, 
                 roll_size=roll_size, 
                 roll_by=roll_by, 
                 num_submovies=num_submovies, 
@@ -93,7 +92,7 @@ def rolling_workflow(
                 )
                 
             # calculate the individual peak properties for each channel
-            indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_amps, indv_peak_rel_amps, indv_peak_props = calc_indv_peak_props(
+            indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_amps, indv_peak_rel_amps, indv_peak_props =sp.calc_indv_peak_props(
                 num_channels=num_channels,
                 num_bins=num_bins,
                 bin_values=bin_values,
@@ -107,7 +106,7 @@ def rolling_workflow(
 
             # calculate the individual CCFs for each channel
             if num_channels > 1:
-                indv_shifts, indv_ccfs, channel_combos = calc_indv_CCFs_shifts_channelCombos(
+                indv_shifts, indv_ccfs, channel_combos = sp.calc_indv_CCFs_shifts_channelCombos(
                     num_channels=num_channels,
                     num_bins=num_bins,
                     num_frames=num_frames,

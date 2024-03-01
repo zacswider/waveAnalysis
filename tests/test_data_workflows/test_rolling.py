@@ -4,12 +4,6 @@ import pandas as pd
 from pathlib import Path
 from waveanalysis.data_workflows import rolling_workflow
 
-@pytest.fixture(autouse=True)
-def ignore_warnings():
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=RuntimeWarning)
-        yield
-
 @pytest.fixture
 def default_log_params():
     return {

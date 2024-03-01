@@ -4,6 +4,8 @@ import datetime
 import pandas as pd
 from tqdm import tqdm
 from typing import Any
+
+import waveanalysis.signal_processing as sp
 import waveanalysis.housekeeping.housekeeping_functions as hf 
 
 from waveanalysis.image_properties_signal.convert_images import convert_kymos 
@@ -11,10 +13,6 @@ from waveanalysis.image_properties_signal.image_properties import get_kymo_image
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_kymo
 from waveanalysis.summarize_organize_savize.add_stats_for_parameter import save_parameter_means_to_csv
 
-from waveanalysis.signal_processing import (
-    calc_indv_ACFs_periods, 
-    calc_indv_CCFs_shifts_channelCombos, 
-    calc_indv_peak_props)
 from waveanalysis.plotting import (
     plot_indv_peak_props_workflow, 
     plot_indv_acfs_workflow, 
@@ -119,22 +117,17 @@ def kymograph_workflow(
             group_name = hf.match_group_to_file(name_wo_ext=name_wo_ext, group_names=group_names)
 
             # calculate the individual ACFs for each channel
-            indv_acfs, indv_periods = calc_indv_ACFs_periods(
+            indv_acfs, indv_periods = sp.calc_indv_standard_kymo_ACFs_periods(
                 num_channels=num_channels, 
                 num_bins=num_bins, 
                 num_frames=num_frames, 
                 bin_values=bin_values, 
-                analysis_type=analysis_type, 
-                roll_size=subframe_size, 
-                roll_by=subframe_roll, 
-                num_submovies=num_submovies, 
-                num_x_bins=num_x_bins, 
-                num_y_bins=num_y_bins, 
+                analysis_type=analysis_type,  
                 peak_thresh=acf_peak_thresh
                 )
                 
             # calculate the individual peak properties for each channel
-            indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_amps, indv_peak_rel_amps, indv_peak_props = calc_indv_peak_props(
+            indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_amps, indv_peak_rel_amps, indv_peak_props = sp.calc_indv_peak_props(
                 num_channels=num_channels,
                 num_bins=num_bins,
                 bin_values=bin_values,
@@ -148,7 +141,7 @@ def kymograph_workflow(
 
             # calculate the individual CCFs for each channel
             if num_channels > 1:
-                indv_shifts, indv_ccfs, channel_combos = calc_indv_CCFs_shifts_channelCombos(
+                indv_shifts, indv_ccfs, channel_combos = sp.calc_indv_CCFs_shifts_channelCombos(
                     num_channels=num_channels,
                     num_bins=num_bins,
                     num_frames=num_frames,
