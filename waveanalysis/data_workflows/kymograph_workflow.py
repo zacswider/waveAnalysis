@@ -127,31 +127,23 @@ def kymograph_workflow(
                 )
                 
             # calculate the individual peak properties for each channel
-            indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_amps, indv_peak_rel_amps, indv_peak_props = sp.calc_indv_peak_props(
+            indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_amps, indv_peak_rel_amps, indv_peak_props = sp.calc_indv_peak_props_standard_kymo(
                 num_channels=num_channels,
                 num_bins=num_bins,
                 bin_values=bin_values,
                 analysis_type=analysis_type,
-                num_submovies=num_submovies,
-                roll_by=subframe_roll,
-                roll_size=subframe_size,
-                num_x_bins=num_x_bins,
-                num_y_bins=num_y_bins
             )
 
             channel_combos = hf.get_channel_combos(num_channels=num_channels)
 
             # calculate the individual CCFs for each channel
             if num_channels > 1:
-                indv_shifts, indv_ccfs = sp.calc_indv_CCFs_shifts_channelCombos(
+                indv_shifts, indv_ccfs = sp.calc_indv_CCFs_shifts_standard_kymo(
                     channel_combos=channel_combos,
                     num_bins=num_bins,
                     num_frames=num_frames,
                     bin_values=bin_values,
                     analysis_type=analysis_type,
-                    roll_size=subframe_size,
-                    roll_by=subframe_roll,
-                    num_submovies=num_submovies,
                     periods=indv_periods
                 )
 
