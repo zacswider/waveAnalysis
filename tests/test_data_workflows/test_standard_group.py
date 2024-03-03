@@ -1,6 +1,4 @@
 import pytest
-import warnings
-import numpy as np
 import pandas as pd
 from pathlib import Path
 from waveanalysis.data_workflows.standard_workflow import standard_workflow

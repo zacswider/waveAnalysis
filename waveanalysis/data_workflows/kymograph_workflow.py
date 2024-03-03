@@ -35,8 +35,6 @@ def kymograph_workflow(
     log_params: dict[str, Any],
     analysis_type: str,
     box_shift: int,
-    subframe_size: int,
-    subframe_roll: int,
     line_width: int,
     acf_peak_thresh: float,
     plot_summary_ACFs: bool,

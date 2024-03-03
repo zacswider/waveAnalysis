@@ -80,7 +80,7 @@ def standard_workflow(
             num_channels, num_frames, frame_interval, pixel_size, pixel_unit = get_image_properties(image_path=image_path)
 
             # Create the array for which all future processing will be based on
-            bin_values, num_bins, num_x_bins, num_y_bins = create_array_from_standard_rolling(
+            bin_values, num_bins, _, _ = create_array_from_standard_rolling(
                                                                 kernel_size = box_size, 
                                                                 step = box_shift, 
                                                                 num_channels = num_channels, 

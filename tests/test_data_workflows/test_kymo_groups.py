@@ -1,6 +1,4 @@
 import pytest
-import warnings
-import numpy as np
 import pandas as pd
 from pathlib import Path
 from waveanalysis.data_workflows.kymograph_workflow import kymograph_workflow
@@ -35,8 +33,6 @@ def test_kymo(default_log_params):
         log_params=default_log_params,
         analysis_type='kymograph',
         box_shift=default_log_params['Line Shift(px)'],
-        subframe_size=np.nan,       # type: ignore ; not part of standard analysis
-        subframe_roll=np.nan,       # type: ignore ;not part of standard analysis
         line_width=default_log_params['Line Size(px)'],         
         acf_peak_thresh=default_log_params['ACF Peak Prominence'],
         plot_summary_ACFs=default_log_params['Plot Summary ACFs'],
