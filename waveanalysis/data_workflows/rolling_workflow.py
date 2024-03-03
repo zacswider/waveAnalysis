@@ -51,7 +51,7 @@ def rolling_workflow(
 
             # Get image properties
             image_path = f'{folder_path}/{file_name}'
-            num_channels, num_frames = get_image_properties(image_path=image_path)
+            num_channels, num_frames, frame_interval, pixel_size, pixel_unit = get_image_properties(image_path=image_path)
             assert isinstance(roll_size, int) and isinstance(roll_by, int), 'Roll size and roll by must be integers'
             num_submovies = (num_frames - roll_size) // roll_by
             

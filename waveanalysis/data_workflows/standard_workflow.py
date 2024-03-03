@@ -74,13 +74,11 @@ def standard_workflow(
         for file_name in file_names: 
             print('******'*10)
             print(f'Processing {file_name}...')
-            # TODO: remove the need to set these to None
-            num_submovies = None # set to none for now, but will completely remove this parameter in the future
-            roll_size = None # set to none for now because kymo needs to be none
-            roll_by = None # set to none for now because kymo needs to be none
+
             # Get image properties
             image_path = f'{folder_path}/{file_name}'        
-            num_channels, num_frames = get_image_properties(image_path=image_path)
+            num_channels, num_frames, frame_interval, pixel_size, pixel_unit = get_image_properties(image_path=image_path)
+
             # Create the array for which all future processing will be based on
             bin_values, num_bins, num_x_bins, num_y_bins = create_array_from_standard_rolling(
                                                                 kernel_size = box_size, 
@@ -137,7 +135,6 @@ def standard_workflow(
                 )
 
 
-            # The code snippet above creates a subfolder within the main save path with the same name as the image file. Will store all associated files in this subfolder
             im_save_path = os.path.join(main_save_path, name_wo_ext)
             hf.os.makedirs(im_save_path, exist_ok=True)
 
@@ -164,8 +161,6 @@ def standard_workflow(
 
             # plot the mean CCF figures for the file
             if plot_summary_CCFs and num_channels > 1:
-                if num_channels == 1:
-                    log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
                 mean_ccf_plots = plot_mean_CCFs_workflow(
                     signal=indv_ccfs,
                     shifts=indv_shifts,
@@ -178,6 +173,10 @@ def standard_workflow(
                 mean_ccf_values = save_mean_CCF_values_workflow(channel_combos=channel_combos,indv_ccfs=indv_ccfs)
                 hf.save_values_to_csv(mean_ccf_values, im_save_path, indv_ccfs_bool = False)
                 # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
+
+            elif plot_summary_CCFs and num_channels == 1:
+                log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
+               
             
             # plot the individual ACF figures for the file
             if plot_indv_ACFs:

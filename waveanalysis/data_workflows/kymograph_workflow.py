@@ -79,19 +79,15 @@ def kymograph_workflow(
             print('******'*10)
             print(f'Processing {file_name}...')
 
-            # TODO: remove the need to set these to None
-            num_submovies = None # set to none for now, but will completely remove this parameter in the future
-            num_x_bins = None # set to none for now because kymo needs to be none
-            num_y_bins = None # set to none for now because kymo needs to be none
-
+        
             # Get image properties
             image_path = f'{folder_path}/{file_name}'
-            num_channels, total_columns, num_frames = get_kymo_image_properties(image_path=image_path, image=all_images[file_name])
+            num_channels, num_columns, num_frames, frame_interval, pixel_size, pixel_unit = get_kymo_image_properties(image_path=image_path, image=all_images[file_name])
 
             # Create the array for which all future processing will be based on
             bin_values, num_bins = create_array_from_kymo(
                                         line_width = line_width,
-                                        total_columns = total_columns,
+                                        total_columns = num_columns,
                                         step = box_shift,
                                         num_channels = num_channels,
                                         num_frames = num_frames,
