@@ -2,10 +2,13 @@ import pandas as pd
 
 from waveanalysis.plotting.rolling_plot_creation import return_mean_periods_shifts_props_plots
 
-def plot_rolling_mean_periods(
+def plot_rolling_summary(
     num_channels: int,
-    fullmovie_summary: pd.DataFrame
+    fullmovie_summary: pd.DataFrame,
+    channel_combos: list[tuple[int, int]]
 ):
+    rolling_mean_plots_dict = {}
+
     rolling_mean_periods = {}
 
     for channel in range(num_channels):
@@ -17,29 +20,22 @@ def plot_rolling_mean_periods(
             fullmovie_summary=fullmovie_summary
             )
             
-    return rolling_mean_periods
+    rolling_mean_plots_dict.update(rolling_mean_periods)
 
-def plot_rolling_mean_shifts(
-    channel_combos: list[tuple[int, int]],
-    fullmovie_summary: pd.DataFrame
-):
     rolling_mean_shifts = {}
     
-    for combo_number, combo in enumerate(channel_combos):
-        rolling_mean_shifts[f'Ch{combo[0]+1}-Ch{combo[1]+1} Shift'] = return_mean_periods_shifts_props_plots(
-            independent_variable='Submovie',
-            dependent_variable=f'Ch{combo[0]+1}-Ch{combo[1]+1} Mean Shift',
-            dependent_error=f'Ch{combo[0]+1}-Ch{combo[1]+1} StdDev Shift',
-            y_label=f'Ch{combo[0]+1}-Ch{combo[1]+1} Mean ± StdDev Shift (frames)',
-            fullmovie_summary=fullmovie_summary
-            )
+    if num_channels > 1:
+        for combo_number, combo in enumerate(channel_combos):
+            rolling_mean_shifts[f'Ch{combo[0]+1}-Ch{combo[1]+1} Shift'] = return_mean_periods_shifts_props_plots(
+                independent_variable='Submovie',
+                dependent_variable=f'Ch{combo[0]+1}-Ch{combo[1]+1} Mean Shift',
+                dependent_error=f'Ch{combo[0]+1}-Ch{combo[1]+1} StdDev Shift',
+                y_label=f'Ch{combo[0]+1}-Ch{combo[1]+1} Mean ± StdDev Shift (frames)',
+                fullmovie_summary=fullmovie_summary
+                )
             
-    return rolling_mean_shifts
+    rolling_mean_plots_dict.update(rolling_mean_shifts)
 
-def plot_rolling_mean_peak_props(
-    num_channels: int,
-    fullmovie_summary: pd.DataFrame
-):
     rolling_mean_peak_props = {}
 
     for channel in range(num_channels):
@@ -52,4 +48,6 @@ def plot_rolling_mean_peak_props(
                 fullmovie_summary=fullmovie_summary
                 )
                     
-    return rolling_mean_peak_props
+    rolling_mean_plots_dict.update(rolling_mean_peak_props)
+
+    return rolling_mean_plots_dict

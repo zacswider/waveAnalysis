@@ -1,5 +1,7 @@
 {
     "cSpell.words": [
         "fullmovie"
-    ]
+    ],
+    "python.terminal.activateEnvironment": 
+        true
 }

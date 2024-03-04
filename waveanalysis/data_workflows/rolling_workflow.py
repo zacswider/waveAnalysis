@@ -1,42 +1,43 @@
 import os
-import csv
 import timeit
 import datetime
 import pandas as pd
 from tqdm import tqdm
 from typing import Any
 
+import waveanalysis.signal_processing as sp
+import waveanalysis.housekeeping.housekeeping_functions as hf
+
+from waveanalysis.plotting import plot_rolling_summary
 from waveanalysis.image_properties_signal.convert_images import convert_movies  
-from waveanalysis.waveanalysismods.processor import TotalSignalProcessor
-from waveanalysis.housekeeping.housekeeping_functions import make_log, group_name_error_check, check_and_make_save_path, save_plots
+from waveanalysis.image_properties_signal.image_properties import get_image_properties
+from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling
+from waveanalysis.summarize_organize_savize.summarize_rolling import summarize_rolling_file, organize_submovie_measurements
 
 def rolling_workflow(
     folder_path: str,
-    group_names: list[str],
     log_params: dict[str, Any],
     analysis_type: str,
     box_size: int,
     box_shift: int,
-    subframe_size: int,
-    subframe_roll: int,
-    line_width: int,
+    roll_size: int,
+    roll_by: int,
     acf_peak_thresh: float
 ) -> pd.DataFrame:             
 
     # list of file names in specified directory
     file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
               
-    group_name_error_check(file_names=file_names,
-                           group_names=group_names, 
-                           log_params=log_params)
-
     # performance tracker
     start = timeit.default_timer()
+
     # create main save path
     now = datetime.datetime.now()
-
     main_save_path = os.path.join(folder_path, f"0_signalProcessing-{now.strftime('%Y%m%d%H%M')}")
-    check_and_make_save_path(main_save_path)
+    os.makedirs(main_save_path, exist_ok=True)
+
+    # list of file names in specified directory
+    file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
 
     all_images = convert_movies(folder_path=folder_path)
 
@@ -47,16 +48,24 @@ def rolling_workflow(
         for file_name in file_names: 
             print('******'*10)
             print(f'Processing {file_name}...')
-            processor = TotalSignalProcessor(analysis_type = analysis_type, 
-                                             image_path = f'{folder_path}/{file_name}',
-                                             image = all_images[file_name], 
-                                             kern = box_size, 
-                                             step = box_shift, 
-                                             roll_size = subframe_size, 
-                                             roll_by = subframe_roll, 
-                                             line_width = line_width)
+
+            # Get image properties
+            image_path = f'{folder_path}/{file_name}'
+            num_channels, num_frames, frame_interval, pixel_size, pixel_unit = get_image_properties(image_path=image_path)
+            assert isinstance(roll_size, int) and isinstance(roll_by, int), 'Roll size and roll by must be integers'
+            num_submovies = (num_frames - roll_size) // roll_by
+            
+            # Create the array for which all future processing will be based on
+            bin_values, num_bins, num_x_bins, num_y_bins = create_array_from_standard_rolling(
+                                                                kernel_size = box_size, 
+                                                                step = box_shift, 
+                                                                num_channels = num_channels, 
+                                                                num_frames = num_frames, 
+                                                                image = all_images[file_name]
+                                                            )
+
             # log error and skip image if frames < 2 
-            if processor.num_frames < 2:
+            if num_frames < 2:
                 print(f"****** ERROR ******",
                     f"\n{file_name} has less than 2 frames",
                     "\n****** ERROR ******")
@@ -69,41 +78,101 @@ def rolling_workflow(
             # name without the extension
             name_wo_ext = file_name.rsplit(".",1)[0]
 
-            # calculate the population signal properties
-            processor.calc_indv_ACFs(peak_thresh = acf_peak_thresh)
-            processor.calc_indv_peak_props()
-            if processor.num_channels > 1:
-                processor.calc_indv_CCFs()
+            # calculate the individual ACFs for each channel
+            indv_acfs, indv_periods = sp.calc_indv_rolling_ACFs_periods(
+                num_channels=num_channels, 
+                num_bins=num_bins, 
+                bin_values=bin_values, 
+                roll_size=roll_size, 
+                roll_by=roll_by, 
+                num_submovies=num_submovies, 
+                num_x_bins=num_x_bins, 
+                num_y_bins=num_y_bins, 
+                peak_thresh=acf_peak_thresh
+                )
+                
+            # calculate the individual peak properties for each channel
+            indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_amps, indv_peak_rel_amps =sp.calc_indv_peak_props_rolling(
+                num_channels=num_channels,
+                num_bins=num_bins,
+                bin_values=bin_values,
+                num_submovies=num_submovies,
+                roll_by=roll_by,
+                roll_size=roll_size,
+                num_x_bins=num_x_bins,
+                num_y_bins=num_y_bins
+            )
+
+            channel_combos = hf.get_channel_combos(num_channels=num_channels)
+
+            # calculate the individual CCFs for each channel
+            if num_channels > 1:
+                indv_shifts, indv_ccfs = sp.calc_indv_CCFs_shifts_rolling(
+                    channel_combos = channel_combos,
+                    num_bins=num_bins,
+                    bin_values=bin_values,
+                    roll_size=roll_size,
+                    roll_by=roll_by,
+                    num_submovies=num_submovies,
+                    periods=indv_periods
+                )
 
             # create a subfolder within the main save path with the same name as the image file
             im_save_path = os.path.join(main_save_path, name_wo_ext)
-            check_and_make_save_path(im_save_path)
+            os.makedirs(im_save_path, exist_ok=True)
 
             # calculate the number of subframes used
-            num_submovies = processor.num_submovies
             log_params['Submovies Used'].append(num_submovies)
 
             # summarize the data for each subframe as individual dataframes, and save as .csv
-            submovie_meas_list = processor.get_submovie_measurements()
+            submovie_meas_list = organize_submovie_measurements(
+                num_bins=num_bins,
+                num_channels=num_channels,
+                num_submovies=num_submovies,
+                indv_periods=indv_periods,
+                indv_ccfs=indv_ccfs,
+                indv_peak_widths=indv_peak_widths,
+                indv_peak_maxs=indv_peak_maxs,
+                indv_peak_mins=indv_peak_mins,
+                indv_peak_amps=indv_peak_amps,
+                indv_peak_rel_amps=indv_peak_rel_amps,
+                channel_combos=channel_combos
+            )
             csv_save_path = os.path.join(im_save_path, 'rolling_measurements')
-            check_and_make_save_path(csv_save_path)
+            os.makedirs(csv_save_path, exist_ok=True)
             for measurement_index, submovie_meas_df in enumerate(submovie_meas_list):  # type: ignore
                 submovie_meas_df.to_csv(f'{csv_save_path}/{name_wo_ext}_subframe{measurement_index}_measurements.csv', index = False)
             
             # summarize the data for each subframe as a single dataframe, and save as .csv
-            summary_df = processor.summarize_rolling_file()
+            summary_df = summarize_rolling_file(
+                num_bins=num_bins,
+                num_channels=num_channels,
+                channel_combos=channel_combos,
+                num_submovies=num_submovies,
+                indv_periods=indv_periods,
+                indv_shifts=indv_shifts,
+                indv_peak_widths=indv_peak_widths,
+                indv_peak_maxs=indv_peak_maxs,
+                indv_peak_mins=indv_peak_mins,
+                indv_peak_amps=indv_peak_amps,
+                indv_ccfs=indv_ccfs
+            )
             summary_df.to_csv(f'{im_save_path}/{name_wo_ext}_summary.csv', index = False)
 
             # make and save the summary plot for rolling data
-            summary_plots = processor.plot_rolling_summary()
+            summary_plots = plot_rolling_summary(
+                num_channels=num_channels,
+                fullmovie_summary=summary_df,
+                channel_combos=channel_combos
+            )
             plot_save_path = os.path.join(im_save_path, 'summary_plots')
-            check_and_make_save_path(plot_save_path)
-            save_plots(summary_plots, plot_save_path)
+            os.makedirs(plot_save_path, exist_ok=True)
+            hf.save_plots(summary_plots, plot_save_path)
 
             end = timeit.default_timer()
             log_params["Time Elapsed"] = f"{end - start:.2f} seconds"
             # log parameters and errors
-            make_log(main_save_path, log_params)
+            hf.make_log(main_save_path, log_params)
 
             pbar.update(1)
 

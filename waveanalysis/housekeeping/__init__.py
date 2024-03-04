@@ -1,10 +1,10 @@
-from .housekeeping_functions import make_log, generate_group_comparison, group_name_error_check, check_and_make_save_path, save_plots, save_values_to_csv
+from .housekeeping_functions import make_log, group_name_error_check, save_plots, save_values_to_csv, match_group_to_file, get_channel_combos
 
 __all__ = [
     "make_log",
-    "generate_group_comparison",
     "group_name_error_check",
-    "check_and_make_save_path",
     "save_plots",
-    "save_values_to_csv"
+    "save_values_to_csv",
+    "match_group_to_file",
+    "get_channel_combos"
     ]

@@ -23,45 +23,6 @@ def make_log(
         logFile.write('%s: %s\n' % (key, value))                    
     logFile.close()           
 
-def generate_group_comparison(
-    main_save_path: str,
-    processor: object,
-    summary_df: pd.DataFrame,
-    log_params: dict
-):
-    print('Generating group comparisons...')
-    # make a group comparisons save path in the main save directory
-    group_save_path = os.path.join(main_save_path, "!groupComparisons")
-    if not os.path.exists(group_save_path):
-        os.makedirs(group_save_path)
-    
-    # make a list of parameters to compare
-    stats_to_compare = ['Mean']
-    channels_to_compare = [f'Ch {i+1}' for i in range(processor.num_channels)]
-    measurements_to_compare = ['Period', 'Shift', 'Peak Width', 'Peak Max', 'Peak Min', 'Peak Amp', 'Peak Rel Amp']
-    params_to_compare = []
-    for channel in channels_to_compare:
-        for stat in stats_to_compare:
-            for measurement in measurements_to_compare:
-                params_to_compare.append(f'{channel} {stat} {measurement}')
-
-    # will compare the shifts if multichannel movie
-    if hasattr(processor, 'channel_combos'):
-        shifts_to_compare = [f'Ch{combo[0]+1}-Ch{combo[1]+1} Mean Shift' for combo in processor.channel_combos]
-        params_to_compare.extend(shifts_to_compare)
-
-    # generate and save figures for each parameter
-    for param in params_to_compare:
-        try:
-            ax = sns.boxplot(x='Group Name', y=param, data=summary_df, palette = "Set2", showfliers = False)
-            ax = sns.swarmplot(x='Group Name', y=param, data=summary_df, color=".25")	
-            ax.set_xticklabels(ax.get_xticklabels(),rotation=45)
-            fig = ax.get_figure()
-            fig.savefig(f'{group_save_path}/{param}.png')  # type: ignore
-            plt.close(fig)
-        except ValueError:
-            log_params['Plotting errors'].append(f'No data to compare for {param}')
-
 def group_name_error_check(
     file_names: list,
     group_names: list,
@@ -95,14 +56,24 @@ def group_name_error_check(
             "\n****** ERROR ******")
         sys.exit()
 
-def check_and_make_save_path(path=str):
-    if not os.path.exists(path):
-        os.makedirs(path)
-
 def save_plots(dict_of_plots: dict, save_path: str):
     for plot_name, plot in dict_of_plots.items():
         plot.savefig(f'{save_path}/{plot_name}.png')
 
+def match_group_to_file(
+    name_wo_ext: str,
+    group_names: list
+):
+    group_name = None
+    if group_names != ['']:
+        try:
+            group_name = [group for group in group_names if group in name_wo_ext][0]
+        except IndexError:
+            pass
+
+    return group_name
+
+# TODO: move this to the saving module
 def save_values_to_csv(
     values: dict, 
     path: str,
@@ -126,3 +97,12 @@ def save_values_to_csv(
                 writer.writerow(['Time', 'Mean', 'StDev'])
                 for time, mean, stdev in measurements:
                     writer.writerow([time, mean, stdev])         
+
+def get_channel_combos(num_channels: int):
+    channels = list(range(num_channels))
+    channel_combos = []
+    for i in range(num_channels):
+        for j in channels[i+1:]:
+            channel_combos.append([channels[i],j])
+
+    return channel_combos
