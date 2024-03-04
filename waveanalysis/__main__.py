@@ -5,6 +5,9 @@ from data_workflows import standard_workflow, rolling_workflow, kymograph_workfl
 ####################################################################################################################################
 ####################################################################################################################################
 
+# TODO: there is something wrong with importing all waveanalysis modules. will not work if they are like waveanalysis.etc when
+# running from the comand line. 
+
 def main():
     '''** GUI Window and sanity checks'''
     # make GUI object and display the window
@@ -162,7 +165,6 @@ def main():
         )
     
     result_df.to_csv('results.csv', index=False)
-
 
 if __name__ == '__main__':
     main()

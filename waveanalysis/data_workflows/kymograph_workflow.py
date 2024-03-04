@@ -27,8 +27,6 @@ from waveanalysis.summarize_organize_savize.summarize_kymo_standard import (
     organize_standard_kymo_measurements_for_file, 
     summarize_standard_kymo_measurements_for_file)
 
-
-
 def kymograph_workflow(
     folder_path: str,
     group_names: list[str],
