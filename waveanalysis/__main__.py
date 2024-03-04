@@ -1,11 +1,6 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import housekeeping.housekeeping_functions as hf
 from custom_gui import BaseGUI, RollingGUI, KymographGUI
 from data_workflows import standard_workflow, rolling_workflow, kymograph_workflow
-
-np.seterr(divide='ignore', invalid='ignore')
-plt.rcParams['figure.max_open_warning'] = 0
 
 ####################################################################################################################################
 ####################################################################################################################################
