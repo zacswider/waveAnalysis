@@ -106,3 +106,13 @@ def get_channel_combos(num_channels: int):
             channel_combos.append([channels[i],j])
 
     return channel_combos
+
+def threshold_check(
+    threshold: float,
+    log_params: dict
+):
+    if threshold > 1:
+        log_params["Errors"].append("The ACF peak prominence can not be greater than 1")
+        log_params["Errors"].append("Set 'ACF peak prominence threshold' to a value between 0 and 1")
+        log_params["Errors"].append("More realistically, a value between 0 and 0.5")
+        return log_params

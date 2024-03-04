@@ -17,10 +17,9 @@ def default_log_params():
         'Plot Individual ACFs': False,
         'Plot Individual CCFs': False,
         'Plot Individual Peaks': False,
-        'Group Matching Errors': [],
         'Files Processed': [],
         'Files Not Processed': [],
-        'Plotting errors': [],
+        'Errors': [],
     }
 
 def test_standard(default_log_params):

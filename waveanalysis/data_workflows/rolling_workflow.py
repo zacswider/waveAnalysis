@@ -17,7 +17,6 @@ from waveanalysis.summarize_organize_savize.summarize_rolling import summarize_r
 def rolling_workflow(
     folder_path: str,
     log_params: dict[str, Any],
-    analysis_type: str,
     box_size: int,
     box_shift: int,
     roll_size: int,

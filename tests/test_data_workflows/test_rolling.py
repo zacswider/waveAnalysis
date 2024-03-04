@@ -15,7 +15,8 @@ def default_log_params():
         'Files Processed': [],
         'Files Not Processed': [],
         'Plotting errors': [],
-        'Submovies Used' : []
+        'Submovies Used' : [],
+        'Errors': []
         }
 
 
@@ -26,7 +27,6 @@ def test_rolling(default_log_params):
     exp_results = rolling_workflow(
         folder_path=str(Path('tests/assets/rolling/')),
         log_params=default_log_params,
-        analysis_type='rolling',
         box_size=default_log_params['Box Size(px)'],
         box_shift=default_log_params['Box Shift(px)'],
         roll_size=50,
