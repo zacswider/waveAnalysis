@@ -11,7 +11,7 @@ import waveanalysis.housekeeping.housekeeping_functions as hf
 from waveanalysis.image_properties_signal.convert_images import convert_movies 
 from waveanalysis.image_properties_signal.image_properties import get_image_properties
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling
-from waveanalysis.summarize_organize_savize.add_stats_for_parameter import save_parameter_means_to_csv
+from waveanalysis.summarize_organize_savize.add_stats import save_parameter_means_to_csv
 
 from waveanalysis.plotting import (
     plot_indv_peak_props_workflow, 
@@ -45,11 +45,11 @@ def standard_workflow(
 
     # list of file names in specified directory
     file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
-              
+
     # check for group name errors          
     hf.group_name_error_check(file_names=file_names,
-                           group_names=group_names, 
-                           log_params=log_params)
+                            group_names=group_names, 
+                            log_params=log_params)
 
     # performance tracker
     start = timeit.default_timer()
@@ -176,7 +176,6 @@ def standard_workflow(
 
             elif plot_summary_CCFs and num_channels == 1:
                 log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
-               
             
             # plot the individual ACF figures for the file
             if plot_indv_ACFs:

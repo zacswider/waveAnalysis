@@ -23,7 +23,7 @@ def plot_mean_ACFs_workflow(
             shifts_or_periods=periods[channel], 
             channel=f'Ch{channel + 1}',
             num_frames= num_frames)     
-           
+
     return mean_acf_figs
 
 def plot_mean_prop_peaks_workflow(
@@ -79,10 +79,10 @@ def save_mean_CCF_values_workflow(
         arr_mean = np.nanmean(indv_ccfs[combo_number], axis = 0)
         arr_std = np.nanstd(indv_ccfs[combo_number], axis = 0)
         # Combine mean and standard deviation into a list of tuples
-        mean_ccf_values[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF values.csv'] = list(zip_longest(range(1, len(arr_mean) + 1), arr_mean, arr_std, fillvalue=None))
+        mean_ccf_values[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF values'] = list(zip_longest(range(1, len(arr_mean) + 1), arr_mean, arr_std, fillvalue=None))
 
     return mean_ccf_values
-   
+
 def generate_group_comparison(
     summary_df: pd.DataFrame,
     log_params: dict
@@ -96,16 +96,16 @@ def generate_group_comparison(
     for param in parameters_to_compare:
         try:
             ax = sns.boxplot(x='Group Name', 
-                             y=param, 
-                             data=summary_df, 
-                             palette = "Set2", 
-                             showfliers = False)
+                            y=param, 
+                            data=summary_df, 
+                            palette = "Set2", 
+                            showfliers = False)
             ax = sns.swarmplot(x='Group Name', 
-                               y=param, 
-                               data=summary_df, 
-                               color=".25")	
+                            y=param, 
+                            data=summary_df, 
+                            color=".25")	
             ax.set_xticklabels(ax.get_xticklabels(), 
-                               rotation=45)
+                            rotation=45)
             fig = ax.get_figure()
             
             mean_parameter_figs[param] = fig

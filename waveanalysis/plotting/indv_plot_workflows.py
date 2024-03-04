@@ -42,7 +42,7 @@ def plot_indv_acfs_workflow(
     acfs:np.ndarray,
     periods:np.ndarray,
     num_frames:int
-  )  -> dict:
+)  -> dict:
         
         # Empty dictionary to store generated figures
         indv_acf_plots = {}
@@ -75,7 +75,7 @@ def plot_indv_ccfs_workflow(
     indv_ccfs:np.ndarray,
     num_frames:int
 ) -> dict:
-     # Empty dictionary to store generated figures
+    # Empty dictionary to store generated figures
     indv_ccf_plots = {}
 
     # Iterate through channel combinations and bins to plot individual cross-correlation curves

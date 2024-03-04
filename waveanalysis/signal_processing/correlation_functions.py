@@ -5,13 +5,13 @@ from scipy import signal as sig
 # TODO: combine the rolling, standard, and kymograph analysis into one function
 
 def calc_indv_standard_kymo_ACFs_periods(
-                           num_channels: int,
-                           num_bins: int,
-                           num_frames: int,
-                           bin_values: np.ndarray,
-                           analysis_type: str,
-                           peak_thresh: float = 0.1
-) -> (np.ndarray, np.ndarray):
+                            num_channels: int,
+                            num_bins: int,
+                            num_frames: int,
+                            bin_values: np.ndarray,
+                            analysis_type: str,
+                            peak_thresh: float = 0.1
+) -> (np.ndarray, np.ndarray): # type: ignore
     # Initialize arrays to store period measurements and autocorrelation curves
     periods = np.zeros(shape=(num_channels, num_bins))
     acfs = np.zeros(shape=(num_channels, num_bins, num_frames * 2 - 1))
@@ -43,15 +43,15 @@ def calc_indv_standard_kymo_ACFs_periods(
     return acfs, periods
 
 def calc_indv_rolling_ACFs_periods(
-                           num_channels: int,
-                           num_bins: int,
-                           bin_values: np.ndarray,
-                           roll_size: int,
-                           roll_by: int,
-                           num_submovies: int,
-                           num_x_bins: int,
-                           num_y_bins: int,
-                           peak_thresh: float = 0.1
+                            num_channels: int,
+                            num_bins: int,
+                            bin_values: np.ndarray,
+                            roll_size: int,
+                            roll_by: int,
+                            num_submovies: int,
+                            num_x_bins: int,
+                            num_y_bins: int,
+                            peak_thresh: float = 0.1
 ):
     """
     This method computes the autocorrelation functions (ACFs) for each channel and bin of the analyzed data.
@@ -108,7 +108,7 @@ def calc_indv_CCFs_shifts_standard_kymo(
     bin_values: np.ndarray,
     analysis_type: str,
     periods: np.ndarray = np.nan
- ):
+):
     """
     This method computes the cross-correlation functions (CCFs) for each combination of channels.
     It also identifies peaks in the CCF curves to estimate shifts.
@@ -188,7 +188,7 @@ def calc_indv_CCFs_shifts_rolling(
     roll_by: int = np.nan,
     num_submovies: int = np.nan,
     periods: np.ndarray = np.nan
- ):
+):
     """
     This method computes the cross-correlation functions (CCFs) for each combination of channels.
     It also identifies peaks in the CCF curves to estimate shifts.

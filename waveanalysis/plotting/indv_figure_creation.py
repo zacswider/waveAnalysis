@@ -2,11 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def return_indv_peak_prop_figure(
-        bin_signal: np.ndarray, 
-        prop_dict: dict, 
-        Ch_name: str) -> plt.Figure:
+    bin_signal: np.ndarray, 
+    prop_dict: dict, 
+    Ch_name: str) -> plt.Figure:
 
-    # Extract peak properties from the dictionary
+# Extract peak properties from the dictionary
     smoothed_signal = prop_dict['smoothed']
     peaks = prop_dict['peaks']
     proms = prop_dict['proms']

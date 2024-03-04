@@ -14,50 +14,29 @@ def organize_submovie_measurements(
     indv_peak_amps: np.ndarray,
     indv_peak_rel_amps: np.ndarray
 ) -> list:
-    """
-    This method summarizes measurements statistics by appending them to the beginning of the measurement list
-    and returns a list of pandas DataFrames containing the summarized measurements for each submovie.
-
-    Returns:
-        - list of pandas.DataFrame: A list of DataFrames containing the summarized measurements for each submovie.
-    """
+    # TODO: add this function to new file and use for both rolling and kymo
     def add_stats(measurements: np.ndarray, measurement_name: str):
-        '''
-        Accepts a list of measurements. Calculates the mean, median, standard deviation,
-        and append them to the beginning of the list in that order. Finally, appends the name of
-        the measurement of the beginning of the list.
-        '''
-
-        if measurement_name == 'Shift':
-            statified = []
-            for combo_number, combo in enumerate(channel_combos):
-                meas_mean = np.nanmean(measurements[combo_number])
-                meas_median = np.nanmedian(measurements[combo_number])
-                meas_std = np.nanstd(measurements[combo_number])
-                meas_list = list(measurements[combo_number])
-                meas_list.insert(0, meas_mean)
-                meas_list.insert(1, meas_median)
-                meas_list.insert(2, meas_std)
-                meas_list.insert(0, f'Ch{combo[0]+1}-Ch{combo[1]+1} {measurement_name}')
-                statified.append(meas_list)
-
-        else:
-            statified = []
-            for channel in range(num_channels):
-                meas_mean = np.nanmean(measurements[channel])
-                meas_median = np.nanmedian(measurements[channel])
-                meas_std = np.nanstd(measurements[channel])
-                meas_list = list(measurements[channel])
-                meas_list.insert(0, meas_mean)
-                meas_list.insert(1, meas_median)
-                meas_list.insert(2, meas_std)
-                meas_list.insert(0, f'Ch {channel +1} {measurement_name}')
-                statified.append(meas_list)
-
-        return(statified)
+        statified = []
+        for index, item in enumerate(channel_combos if measurement_name == 'Shift' else range(num_channels)):
+            if measurement_name == 'Shift':
+                measurements_subset = measurements[index]
+                channel_label = f'Ch{channel_combos[index][0]+1}-Ch{channel_combos[index][1]+1} {measurement_name}'
+            else:
+                measurements_subset = measurements[item]
+                channel_label = f'Ch {item + 1} {measurement_name}'
+            
+            meas_mean = np.nanmean(measurements_subset)
+            meas_median = np.nanmedian(measurements_subset)
+            meas_std = np.nanstd(measurements_subset)
+            meas_sem = meas_std / np.sqrt(len(measurements_subset))
+            meas_list = [channel_label, meas_mean, meas_median, meas_std, meas_sem]
+            meas_list.extend(measurements_subset.tolist())
+            statified.append(meas_list)
+        
+        return statified
         
     # column names for the dataframe summarizing the box results
-    col_names = ["Parameter", "Mean", "Median", "StdDev"]
+    col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]
     col_names.extend([f'Box{i}' for i in range(num_bins)])
     
     submovie_measurements = []

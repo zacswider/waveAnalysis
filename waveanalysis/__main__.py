@@ -6,7 +6,7 @@ from data_workflows import standard_workflow, rolling_workflow, kymograph_workfl
 ####################################################################################################################################
 
 # TODO: there is something wrong with importing all waveanalysis modules. will not work if they are like waveanalysis.etc when
-# running from the comand line. 
+# running from the command line. 
 
 def main():
     '''** GUI Window and sanity checks'''
@@ -99,18 +99,18 @@ def main():
                         "Errors" : []
                 } 
     if analysis_type == 'kymograph':
-        log_params = {"Base Directory": folder_path,
-                  "Plot Summary ACFs": plot_summary_ACFs,
-                "Plot Summary CCFs": plot_summary_CCFs,
-                "Plot Summary Peaks": plot_summary_peaks,
-                "Plot Individual ACFs": plot_indv_ACFs,
-                "Plot Individual CCFs": plot_indv_CCFs,
-                "Plot Individual Peaks": plot_indv_peaks,  
-                "Line width": line_width,
-                "Group Names" : group_names,
-                "Files Processed": [],
-                "Files Not Processed": [],
-                "Errors" : []
+        log_params = {  "Base Directory": folder_path,
+                        "Plot Summary ACFs": plot_summary_ACFs,
+                        "Plot Summary CCFs": plot_summary_CCFs,
+                        "Plot Summary Peaks": plot_summary_peaks,
+                        "Plot Individual ACFs": plot_indv_ACFs,
+                        "Plot Individual CCFs": plot_indv_CCFs,
+                        "Plot Individual Peaks": plot_indv_peaks,  
+                        "Line width": line_width,
+                        "Group Names" : group_names,
+                        "Files Processed": [],
+                        "Files Not Processed": [],
+                        "Errors" : []
                 }
         
     # identify and report errors in GUI input

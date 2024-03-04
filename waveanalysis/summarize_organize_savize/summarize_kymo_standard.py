@@ -20,42 +20,26 @@ def organize_standard_kymo_measurements_for_file(
     Returns:
         - pandas.DataFrame or list of pandas.DataFrame: A DataFrame containing the summarized measurements for each submovie or across all bins.
     """
+    # TODO: add this function to new file and use for both rolling and kymo
     def add_stats(measurements: np.ndarray, measurement_name: str):
-        '''
-        Space saving function to generate the stats for the different channels or channel combos
-        '''
-        # shift measurements need special treatment to generate the correct measurements and names
-        if measurement_name == 'Shift':
-            statified = []
-            for combo_number, combo in enumerate(channel_combos):
-                meas_mean = np.nanmean(measurements[combo_number])
-                meas_median = np.nanmedian(measurements[combo_number])
-                meas_std = np.nanstd(measurements[combo_number])
-                meas_sem = meas_std / np.sqrt(len(measurements[combo_number]))
-                meas_list = list(measurements[combo_number])
-                meas_list.insert(0, meas_mean)
-                meas_list.insert(1, meas_median)
-                meas_list.insert(2, meas_std)
-                meas_list.insert(3, meas_sem)
-                meas_list.insert(0, f'Ch{combo[0] + 1}-Ch{combo[1] + 1} {measurement_name}')
-                statified.append(meas_list)
-
-        # acf and peak measurements are just iterated by channel
-        else:
-            statified = []
-            for channel in range(num_channels):
-                meas_mean = np.nanmean(measurements[channel])
-                meas_median = np.nanmedian(measurements[channel])
-                meas_std = np.nanstd(measurements[channel])
-                meas_sem = meas_std / np.sqrt(len(measurements[channel]))
-                meas_list = list(measurements[channel])
-                meas_list.insert(0, meas_mean)
-                meas_list.insert(1, meas_median)
-                meas_list.insert(2, meas_std)
-                meas_list.insert(3, meas_sem)
-                meas_list.insert(0, f'Ch {channel +1} {measurement_name}')
-                statified.append(meas_list)
-        return(statified)
+        statified = []
+        for index, item in enumerate(channel_combos if measurement_name == 'Shift' else range(num_channels)):
+            if measurement_name == 'Shift':
+                measurements_subset = measurements[index]
+                channel_label = f'Ch{channel_combos[index][0]+1}-Ch{channel_combos[index][1]+1} {measurement_name}'
+            else:
+                measurements_subset = measurements[item]
+                channel_label = f'Ch {item + 1} {measurement_name}'
+            
+            meas_mean = np.nanmean(measurements_subset)
+            meas_median = np.nanmedian(measurements_subset)
+            meas_std = np.nanstd(measurements_subset)
+            meas_sem = meas_std / np.sqrt(len(measurements_subset))
+            meas_list = [channel_label, meas_mean, meas_median, meas_std, meas_sem]
+            meas_list.extend(measurements_subset.tolist())
+            statified.append(meas_list)
+        
+        return statified
 
     # column names for the dataframe summarizing the bin results
     col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]

@@ -26,7 +26,7 @@ def rolling_workflow(
 
     # list of file names in specified directory
     file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
-              
+
     # performance tracker
     start = timeit.default_timer()
 
