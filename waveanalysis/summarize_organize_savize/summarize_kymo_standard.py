@@ -21,6 +21,7 @@ def organize_standard_kymo_measurements_for_file(
         - pandas.DataFrame or list of pandas.DataFrame: A DataFrame containing the summarized measurements for each submovie or across all bins.
     """
     # TODO: add this function to new file and use for both rolling and kymo
+    
     def add_stats(measurements: np.ndarray, measurement_name: str):
         statified = []
         for index, item in enumerate(channel_combos if measurement_name == 'Shift' else range(num_channels)):

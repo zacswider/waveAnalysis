@@ -12,19 +12,19 @@ def calc_indv_peak_props_standard_kymo(
     This method computes various peak properties for each channel and bin of the analyzed data.
 
     Returns:
-        - ind_peak_widths (numpy.ndarray): Array of peak widths.
-        - ind_peak_maxs (numpy.ndarray): Array of peak maximum values.
-        - ind_peak_mins (numpy.ndarray): Array of peak minimum values.
-        - ind_peak_amps (numpy.ndarray): Array of peak amplitudes.
-        - ind_peak_rel_amps (numpy.ndarray): Array of relative peak amplitudes.
-        - ind_peak_props (dict): Dictionary containing additional peak properties.
+        - indv_peak_widths (numpy.ndarray): Array of peak widths.
+        - indv_peak_maxs (numpy.ndarray): Array of peak maximum values.
+        - indv_peak_mins (numpy.ndarray): Array of peak minimum values.
+        - indv_peak_amps (numpy.ndarray): Array of peak amplitudes.
+        - indv_peak_rel_amps (numpy.ndarray): Array of relative peak amplitudes.
+        - indv_peak_props (dict): Dictionary containing additional peak properties.
     """
 
     # Initialize arrays/dictionary to store peak measurements
-    ind_peak_widths = np.zeros(shape=(num_channels, num_bins))
-    ind_peak_maxs = np.zeros(shape=(num_channels, num_bins))
-    ind_peak_mins = np.zeros(shape=(num_channels, num_bins))
-    ind_peak_props = {}
+    indv_peak_widths = np.zeros(shape=(num_channels, num_bins))
+    indv_peak_maxs = np.zeros(shape=(num_channels, num_bins))
+    indv_peak_mins = np.zeros(shape=(num_channels, num_bins))
+    indv_peak_props = {}
 
     # Loop through channels and bins for standard or kymograph analysis
     for channel in range(num_channels):
@@ -54,10 +54,10 @@ def calc_indv_peak_props_standard_kymo(
                 rightIndex = np.nan
             
             # Store peak measurements for each bin in each channel
-            ind_peak_widths[channel, bin] = mean_width
-            ind_peak_maxs[channel, bin] = mean_max
-            ind_peak_mins[channel, bin] = mean_min
-            ind_peak_props[f'Ch {channel} Bin {bin}'] = {'smoothed': signal, 
+            indv_peak_widths[channel, bin] = mean_width
+            indv_peak_maxs[channel, bin] = mean_max
+            indv_peak_mins[channel, bin] = mean_min
+            indv_peak_props[f'Ch {channel} Bin {bin}'] = {'smoothed': signal, 
                                                     'peaks': peaks,
                                                     'proms': proms, 
                                                     'heights': heights, 
@@ -65,12 +65,11 @@ def calc_indv_peak_props_standard_kymo(
                                                     'rightIndex': rightIndex}
 
     # Calculate additional peak properties
-    ind_peak_amps = ind_peak_maxs - ind_peak_mins
-    ind_peak_rel_amps = ind_peak_amps / ind_peak_mins
+    indv_peak_amps = indv_peak_maxs - indv_peak_mins
+    indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
 
     
-    return ind_peak_widths, ind_peak_maxs, ind_peak_mins, ind_peak_amps, ind_peak_rel_amps, ind_peak_props
-
+    return indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_amps, indv_peak_rel_amps, indv_peak_props
 
 def calc_indv_peak_props_rolling(
     num_channels:int,
@@ -86,22 +85,18 @@ def calc_indv_peak_props_rolling(
     This method computes various peak properties for each channel and bin of the analyzed data.
 
     Returns:
-        - ind_peak_widths (numpy.ndarray): Array of peak widths.
-        - ind_peak_maxs (numpy.ndarray): Array of peak maximum values.
-        - ind_peak_mins (numpy.ndarray): Array of peak minimum values.
-        - ind_peak_amps (numpy.ndarray): Array of peak amplitudes.
-        - ind_peak_rel_amps (numpy.ndarray): Array of relative peak amplitudes.
-        - ind_peak_props (dict): Dictionary containing additional peak properties.
+        - indv_peak_widths (numpy.ndarray): Array of peak widths.
+        - indv_peak_maxs (numpy.ndarray): Array of peak maximum values.
+        - indv_peak_mins (numpy.ndarray): Array of peak minimum values.
+        - indv_peak_amps (numpy.ndarray): Array of peak amplitudes.
+        - indv_peak_rel_amps (numpy.ndarray): Array of relative peak amplitudes.
+        - indv_peak_props (dict): Dictionary containing additional peak properties.
     """
 
     # Initialize arrays/dictionary to store peak measurements
-    ind_peak_widths = np.zeros(shape=(num_channels, num_bins))
-    ind_peak_maxs = np.zeros(shape=(num_channels, num_bins))
-    ind_peak_mins = np.zeros(shape=(num_channels, num_bins))
-
-    ind_peak_widths = np.zeros(shape=(num_submovies, num_channels, num_bins))
-    ind_peak_maxs = np.zeros(shape=(num_submovies, num_channels, num_bins))
-    ind_peak_mins = np.zeros(shape=(num_submovies, num_channels, num_bins))
+    indv_peak_widths = np.zeros(shape=(num_submovies, num_channels, num_bins))
+    indv_peak_maxs = np.zeros(shape=(num_submovies, num_channels, num_bins))
+    indv_peak_mins = np.zeros(shape=(num_submovies, num_channels, num_bins))
 
     its = num_submovies*num_channels*num_x_bins*num_y_bins
     with tqdm(total = its, miniters=its/100) as pbar:
@@ -129,14 +124,49 @@ def calc_indv_peak_props_rolling(
                         proms = np.nan 
 
                     # Store peak measurements for each bin in each channel of a submovie
-                    ind_peak_widths[submovie, channel, bin] = mean_width
-                    ind_peak_maxs[submovie, channel, bin] = mean_max
-                    ind_peak_mins[submovie, channel, bin] = mean_min
+                    indv_peak_widths[submovie, channel, bin] = mean_width
+                    indv_peak_maxs[submovie, channel, bin] = mean_max
+                    indv_peak_mins[submovie, channel, bin] = mean_min
                     
-
     # Calculate additional peak properties
-    ind_peak_amps = ind_peak_maxs - ind_peak_mins
-    ind_peak_rel_amps = ind_peak_amps / ind_peak_mins
+    indv_peak_amps = indv_peak_maxs - indv_peak_mins
+    indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
 
     
-    return ind_peak_widths, ind_peak_maxs, ind_peak_mins, ind_peak_amps, ind_peak_rel_amps
+    return indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_amps, indv_peak_rel_amps
+
+def calc_indv_peak_offset(
+    num_channels:int,
+    num_bins:int,
+    bin_values:np.ndarray,
+    analysis_type:str
+):
+    indv_peak_offsets = np.zeros(shape=(num_channels, num_bins))
+
+    # Loop through channels and bins for standard or kymograph analysis
+    for channel in range(num_channels):
+        for bin in range(num_bins):
+            if analysis_type == "standard":
+                signal = sig.savgol_filter(bin_values[:,channel, bin], window_length = 11, polyorder = 2)  
+            else:                     
+                signal = sig.savgol_filter(bin_values[channel, bin], window_length = 11, polyorder = 2)   
+            
+            peaks, _ = sig.find_peaks(signal, prominence=(np.max(signal)-np.min(signal))*0.1)
+
+            # If peaks detected, calculate properties, otherwise return NaNs
+            if len(peaks) > 0:
+                _, left_base, right_base = sig.peak_prominences(signal, peaks)
+
+                midpoint = (left_base + right_base) / 2
+                peak_offsets = peaks - midpoint
+                    
+                mean_peak_offset = np.mean(peak_offsets, axis=0)
+                indv_peak_offsets[channel, bin] = mean_peak_offset
+
+            else:
+                indv_peak_offsets[channel, bin] = np.nan
+            
+    # Save indv_peak_offsets to a CSV file
+    # np.savetxt('/Users/domchom/Desktop/indv_peak_offsets.csv', indv_peak_offsets, delimiter=',')
+
+    return indv_peak_offsets

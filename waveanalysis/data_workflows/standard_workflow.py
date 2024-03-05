@@ -121,9 +121,15 @@ def standard_workflow(
                 analysis_type=analysis_type
             )
 
-            channel_combos = hf.get_channel_combos(num_channels=num_channels)
+            indv_peak_offsets = sp.calc_indv_peak_offset(
+                num_channels=num_channels,
+                num_bins=num_bins,
+                bin_values=bin_values,
+                analysis_type=analysis_type
+            )
 
             # calculate the individual CCFs for each channel
+            channel_combos = hf.get_channel_combos(num_channels=num_channels)
             if num_channels > 1:
                 indv_shifts, indv_ccfs = sp.calc_indv_CCFs_shifts_standard_kymo(
                     channel_combos=channel_combos,

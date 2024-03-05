@@ -4,7 +4,7 @@ from .correlation_functions import (
     calc_indv_CCFs_shifts_standard_kymo, 
     calc_indv_CCFs_shifts_rolling
 )
-from .peak_properties import calc_indv_peak_props_standard_kymo, calc_indv_peak_props_rolling
+from .peak_properties import calc_indv_peak_props_standard_kymo, calc_indv_peak_props_rolling, calc_indv_peak_offset
 from .general_functions import normalize_signal
 
 __all__ = [
@@ -14,5 +14,6 @@ __all__ = [
     "calc_indv_CCFs_shifts_standard_kymo",
     "calc_indv_peak_props_standard_kymo",
     "calc_indv_peak_props_rolling",
-    "normalize_signal"
+    "normalize_signal",
+    "calc_indv_peak_offset"
 ]
