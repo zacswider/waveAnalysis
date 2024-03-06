@@ -1,5 +1,6 @@
 from tqdm import tqdm
 import numpy as np
+import pandas as pd
 import scipy.signal as sig
 
 def calc_indv_peak_props_standard_kymo(
@@ -141,7 +142,7 @@ def calc_indv_peak_offset(
     bin_values:np.ndarray,
     analysis_type:str
 ):
-    indv_peak_offsets = np.zeros(shape=(num_channels, num_bins))
+    indv_peak_offsets = {}
 
     # Loop through channels and bins for standard or kymograph analysis
     for channel in range(num_channels):
@@ -159,14 +160,19 @@ def calc_indv_peak_offset(
 
                 midpoint = (left_base + right_base) / 2
                 peak_offsets = peaks - midpoint
-                    
-                mean_peak_offset = np.mean(peak_offsets, axis=0)
-                indv_peak_offsets[channel, bin] = mean_peak_offset
+                indv_peak_offsets[f'Ch {channel} Bin {bin}'] ={'offsets': peak_offsets, 
+                                                                'midpoints': midpoint,
+                                                                'left_base': left_base, 
+                                                                'right_base': right_base
+                                                                }
 
             else:
-                indv_peak_offsets[channel, bin] = np.nan
+                indv_peak_offsets[f'Ch {channel} Bin {bin}'] = np.nan
             
+    
     # Save indv_peak_offsets to a CSV file
-    # np.savetxt('/Users/domchom/Desktop/indv_peak_offsets.csv', indv_peak_offsets, delimiter=',')
+    # df = pd.DataFrame(indv_peak_offsets)
+    # df.columns = [f'Bin {i}' for i in range(1, num_bins+1)]
+    # df.to_csv('/Users/domchom/Desktop/indv_peak_offsets.csv', index=False)
 
     return indv_peak_offsets

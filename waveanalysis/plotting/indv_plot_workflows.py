@@ -10,7 +10,8 @@ def plot_indv_peak_props_workflow(
     num_bins:int,
     bin_values:np.ndarray,
     analysis_type:str,
-    ind_peak_props:dict
+    indv_peak_props:dict,
+    indv_peak_offsets: dict
 ) -> dict:
 
     # Dictionary to store generated figures
@@ -28,8 +29,9 @@ def plot_indv_peak_props_workflow(
                 # Generate and store the figure for the current channel and bin
                 indv_peak_figs[f'Ch{channel + 1} Bin {bin + 1} Peak Props'] = return_indv_peak_prop_figure(
                     bin_signal=to_plot,
-                    prop_dict=ind_peak_props[f'Ch {channel} Bin {bin}'],
-                    Ch_name=f'Ch{channel + 1} Bin {bin + 1}'
+                    prop_dict=indv_peak_props[f'Ch {channel} Bin {bin}'],
+                    Ch_name=f'Ch{channel + 1} Bin {bin + 1}',
+                    indv_peak_offsets=indv_peak_offsets[f'Ch {channel} Bin {bin}']
                     )
 
     return indv_peak_figs

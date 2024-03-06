@@ -140,7 +140,6 @@ def standard_workflow(
                     periods=indv_periods
                 )
 
-
             im_save_path = os.path.join(main_save_path, name_wo_ext)
             hf.os.makedirs(im_save_path, exist_ok=True)
 
@@ -205,7 +204,9 @@ def standard_workflow(
                     num_bins=num_bins,
                     bin_values=bin_values,
                     analysis_type=analysis_type,
-                    indv_peak_props=indv_peak_props
+                    indv_peak_props=indv_peak_props,
+                    indv_peak_offsets=indv_peak_offsets
+
                 )
                 indv_peak_path = os.path.join(im_save_path, 'Individual_peak_plots')
                 hf.os.makedirs(indv_peak_path, exist_ok=True)
