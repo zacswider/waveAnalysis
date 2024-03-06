@@ -50,17 +50,7 @@ def return_indv_peak_prop_figure(
                     smoothed_signal[peaks[i]], 
                     color='tab:orange',
                     linestyle = '--')
-            ax.vlines(left_base[i],
-                    smoothed_signal[peaks[i]]-proms[i],
-                    smoothed_signal[peaks[i]], 
-                    color='tab:orange',
-                    linestyle = '--')
-            ax.vlines(right_base[i],
-                    smoothed_signal[peaks[i]]-proms[i],
-                    smoothed_signal[peaks[i]], 
-                    color='tab:orange',
-                    linestyle = '--')
-            
+
         # Plot the legend for the first peak
         ax.hlines(heights[0], 
                 leftIndex[0], 

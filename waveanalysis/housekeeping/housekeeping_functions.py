@@ -116,3 +116,4 @@ def threshold_check(
         log_params["Errors"].append("Set 'ACF peak prominence threshold' to a value between 0 and 1")
         log_params["Errors"].append("More realistically, a value between 0 and 0.5")
         return log_params
+

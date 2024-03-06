@@ -51,5 +51,6 @@ def create_array_from_standard_rolling(
     num_x_bins, num_y_bins = box_values.shape[-2:]
     num_bins = num_x_bins * num_y_bins
     box_values = box_values.reshape(num_frames, num_channels, num_bins)
+    # box_values = np.moveaxis(box_values, [0, 1, 2], [1, 2, 0])
 
     return box_values, num_bins, num_x_bins, num_y_bins

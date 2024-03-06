@@ -5,6 +5,7 @@ import pandas as pd
 from tqdm import tqdm
 from typing import Any
 
+import waveanalysis.plotting as pt
 import waveanalysis.signal_processing as sp
 import waveanalysis.housekeeping.housekeeping_functions as hf 
 
@@ -13,16 +14,8 @@ from waveanalysis.image_properties_signal.image_properties import get_image_prop
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling
 from waveanalysis.summarize_organize_savize.add_stats import save_parameter_means_to_csv
 
-from waveanalysis.plotting import (
-    plot_indv_peak_props_workflow, 
-    plot_indv_acfs_workflow, 
-    plot_indv_ccfs_workflow, 
-    save_indv_ccfs_workflow, 
-    plot_mean_ACFs_workflow, 
-    plot_mean_prop_peaks_workflow, 
-    plot_mean_CCFs_workflow, 
-    save_mean_CCF_values_workflow, 
-    generate_group_comparison)
+
+
 from waveanalysis.summarize_organize_savize.summarize_kymo_standard import (
     organize_standard_kymo_measurements_for_file, 
     summarize_standard_kymo_measurements_for_file)
@@ -79,15 +72,6 @@ def standard_workflow(
             image_path = f'{folder_path}/{file_name}'        
             num_channels, num_frames, frame_interval, pixel_size, pixel_unit = get_image_properties(image_path=image_path)
 
-            # Create the array for which all future processing will be based on
-            bin_values, num_bins, _, _ = create_array_from_standard_rolling(
-                                                                kernel_size = box_size, 
-                                                                step = box_shift, 
-                                                                num_channels = num_channels, 
-                                                                num_frames = num_frames, 
-                                                                image = all_images[file_name]
-                                                            )
-
             # log error and skip image if frames < 2; otherwise, log image as processed
             if num_frames < 2:
                 print(f"****** ERROR ******",
@@ -97,9 +81,17 @@ def standard_workflow(
                 continue
             log_params['Files Processed'].append(f'{file_name}')
 
+            # Create the array for which all future processing will be based on
+            bin_values, num_bins, _, _ = create_array_from_standard_rolling(
+                                                                kernel_size = box_size, 
+                                                                step = box_shift, 
+                                                                num_channels = num_channels, 
+                                                                num_frames = num_frames, 
+                                                                image = all_images[file_name]
+                                                            )
+
             # name without the extension
             name_wo_ext = file_name.rsplit(".",1)[0]
-
             # if user entered group name(s) into GUI, match the group for this file. If no match, keep set to None
             group_name = hf.match_group_to_file(name_wo_ext=name_wo_ext, group_names=group_names)
 
@@ -145,7 +137,7 @@ def standard_workflow(
 
             # plot the mean ACF figures for the file
             if plot_summary_ACFs:
-                mean_acf_plots = plot_mean_ACFs_workflow(
+                mean_acf_plots = pt.plot_mean_ACFs_workflow(
                     acfs=indv_acfs,
                     periods=indv_periods,
                     num_frames=num_frames,
@@ -155,7 +147,7 @@ def standard_workflow(
 
             # plot the mean peak properties figures for the file
             if plot_summary_peaks:
-                mean_peak_plots = plot_mean_prop_peaks_workflow(
+                mean_peak_plots = pt.plot_mean_prop_peaks_workflow(
                     indv_peak_mins=indv_peak_mins,
                     indv_peak_maxs=indv_peak_maxs,
                     indv_peak_amps=indv_peak_amps,
@@ -166,7 +158,7 @@ def standard_workflow(
 
             # plot the mean CCF figures for the file
             if plot_summary_CCFs and num_channels > 1:
-                mean_ccf_plots = plot_mean_CCFs_workflow(
+                mean_ccf_plots = pt.plot_mean_CCFs_workflow(
                     signal=indv_ccfs,
                     shifts=indv_shifts,
                     channel_combos=channel_combos,
@@ -175,7 +167,7 @@ def standard_workflow(
                 hf.save_plots(mean_ccf_plots, im_save_path)
 
                 # save the mean CCF values for the file
-                mean_ccf_values = save_mean_CCF_values_workflow(channel_combos=channel_combos,indv_ccfs=indv_ccfs)
+                mean_ccf_values = pt.save_mean_CCF_values_workflow(channel_combos=channel_combos,indv_ccfs=indv_ccfs)
                 hf.save_values_to_csv(mean_ccf_values, im_save_path, indv_ccfs_bool = False)
                 # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
 
@@ -184,7 +176,7 @@ def standard_workflow(
             
             # plot the individual ACF figures for the file
             if plot_indv_ACFs:
-                indv_acf_plots = plot_indv_acfs_workflow(
+                indv_acf_plots = pt.plot_indv_acfs_workflow(
                     num_channels=num_channels,
                     num_bins=num_bins,
                     bin_values=bin_values,
@@ -199,7 +191,7 @@ def standard_workflow(
 
             # plot the individual peak properties figures for the file
             if plot_indv_peaks:        
-                indv_peak_plots = plot_indv_peak_props_workflow(
+                indv_peak_plots = pt.plot_indv_peak_props_workflow(
                     num_channels=num_channels,
                     num_bins=num_bins,
                     bin_values=bin_values,
@@ -217,7 +209,7 @@ def standard_workflow(
                 if num_channels == 1:
                     log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
 
-                indv_ccf_plots = plot_indv_ccfs_workflow(
+                indv_ccf_plots = pt.plot_indv_ccfs_workflow(
                     num_bins=num_bins,
                     bin_values=bin_values,
                     analysis_type=analysis_type,
@@ -231,7 +223,7 @@ def standard_workflow(
                 hf.save_plots(indv_ccf_plots, indv_ccf_plots_path)
 
                 # save the individual CCF values for the file
-                indv_ccf_values = save_indv_ccfs_workflow(
+                indv_ccf_values = pt.save_indv_ccfs_workflow(
                     indv_ccfs=indv_ccfs,
                     channel_combos=channel_combos,
                     bin_values=bin_values,
@@ -301,7 +293,7 @@ def standard_workflow(
 
         if group_names != ['']:
             # generate comparisons between each group
-            mean_parameter_figs = generate_group_comparison(summary_df = summary_df, log_params = log_params)
+            mean_parameter_figs = pt.generate_group_comparison(summary_df = summary_df, log_params = log_params)
             group_plots_save_path = os.path.join(main_save_path, "!group_comparison_graphs")
             hf.os.makedirs(group_plots_save_path, exist_ok=True)
             hf.save_plots(mean_parameter_figs, group_plots_save_path)

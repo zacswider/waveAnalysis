@@ -53,6 +53,15 @@ def rolling_workflow(
             num_channels, num_frames, frame_interval, pixel_size, pixel_unit = get_image_properties(image_path=image_path)
             assert isinstance(roll_size, int) and isinstance(roll_by, int), 'Roll size and roll by must be integers'
             num_submovies = (num_frames - roll_size) // roll_by
+
+            # log error and skip image if frames < 2 
+            if num_frames < 2:
+                print(f"****** ERROR ******",
+                    f"\n{file_name} has less than 2 frames",
+                    "\n****** ERROR ******")
+                log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
+                continue
+            log_params['Files Processed'].append(f'{file_name}')
             
             # Create the array for which all future processing will be based on
             bin_values, num_bins, num_x_bins, num_y_bins = create_array_from_standard_rolling(
@@ -62,17 +71,6 @@ def rolling_workflow(
                                                                 num_frames = num_frames, 
                                                                 image = all_images[file_name]
                                                             )
-
-            # log error and skip image if frames < 2 
-            if num_frames < 2:
-                print(f"****** ERROR ******",
-                    f"\n{file_name} has less than 2 frames",
-                    "\n****** ERROR ******")
-                log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
-                continue
-
-            # if file is not skipped, log it and continue
-            log_params['Files Processed'].append(f'{file_name}')
 
             # name without the extension
             name_wo_ext = file_name.rsplit(".",1)[0]
