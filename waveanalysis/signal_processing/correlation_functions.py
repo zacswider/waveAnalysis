@@ -19,7 +19,7 @@ def calc_indv_standard_kymo_ACFs_periods(
 # Loop through channels and bins for standard or kymograph analysis
     for channel in range(num_channels):
         for bin in range(num_bins):
-            signal = bin_values[channel, bin]
+            signal = bin_values[:, channel, bin] if analysis_type == "standard" else bin_values[channel, bin]
 
             # calc autocorrelation and normalize
             corr_signal = signal - np.mean(signal)
@@ -39,6 +39,10 @@ def calc_indv_standard_kymo_ACFs_periods(
 
             periods[channel, bin] = period
             acfs[channel, bin] = acf_curve
+
+    # Save acfs and periods to file
+    # np.save('/Users/domchom/Documents/GitHub/ZS_wave_analysis/waveanalysis/signal_processing/acfs.npy', acfs)
+    # np.save('/Users/domchom/Documents/GitHub/ZS_wave_analysis/waveanalysis/signal_processing/periods.npy', periods)
 
     return acfs, periods
 
