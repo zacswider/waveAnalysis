@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from typing import Any
+import scipy.signal as sig
 
 import waveanalysis.signal_processing as sp
 import waveanalysis.housekeeping.housekeeping_functions as hf
@@ -90,17 +91,28 @@ def rolling_workflow(
 
                             indv_periods[submovie, channel, bin] = period
                 
-            # calculate the individual peak properties for each channel
-            indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_amps, indv_peak_rel_amps =sp.calc_indv_peak_props_rolling(
-                num_channels=num_channels,
-                num_bins=num_bins,
-                bin_values=bin_values,
-                num_submovies=num_submovies,
-                roll_by=roll_by,
-                roll_size=roll_size,
-                num_x_bins=num_x_bins,
-                num_y_bins=num_y_bins
-            )
+            # Calculate the individual peak properties for each channel
+            indv_peak_widths = np.zeros(shape=(num_submovies, num_channels, num_bins))
+            indv_peak_maxs = np.zeros(shape=(num_submovies, num_channels, num_bins))
+            indv_peak_mins = np.zeros(shape=(num_submovies, num_channels, num_bins))
+
+            its = num_submovies*num_channels*num_x_bins*num_y_bins
+            with tqdm(total = its, miniters=its/100) as pbar:
+                pbar.set_description('Peak Props: ')
+                for submovie in range(num_submovies):
+                    for channel in range(num_channels):
+                        for bin in range(num_bins):
+                            pbar.update(1)
+                            signal = sig.savgol_filter(bin_values[roll_by*submovie : roll_size + roll_by*submovie, channel, bin], window_length=11, polyorder=2)
+
+                            mean_width, mean_max, mean_min, _, _, _, _, _ = sp.calc_indv_peak_props(signal=signal)
+
+                            # Store peak measurements for each bin in each channel
+                            indv_peak_widths[submovie, channel, bin] = mean_width
+                            indv_peak_maxs[submovie, channel, bin] = mean_max
+                            indv_peak_mins[submovie, channel, bin] = mean_min
+                            indv_peak_amps = indv_peak_maxs - indv_peak_mins
+                            indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
 
             channel_combos = hf.get_channel_combos(num_channels=num_channels)
             num_combos = len(channel_combos)

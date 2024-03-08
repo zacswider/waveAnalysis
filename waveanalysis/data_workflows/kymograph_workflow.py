@@ -109,13 +109,41 @@ def kymograph_workflow(
 
                     indv_periods[channel, bin] = period
                     indv_acfs[channel, bin] = acf_curve
-                
-            # calculate the individual peak properties for each channel
-            indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_amps, indv_peak_rel_amps, indv_peak_props = sp.calc_indv_peak_props_standard_kymo(
+
+            # Calculate the individual peak properties for each channel
+            indv_peak_widths = np.zeros(shape=(num_channels, num_bins))
+            indv_peak_maxs = np.zeros(shape=(num_channels, num_bins))
+            indv_peak_mins = np.zeros(shape=(num_channels, num_bins))
+            indv_peak_props = {}
+
+            for channel in range(num_channels):
+                for bin in range(num_bins):
+                    if analysis_type == "standard":
+                        signal = sig.savgol_filter(bin_values[:,channel, bin], window_length = 11, polyorder = 2)   
+                    else:                     
+                        signal = sig.savgol_filter(bin_values[channel, bin], window_length = 11, polyorder = 2)   
+
+                    mean_width, mean_max, mean_min, peaks, proms, heights, leftIndex, rightIndex = sp.calc_indv_peak_props(signal=signal)
+
+                    # Store peak measurements for each bin in each channel
+                    indv_peak_widths[channel, bin] = mean_width
+                    indv_peak_maxs[channel, bin] = mean_max
+                    indv_peak_mins[channel, bin] = mean_min
+                    indv_peak_props[f'Ch {channel} Bin {bin}'] = {'smoothed': signal, 
+                                                            'peaks': peaks,
+                                                            'proms': proms, 
+                                                            'heights': heights, 
+                                                            'leftIndex': leftIndex, 
+                                                            'rightIndex': rightIndex}
+                    
+                    indv_peak_amps = indv_peak_maxs - indv_peak_mins
+                    indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
+
+            indv_peak_offsets = sp.calc_indv_peak_offset(
                 num_channels=num_channels,
                 num_bins=num_bins,
                 bin_values=bin_values,
-                analysis_type=analysis_type,
+                analysis_type=analysis_type
             )
 
             channel_combos = hf.get_channel_combos(num_channels=num_channels)
