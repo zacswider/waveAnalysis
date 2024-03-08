@@ -1,9 +1,11 @@
 import os
 import timeit
 import datetime
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from typing import Any
+import scipy.signal as sig
 
 import waveanalysis.plotting as pt
 import waveanalysis.signal_processing as sp
@@ -91,22 +93,22 @@ def kymograph_workflow(
                                     )
             
 
-
             # name without the extension
             name_wo_ext = file_name.rsplit(".",1)[0]
 
             # if user entered group name(s) into GUI, match the group for this file. If no match, keep set to None
             group_name = hf.match_group_to_file(name_wo_ext=name_wo_ext, group_names=group_names)
 
-            # calculate the individual ACFs for each channel
-            indv_acfs, indv_periods = sp.calc_indv_standard_kymo_ACFs_periods(
-                num_channels=num_channels, 
-                num_bins=num_bins, 
-                num_frames=num_frames, 
-                bin_values=bin_values, 
-                analysis_type=analysis_type,  
-                peak_thresh=acf_peak_thresh
-                )
+            # Calculate the individual ACFs and periods for each channel
+            indv_periods = np.zeros(shape=(num_channels, num_bins))
+            indv_acfs = np.zeros(shape=(num_channels, num_bins, num_frames * 2 - 1))
+            for channel in range(num_channels):
+                for bin in range(num_bins):
+                    signal = bin_values[channel, bin]
+                    acf_curve, period = sp.calc_indv_ACF_period(signal=signal, num_frames=num_frames, peak_thresh=acf_peak_thresh)
+
+                    indv_periods[channel, bin] = period
+                    indv_acfs[channel, bin] = acf_curve
                 
             # calculate the individual peak properties for each channel
             indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_amps, indv_peak_rel_amps, indv_peak_props = sp.calc_indv_peak_props_standard_kymo(
@@ -117,17 +119,24 @@ def kymograph_workflow(
             )
 
             channel_combos = hf.get_channel_combos(num_channels=num_channels)
-
-            # calculate the individual CCFs for each channel
+            num_combos = len(channel_combos)
+            # Calculate the individual CCFs and shifts for each channel
             if num_channels > 1:
-                indv_shifts, indv_ccfs = sp.calc_indv_CCFs_shifts_standard_kymo(
-                    channel_combos=channel_combos,
-                    num_bins=num_bins,
-                    num_frames=num_frames,
-                    bin_values=bin_values,
-                    analysis_type=analysis_type,
-                    periods=indv_periods
-                )
+                indv_shifts = np.zeros(shape=(num_combos, num_bins))
+                indv_ccfs = np.zeros(shape=(num_combos, num_bins, num_frames*2-1))
+                for combo_number, combo in enumerate(channel_combos):
+                    for bin in range(num_bins):
+                        signal1 = bin_values[combo[0], bin]
+                        signal2 = bin_values[combo[1], bin]
+                        signal1 = sig.savgol_filter(signal1, window_length=11, polyorder=3)
+                        signal2 = sig.savgol_filter(signal2, window_length=11, polyorder=3)
+
+                        shift, ccf = sp.calc_indv_CCFs_shifts(signal1=signal1, signal2=signal2, num_frames=num_frames)
+                        average_period = np.mean(indv_periods[:, bin])
+                        shift = sp.small_shifts_correction(delay_frames=shift, average_period=average_period)
+
+                        indv_shifts[combo_number, bin] = shift
+                        indv_ccfs[combo_number, bin] = ccf
 
             # The code snippet above creates a subfolder within the main save path with the same name as the image file. Will store all associated files in this subfolder
             im_save_path = os.path.join(main_save_path, name_wo_ext)

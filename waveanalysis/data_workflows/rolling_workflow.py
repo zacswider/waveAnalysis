@@ -1,6 +1,7 @@
 import os
 import timeit
 import datetime
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from typing import Any
@@ -75,18 +76,19 @@ def rolling_workflow(
             # name without the extension
             name_wo_ext = file_name.rsplit(".",1)[0]
 
-            # calculate the individual ACFs for each channel
-            indv_acfs, indv_periods = sp.calc_indv_rolling_ACFs_periods(
-                num_channels=num_channels, 
-                num_bins=num_bins, 
-                bin_values=bin_values, 
-                roll_size=roll_size, 
-                roll_by=roll_by, 
-                num_submovies=num_submovies, 
-                num_x_bins=num_x_bins, 
-                num_y_bins=num_y_bins, 
-                peak_thresh=acf_peak_thresh
-                )
+            # Calculate the individual periods for each channel
+            indv_periods = np.zeros(shape=(num_submovies, num_channels, num_bins))
+            its = num_submovies*num_channels*num_x_bins*num_y_bins
+            with tqdm(total = its, miniters=its/100) as pbar:
+                pbar.set_description( 'Periods: ')
+                for submovie in range(num_submovies):
+                    for channel in range(num_channels):
+                        for bin in range(num_bins):
+                            pbar.update(1)
+                            signal = bin_values[roll_by * submovie: roll_size + roll_by * submovie, channel, bin]
+                            _, period = sp.calc_indv_ACF_period(signal=signal, num_frames=roll_size, peak_thresh=acf_peak_thresh)
+
+                            indv_periods[submovie, channel, bin] = period
                 
             # calculate the individual peak properties for each channel
             indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_amps, indv_peak_rel_amps =sp.calc_indv_peak_props_rolling(
@@ -101,18 +103,27 @@ def rolling_workflow(
             )
 
             channel_combos = hf.get_channel_combos(num_channels=num_channels)
-
-            # calculate the individual CCFs for each channel
+            num_combos = len(channel_combos)
+            # Calculate the individual CCFs and shifts for each channel
             if num_channels > 1:
-                indv_shifts, indv_ccfs = sp.calc_indv_CCFs_shifts_rolling(
-                    channel_combos = channel_combos,
-                    num_bins=num_bins,
-                    bin_values=bin_values,
-                    roll_size=roll_size,
-                    roll_by=roll_by,
-                    num_submovies=num_submovies,
-                    periods=indv_periods
-                )
+                indv_shifts = np.zeros(shape=(num_submovies, num_combos, num_bins))
+                indv_ccfs = np.zeros(shape=(num_submovies, num_combos, num_bins, roll_size*2-1))
+                its = num_submovies*num_combos*num_bins
+                with tqdm(total = its, miniters=its/100) as pbar:
+                    pbar.set_description( 'Shifts: ')
+                    for submovie in range(num_submovies):
+                        for combo_number, combo in enumerate(channel_combos):
+                            for bin in range(num_bins):
+                                pbar.update(1)
+                                signal1 = bin_values[roll_by*submovie : roll_size + roll_by*submovie, combo[0], bin]
+                                signal2 = bin_values[roll_by*submovie : roll_size + roll_by*submovie, combo[1], bin]
+
+                                shift, ccf = sp.calc_indv_CCFs_shifts(signal1=signal1, signal2=signal2, num_frames=roll_size)
+                                average_period = np.mean(indv_periods[:, :, bin])
+                                shift = sp.small_shifts_correction(delay_frames=shift, average_period=average_period)
+
+                                indv_shifts[submovie, combo_number, bin] = shift
+                                indv_ccfs[submovie, combo_number, bin] = ccf
 
             # create a subfolder within the main save path with the same name as the image file
             im_save_path = os.path.join(main_save_path, name_wo_ext)

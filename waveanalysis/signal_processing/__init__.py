@@ -1,19 +1,14 @@
-from .correlation_functions import (
-    calc_indv_rolling_ACFs_periods, 
-    calc_indv_standard_kymo_ACFs_periods, 
-    calc_indv_CCFs_shifts_standard_kymo, 
-    calc_indv_CCFs_shifts_rolling
-)
+from .correlation_functions import calc_indv_ACF_period, calc_indv_CCFs_shifts, small_shifts_correction
+    
 from .peak_properties import calc_indv_peak_props_standard_kymo, calc_indv_peak_props_rolling, calc_indv_peak_offset
 from .general_functions import normalize_signal
 
 __all__ = [
-    "calc_indv_rolling_ACFs_periods",
-    "calc_indv_standard_kymo_ACFs_periods",
-    "calc_indv_CCFs_shifts_rolling",
-    "calc_indv_CCFs_shifts_standard_kymo",
+    "calc_indv_ACF_period",
+    "calc_indv_CCFs_shifts",
+    "small_shifts_correction",
     "calc_indv_peak_props_standard_kymo",
     "calc_indv_peak_props_rolling",
+    "calc_indv_peak_offset",    
     "normalize_signal",
-    "calc_indv_peak_offset"
 ]
