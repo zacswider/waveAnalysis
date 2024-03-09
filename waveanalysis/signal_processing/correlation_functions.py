@@ -7,7 +7,7 @@ def calc_indv_ACF_period(
     signal: np.ndarray,
     num_frames: int,
     peak_thresh: float = 0.1
-) -> (np.ndarray, np.ndarray): # type: ignore
+) -> (np.ndarray, np.ndarray): #type: ignore
 
     # calc autocorrelation and normalize
     corr_signal = signal - np.mean(signal)
@@ -31,7 +31,7 @@ def calc_indv_CCFs_shifts(
     signal1: np.ndarray,
     signal2: np.ndarray,
     num_frames: int,
-):
+) -> (np.ndarray, np.ndarray): #type: ignore
     """
     This method computes the cross-correlation functions (CCFs) for each combination of channels.
     It also identifies peaks in the CCF curves to estimate shifts.

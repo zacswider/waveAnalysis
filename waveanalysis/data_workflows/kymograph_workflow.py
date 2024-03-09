@@ -14,7 +14,7 @@ import waveanalysis.housekeeping.housekeeping_functions as hf
 from waveanalysis.image_properties_signal.convert_images import convert_kymos 
 from waveanalysis.image_properties_signal.image_properties import get_kymo_image_properties
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_kymo
-from waveanalysis.summarize_organize_savize.add_stats import save_parameter_means_to_csv
+from waveanalysis.summarize_organize_savize.add_stats import save_parameter_means_to_csv, save_mean_CCF_values, save_indv_ccfs
 
 from waveanalysis.summarize_organize_savize.summarize_kymo_standard import (
     organize_standard_kymo_measurements_for_file, 
@@ -166,51 +166,50 @@ def kymograph_workflow(
                         indv_shifts[combo_number, bin] = shift
                         indv_ccfs[combo_number, bin] = ccf
 
-            # The code snippet above creates a subfolder within the main save path with the same name as the image file. Will store all associated files in this subfolder
             im_save_path = os.path.join(main_save_path, name_wo_ext)
             os.makedirs(im_save_path, exist_ok=True)
 
             # plot the mean ACF figures for the file
             if plot_summary_ACFs:
-                mean_acf_plots = pt.plot_mean_ACFs_workflow(
-                    acfs=indv_acfs,
-                    periods=indv_periods,
-                    num_frames=num_frames,
-                    num_channels=num_channels
-                )
-                hf.save_plots(mean_acf_plots, im_save_path)
+                mean_acf_figs = {}
+                # Generate plots for each channel
+                for channel in range(num_channels):
+                    mean_acf_figs[f'Ch{channel + 1} Mean ACF'] = pt.return_mean_ACF_figure(
+                        signal=indv_acfs[channel], 
+                        periods=indv_periods[channel], 
+                        channel=f'Ch{channel + 1}',
+                        num_frames= num_frames)     
+                hf.save_plots(mean_acf_figs, im_save_path)
 
             # plot the mean peak properties figures for the file
             if plot_summary_peaks:
-                mean_peak_plots = pt.plot_mean_prop_peaks_workflow(
-                    indv_peak_mins=indv_peak_mins,
-                    indv_peak_maxs=indv_peak_maxs,
-                    indv_peak_amps=indv_peak_amps,
-                    indv_peak_widths=indv_peak_widths,
-                    num_channels=num_channels
-                )
-                hf.save_plots(mean_peak_plots, im_save_path)
+                mean_peak_figs = {}
+                for channel in range(num_channels):
+                    mean_peak_figs[f'Ch{channel + 1} Peak Props'] = pt.return_mean_prop_peaks_figure(
+                        min_array=indv_peak_mins[channel], 
+                        max_array=indv_peak_maxs[channel], 
+                        amp_array=indv_peak_amps[channel], 
+                        width_array=indv_peak_widths[channel], 
+                        Ch_name=f'Ch{channel + 1}')
+                hf.save_plots(mean_peak_figs, im_save_path)
 
             # plot the mean CCF figures for the file
             if plot_summary_CCFs and num_channels > 1:
-                if num_channels == 1:
-                    log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
-                mean_ccf_plots = pt.plot_mean_CCFs_workflow(
-                    signal=indv_ccfs,
-                    shifts=indv_shifts,
-                    channel_combos=channel_combos,
-                    num_frames=num_frames
-                )
-                hf.save_plots(mean_ccf_plots, im_save_path)
+                mean_ccf_figs = {}
+                # Iterate over each channel combination
+                for combo_number, combo in enumerate(channel_combos):
+                    # Generate figure for mean CCF
+                    mean_ccf_figs[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF'] = pt.return_mean_CCF_figure(
+                        signal=signal[combo_number], 
+                        shifts=indv_shifts[combo_number], 
+                        channel_combo=f'Ch{combo[0] + 1}-Ch{combo[1] + 1}',
+                        num_frames= num_frames)
+                hf.save_plots(mean_ccf_figs, im_save_path)
 
                 # save the mean CCF values for the file
-                mean_ccf_values = pt.save_mean_CCF_values_workflow(
-                    channel_combos=channel_combos,
-                    indv_ccfs=indv_ccfs
-                )
+                mean_ccf_values = save_mean_CCF_values(channel_combos=channel_combos,indv_ccfs=indv_ccfs)
                 hf.save_values_to_csv(mean_ccf_values, im_save_path, indv_ccfs_bool = False)
-                # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
-            
+
             # plot the individual ACF figures for the file
             if plot_indv_ACFs:
                 indv_acf_plots = pt.plot_indv_acfs_workflow(
@@ -258,7 +257,7 @@ def kymograph_workflow(
                 hf.save_plots(indv_ccf_plots, indv_ccf_plots_path)
 
                 # save the individual CCF values for the file
-                indv_ccf_values = pt.save_indv_ccfs_workflow(
+                indv_ccf_values = save_indv_ccfs(
                     indv_ccfs=indv_ccfs,
                     channel_combos=channel_combos,
                     bin_values=bin_values,
@@ -270,7 +269,6 @@ def kymograph_workflow(
                 hf.save_values_to_csv(indv_ccf_values, indv_ccf_val_path, indv_ccfs_bool = True)
                 # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
 
-                
             # Summarize the data for current image as dataframe, and save as .csv
             im_measurements_df, periods_with_stats, shifts_with_stats, peak_widths_with_stats, peak_maxs_with_stats, peak_mins_with_stats, peak_amps_with_stats, peak_relamp_with_stats = organize_standard_kymo_measurements_for_file(
                 num_bins=num_bins,

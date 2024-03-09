@@ -100,28 +100,3 @@ def plot_indv_ccfs_workflow(
                     num_frames = num_frames)
     
     return indv_ccf_plots
-
-
-# TODO: move this save folder when created
-def save_indv_ccfs_workflow(
-    indv_ccfs:np.ndarray,
-    channel_combos:np.ndarray,
-    bin_values:np.ndarray,
-    analysis_type:str,
-    num_bins:int
-) -> dict:
-    
-    indv_ccf_values = {}
-
-    for combo_number, combo in enumerate(channel_combos):
-        for bin in range(num_bins):      
-            # Save the individual bin values
-            to_plot1 = bin_values[:, combo[0], bin] if analysis_type == "standard" else bin_values[combo[0], bin]
-            to_plot2 = bin_values[:, combo[1], bin] if analysis_type == "standard" else bin_values[combo[1], bin]
-            ccf_curve = indv_ccfs[combo_number, bin]
-            measurements = list(zip_longest(range(1, len(ccf_curve) + 1),  normalize_signal(to_plot1), normalize_signal(to_plot2), ccf_curve, fillvalue=None))
-
-            indv_ccf_values[f'Ch{combo[0]}-Ch{combo[1]} Bin {bin + 1} CCF'] = measurements
-            
-    
-    return indv_ccf_values

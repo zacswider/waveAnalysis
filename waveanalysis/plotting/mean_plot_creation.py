@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# TODO: create functions for the mean plots
-
 def return_mean_ACF_figure(
     signal: np.ndarray, 
     periods: np.ndarray, 

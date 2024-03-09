@@ -14,7 +14,7 @@ import waveanalysis.housekeeping.housekeeping_functions as hf
 from waveanalysis.image_properties_signal.convert_images import convert_movies 
 from waveanalysis.image_properties_signal.image_properties import get_image_properties
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling
-from waveanalysis.summarize_organize_savize.add_stats import save_parameter_means_to_csv
+from waveanalysis.summarize_organize_savize.add_stats import save_parameter_means_to_csv, save_mean_CCF_values, save_indv_ccfs
 
 
 
@@ -170,37 +170,43 @@ def standard_workflow(
 
             # plot the mean ACF figures for the file
             if plot_summary_ACFs:
-                mean_acf_plots = pt.plot_mean_ACFs_workflow(
-                    acfs=indv_acfs,
-                    periods=indv_periods,
-                    num_frames=num_frames,
-                    num_channels=num_channels
-                )
-                hf.save_plots(mean_acf_plots, im_save_path)
+                mean_acf_figs = {}
+                # Generate plots for each channel
+                for channel in range(num_channels):
+                    mean_acf_figs[f'Ch{channel + 1} Mean ACF'] = pt.return_mean_ACF_figure(
+                        signal=indv_acfs[channel], 
+                        periods=indv_periods[channel], 
+                        channel=f'Ch{channel + 1}',
+                        num_frames= num_frames)     
+                hf.save_plots(mean_acf_figs, im_save_path)
 
             # plot the mean peak properties figures for the file
             if plot_summary_peaks:
-                mean_peak_plots = pt.plot_mean_prop_peaks_workflow(
-                    indv_peak_mins=indv_peak_mins,
-                    indv_peak_maxs=indv_peak_maxs,
-                    indv_peak_amps=indv_peak_amps,
-                    indv_peak_widths=indv_peak_widths,
-                    num_channels=num_channels
-                )
-                hf.save_plots(mean_peak_plots, im_save_path)
+                mean_peak_figs = {}
+                for channel in range(num_channels):
+                    mean_peak_figs[f'Ch{channel + 1} Peak Props'] = pt.return_mean_prop_peaks_figure(
+                        min_array=indv_peak_mins[channel], 
+                        max_array=indv_peak_maxs[channel], 
+                        amp_array=indv_peak_amps[channel], 
+                        width_array=indv_peak_widths[channel], 
+                        Ch_name=f'Ch{channel + 1}')
+                hf.save_plots(mean_peak_figs, im_save_path)
 
             # plot the mean CCF figures for the file
             if plot_summary_CCFs and num_channels > 1:
-                mean_ccf_plots = pt.plot_mean_CCFs_workflow(
-                    signal=indv_ccfs,
-                    shifts=indv_shifts,
-                    channel_combos=channel_combos,
-                    num_frames=num_frames
-                )
-                hf.save_plots(mean_ccf_plots, im_save_path)
+                mean_ccf_figs = {}
+                # Iterate over each channel combination
+                for combo_number, combo in enumerate(channel_combos):
+                    # Generate figure for mean CCF
+                    mean_ccf_figs[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF'] = pt.return_mean_CCF_figure(
+                        signal=signal[combo_number], 
+                        shifts=indv_shifts[combo_number], 
+                        channel_combo=f'Ch{combo[0] + 1}-Ch{combo[1] + 1}',
+                        num_frames= num_frames)
+                hf.save_plots(mean_ccf_figs, im_save_path)
 
                 # save the mean CCF values for the file
-                mean_ccf_values = pt.save_mean_CCF_values_workflow(channel_combos=channel_combos,indv_ccfs=indv_ccfs)
+                mean_ccf_values = save_mean_CCF_values(channel_combos=channel_combos,indv_ccfs=indv_ccfs)
                 hf.save_values_to_csv(mean_ccf_values, im_save_path, indv_ccfs_bool = False)
                 # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
 
@@ -256,7 +262,7 @@ def standard_workflow(
                 hf.save_plots(indv_ccf_plots, indv_ccf_plots_path)
 
                 # save the individual CCF values for the file
-                indv_ccf_values = pt.save_indv_ccfs_workflow(
+                indv_ccf_values = save_indv_ccfs(
                     indv_ccfs=indv_ccfs,
                     channel_combos=channel_combos,
                     bin_values=bin_values,

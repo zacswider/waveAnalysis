@@ -3,19 +3,7 @@ import scipy.signal as sig
 
 def calc_indv_peak_props(
         signal:np.ndarray
-):
-    """
-    This method computes various peak properties for each channel and bin of the analyzed data.
-
-    Returns:
-        - indv_peak_widths (numpy.ndarray): Array of peak widths.
-        - indv_peak_maxs (numpy.ndarray): Array of peak maximum values.
-        - indv_peak_mins (numpy.ndarray): Array of peak minimum values.
-        - indv_peak_amps (numpy.ndarray): Array of peak amplitudes.
-        - indv_peak_rel_amps (numpy.ndarray): Array of relative peak amplitudes.
-        - indv_peak_props (dict): Dictionary containing additional peak properties.
-    """
-
+) -> tuple:
     peaks, _ = sig.find_peaks(signal, prominence=(np.max(signal)-np.min(signal))*0.1)
 
     # If peaks detected, calculate properties, otherwise return NaNs
@@ -42,7 +30,7 @@ def calc_indv_peak_offset(
     num_bins:int,
     bin_values:np.ndarray,
     analysis_type:str
-):
+) -> dict:
     indv_peak_offsets = {}
 
     # Loop through channels and bins for standard or kymograph analysis
