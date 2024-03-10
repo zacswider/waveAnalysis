@@ -99,72 +99,67 @@ def kymograph_workflow(
             # if user entered group name(s) into GUI, match the group for this file. If no match, keep set to None
             group_name = hf.match_group_to_file(name_wo_ext=name_wo_ext, group_names=group_names)
 
-            # Calculate the individual ACFs and periods for each channel
+            # get the channel combinations
+            channel_combos = hf.get_channel_combos(num_channels=num_channels)
+            num_combos = len(channel_combos)
+
+            # initialize arrays to store the individual ACFs, periods, peak properties, and CCFs
             indv_periods = np.zeros(shape=(num_channels, num_bins))
             indv_acfs = np.zeros(shape=(num_channels, num_bins, num_frames * 2 - 1))
-            for channel in range(num_channels):
-                for bin in range(num_bins):
-                    signal = bin_values[channel, bin]
-                    acf_curve, period = sp.calc_indv_ACF_period(signal=signal, num_frames=num_frames, peak_thresh=acf_peak_thresh)
 
-                    indv_periods[channel, bin] = period
-                    indv_acfs[channel, bin] = acf_curve
-
-            # Calculate the individual peak properties for each channel
             indv_peak_widths = np.zeros(shape=(num_channels, num_bins))
             indv_peak_maxs = np.zeros(shape=(num_channels, num_bins))
             indv_peak_mins = np.zeros(shape=(num_channels, num_bins))
             indv_peak_props = {}
 
+            indv_shifts = np.zeros(shape=(num_combos, num_bins))
+            indv_ccfs = np.zeros(shape=(num_combos, num_bins, num_frames*2-1))
+
+            # iterate over each channel and bin to calculate the ACFs, periods, peak properties, and CCFs
             for channel in range(num_channels):
                 for bin in range(num_bins):
-                    if analysis_type == "standard":
-                        signal = sig.savgol_filter(bin_values[:,channel, bin], window_length = 11, polyorder = 2)   
-                    else:                     
-                        signal = sig.savgol_filter(bin_values[channel, bin], window_length = 11, polyorder = 2)   
+                    # calculate the individual ACFs and periods for each channel
+                    signal = bin_values[channel, bin]
+                    acf_curve, period = sp.calc_indv_ACF_period(signal=signal, num_frames=num_frames, peak_thresh=acf_peak_thresh)
+                    indv_periods[channel, bin] = period
+                    indv_acfs[channel, bin] = acf_curve
 
-                    mean_width, mean_max, mean_min, peaks, proms, heights, leftIndex, rightIndex = sp.calc_indv_peak_props(signal=signal)
-
-                    # Store peak measurements for each bin in each channel
+                    # calculate the individual peak properties for each channel
+                    smoothed_signal = sig.savgol_filter(signal, window_length = 11, polyorder = 2)                 
+                    mean_width, mean_max, mean_min, peaks, proms, heights, leftIndex, rightIndex = sp.calc_indv_peak_props(signal=smoothed_signal)
                     indv_peak_widths[channel, bin] = mean_width
                     indv_peak_maxs[channel, bin] = mean_max
                     indv_peak_mins[channel, bin] = mean_min
-                    indv_peak_props[f'Ch {channel} Bin {bin}'] = {'smoothed': signal, 
+                    indv_peak_props[f'Ch {channel} Bin {bin}'] = {'smoothed': smoothed_signal, 
                                                             'peaks': peaks,
                                                             'proms': proms, 
                                                             'heights': heights, 
                                                             'leftIndex': leftIndex, 
                                                             'rightIndex': rightIndex}
                     
-                    indv_peak_amps = indv_peak_maxs - indv_peak_mins
-                    indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
+            # Calculate the individual CCFs and shifts for each channel
+            if num_channels > 1:
+                for combo_number, combo in enumerate(channel_combos):
+                    for bin in range(num_bins):
+                        signal1 = sig.savgol_filter(bin_values[combo[0], bin], window_length=11, polyorder=3)
+                        signal2 = sig.savgol_filter(bin_values[combo[1], bin], window_length=11, polyorder=3)
+                        shift, ccf = sp.calc_indv_CCFs_shifts(signal1=signal1, signal2=signal2, num_frames=num_frames)
+                        average_period = np.mean(indv_periods[:, bin])
+                        shift = sp.small_shifts_correction(delay_frames=shift, average_period=average_period)
+                        indv_shifts[combo_number, bin] = shift
+                        indv_ccfs[combo_number, bin] = ccf
 
+            # Calculate the peak amplitudes and relative amplitudes
+            indv_peak_amps = indv_peak_maxs - indv_peak_mins
+            indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
+
+            # TODO: complete this portion of the code
             indv_peak_offsets = sp.calc_indv_peak_offset(
                 num_channels=num_channels,
                 num_bins=num_bins,
                 bin_values=bin_values,
                 analysis_type=analysis_type
             )
-
-            channel_combos = hf.get_channel_combos(num_channels=num_channels)
-            num_combos = len(channel_combos)
-            # Calculate the individual CCFs and shifts for each channel
-            if num_channels > 1:
-                indv_shifts = np.zeros(shape=(num_combos, num_bins))
-                indv_ccfs = np.zeros(shape=(num_combos, num_bins, num_frames*2-1))
-                for combo_number, combo in enumerate(channel_combos):
-                    for bin in range(num_bins):
-                        signal1 = bin_values[combo[0], bin]
-                        signal2 = bin_values[combo[1], bin]
-                        signal1 = sig.savgol_filter(signal1, window_length=11, polyorder=3)
-                        signal2 = sig.savgol_filter(signal2, window_length=11, polyorder=3)
-
-                        shift, ccf = sp.calc_indv_CCFs_shifts(signal1=signal1, signal2=signal2, num_frames=num_frames)
-                        average_period = np.mean(indv_periods[:, bin])
-                        shift = sp.small_shifts_correction(delay_frames=shift, average_period=average_period)
-
-                        indv_shifts[combo_number, bin] = shift
-                        indv_ccfs[combo_number, bin] = ccf
 
             im_save_path = os.path.join(main_save_path, name_wo_ext)
             os.makedirs(im_save_path, exist_ok=True)
