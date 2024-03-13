@@ -14,7 +14,7 @@ from waveanalysis.plotting import plot_rolling_summary
 from waveanalysis.image_properties_signal.convert_images import convert_movies  
 from waveanalysis.image_properties_signal.image_properties import get_image_properties
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling
-from waveanalysis.summarize_organize_savize.summarize_rolling import summarize_rolling_file, organize_submovie_measurements
+from waveanalysis.summarize_organize_save.summarize_rolling import summarize_rolling_file, organize_submovie_measurements
 
 def rolling_workflow(
     folder_path: str,
