@@ -269,7 +269,7 @@ def standard_workflow(
                 hf.save_values_to_csv(indv_ccf_values, indv_ccf_val_path, indv_ccfs_bool = True)
                 # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
 
-            img_parameters = {'Period': indv_periods,
+            img_parameters_dict = {'Period': indv_periods,
                             'ACF': indv_acfs,
                             'Peak Width': indv_peak_widths,
                             'Peak Max': indv_peak_maxs,
@@ -278,21 +278,16 @@ def standard_workflow(
                             'Peak Rel Amp': indv_peak_rel_amps,
                             'Shift': indv_shifts
             }
+            
             # Summarize the data for current image as dataframe, and save as .csv
-            im_measurements_df, periods_with_stats, shifts_with_stats, peak_widths_with_stats, peak_maxs_with_stats, peak_mins_with_stats, peak_amps_with_stats, peak_relamp_with_stats = organize_standard_kymo_measurements_for_file(
+            im_measurements_df, parameters_with_stats_dict = organize_standard_kymo_measurements_for_file(
                 num_bins=num_bins,
                 num_channels=num_channels,
                 channel_combos=channel_combos,
-                indv_periods=indv_periods,
-                indv_shifts=indv_shifts,
-                indv_peak_widths=indv_peak_widths,
-                indv_peak_maxs=indv_peak_maxs,
-                indv_peak_mins=indv_peak_mins,
-                indv_peak_amps=indv_peak_amps,
-                indv_peak_rel_amps=indv_peak_rel_amps
+                img_parameters=img_parameters_dict
             )
             im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)  # type: ignore
-
+            
             # generate summary data for current image
             im_summary_dict = summarize_standard_kymo_measurements_for_file(
                 file_name=file_name, 
@@ -300,16 +295,8 @@ def standard_workflow(
                 num_bins=num_bins,
                 num_channels=num_channels,
                 channel_combos=channel_combos,
-                indv_periods=indv_periods,
-                periods_with_stats=periods_with_stats,
-                indv_shifts=indv_shifts,
-                shifts_with_stats=shifts_with_stats,
-                indv_peak_widths=indv_peak_widths,
-                peak_widths_with_stats=peak_widths_with_stats,
-                peak_maxs_with_stats=peak_maxs_with_stats,
-                peak_mins_with_stats=peak_mins_with_stats,
-                peak_amps_with_stats=peak_amps_with_stats,
-                peak_relamp_with_stats=peak_relamp_with_stats
+                img_parameters_dict=img_parameters_dict,
+                parameters_with_stats_dict=parameters_with_stats_dict
                 )
 
             # populate column headers list with keys from the measurements dictionary
