@@ -269,16 +269,16 @@ def standard_workflow(
                 hf.save_values_to_csv(indv_ccf_values, indv_ccf_val_path, indv_ccfs_bool = True)
                 # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
 
-            img_parameters_dict = {'Period': indv_periods,
-                            'ACF': indv_acfs,
+            img_parameters_dict = {
+                            'Period': indv_periods,
+                            'Shift': indv_shifts,
+                            'Peak Amp': indv_peak_amps,
+                            'Peak Rel Amp': indv_peak_rel_amps,
                             'Peak Width': indv_peak_widths,
                             'Peak Max': indv_peak_maxs,
                             'Peak Min': indv_peak_mins,
-                            'Peak Amp': indv_peak_amps,
-                            'Peak Rel Amp': indv_peak_rel_amps,
-                            'Shift': indv_shifts
             }
-            
+
             # Summarize the data for current image as dataframe, and save as .csv
             im_measurements_df, parameters_with_stats_dict = organize_standard_kymo_measurements_for_file(
                 num_bins=num_bins,

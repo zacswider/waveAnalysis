@@ -56,27 +56,24 @@ def summarize_standard_kymo_measurements_for_file(
 
     stats_location = ['Mean', 'Median', 'StdDev', 'SEM']
 
-    pcnt_no_period = [np.count_nonzero(np.isnan(img_parameters_dict['Period'][channel])) / img_parameters_dict['Period'][channel].shape[0] * 100 for channel in range(num_channels)]
-    for channel in range(num_channels):
-        file_data_summary[f'Ch {channel + 1} Pcnt No Periods'] = pcnt_no_period[channel]
-        for ind, stat in enumerate(stats_location):
-            file_data_summary[f'Ch {channel + 1} {stat} Period'] = parameters_with_stats_dict['Period'][channel][ind + 1]
-
     if num_channels > 1:
-        pcnt_no_shift = [np.count_nonzero(np.isnan(img_parameters_dict['Shift'][combo_number])) / img_parameters_dict['Shift'][combo_number].shape[0] * 100 for combo_number, combo in enumerate(channel_combos)]
         for combo_number, combo in enumerate(channel_combos):
-            file_data_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Pcnt No Shifts'] = pcnt_no_shift[combo_number]
+            shift_data = img_parameters_dict['Shift'][combo_number]
+            pcnt_no_shift = np.count_nonzero(np.isnan(shift_data)) / shift_data.shape[0] * 100
+            file_data_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Pcnt No Shifts'] = pcnt_no_shift
             for ind, stat in enumerate(stats_location):
                 file_data_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} {stat} Shift'] = parameters_with_stats_dict['Shift'][combo_number][ind + 1]
 
-    pcnt_no_peaks = [np.count_nonzero(np.isnan(img_parameters_dict['Peak Width'][channel])) / img_parameters_dict['Peak Width'][channel].shape[0] * 100 for channel in range(num_channels)]
-    for channel in range(num_channels):
-        file_data_summary[f'Ch {channel + 1} Pcnt No Peaks'] = pcnt_no_peaks[channel]
-        for ind, stat in enumerate(stats_location):
-            file_data_summary[f'Ch {channel + 1} {stat} Peak Width'] = parameters_with_stats_dict['Peak Width'][channel][ind + 1]
-            file_data_summary[f'Ch {channel + 1} {stat} Peak Max'] = parameters_with_stats_dict['Peak Max'][channel][ind + 1]
-            file_data_summary[f'Ch {channel + 1} {stat} Peak Min'] = parameters_with_stats_dict['Peak Min'][channel][ind + 1]
-            file_data_summary[f'Ch {channel + 1} {stat} Peak Amp'] = parameters_with_stats_dict['Peak Amp'][channel][ind + 1]
-            file_data_summary[f'Ch {channel + 1} {stat} Peak Rel Amp'] = parameters_with_stats_dict['Peak Rel Amp'][channel][ind + 1]
-            
+    for key, value in img_parameters_dict.items():
+        if key == 'Shift':
+            continue
+        elif key == 'Period' or key == 'Peak Amp':
+            for channel in range(num_channels):
+                pcnt_no_parameter = np.count_nonzero(np.isnan(img_parameters_dict[key][channel])) / img_parameters_dict[key][channel].shape[0] * 100
+                param = 'Peaks' if key == 'Peak Amp' else 'Periods'
+                file_data_summary[f'Ch {channel + 1} Pcnt No {param}'] = pcnt_no_parameter
+        for channel in range(num_channels):        
+            for ind, stat in enumerate(stats_location):
+                file_data_summary[f'Ch {channel + 1} {stat} {key}'] = parameters_with_stats_dict[key][channel][ind + 1]
+
     return file_data_summary
