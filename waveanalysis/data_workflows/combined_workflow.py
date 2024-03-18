@@ -110,13 +110,18 @@ def combined_workflow(
                                     )
                 
                 if calc_wave_speeds:
-                    # have the user create lines to calculate the wave speed
-                    # wave_tracks = sp.define_wave_tracks(file_path=image_path)
-                    wave_tracks = [np.array([[52, 1], [7,  36]]), 
-                                np.array([[26,   2], [7,  32]]), 
-                                np.array([[9, 72], [64,  35]])]
-                    # calculate the wave speeds
-                    wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, pixel_size=pixel_size, frame_interval=frame_interval)
+                    wave_tracks = sp.define_wave_tracks(file_path=image_path)
+                    # wave_tracks = np.array(wave_tracks)
+                    # wave_tracks = [np.array([[52, 1], [7,  36]]), np.array([[26,   2], [7,  32]]), np.array([[9, 72], [64,  35]])]
+                    # wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, pixel_size=pixel_size, frame_interval=frame_interval)
+                    wave_speeds = []
+                    for wave_track in wave_tracks:
+                        # wave_speed = np.linalg.norm(wave_track[-1] - wave_track[0]) / (len(wave_track) * frame_interval)
+                        x1, x2 = wave_track[0][1], wave_track[1][1]
+                        y1, y2 = wave_track[0][0], wave_track[1][0]
+                        wave_speed = abs(y2-y1 / x2-x1)
+                        wave_speed = wave_speed * pixel_size[0] / frame_interval
+                        wave_speeds.append(wave_speed)
 
             # name without the extension
             name_wo_ext = file_name.rsplit(".",1)[0]
@@ -198,7 +203,8 @@ def combined_workflow(
                             'Peak Width': indv_peak_widths,
                             'Peak Max': indv_peak_maxs,
                             'Peak Min': indv_peak_mins,
-                            'Peak Offset': indv_peak_offsets
+                            'Peak Offset': indv_peak_offsets,
+                            # TODO: add wave speed to the stats
                             }        
 
             im_save_path = os.path.join(main_save_path, name_wo_ext)
@@ -245,6 +251,12 @@ def combined_workflow(
                 # save the mean CCF values for the file
                 mean_ccf_values = get_mean_CCF_values(channel_combos=channel_combos,indv_ccfs=indv_ccfs)
                 hf.save_ccf_values_to_csv(mean_ccf_values, im_save_path)
+
+            if plot_wave_speeds:
+                # plot the wave speeds for the file
+                wave_speed_figs = {}
+                wave_speed_figs[f'{name_wo_ext} wave speeds'] = pt.return_mean_wave_speeds_figure(wave_speeds=wave_speeds)
+                hf.save_plots(wave_speed_figs, im_save_path)
 
             elif plot_summary_CCFs and num_channels == 1:
                 log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
@@ -324,13 +336,6 @@ def combined_workflow(
                 hf.os.makedirs(indv_ccf_plots_path, exist_ok=True)
                 hf.save_plots(indv_ccf_plots, indv_ccf_plots_path)
 
-                if plot_wave_speeds:
-                    # plot the wave speeds for the file
-                    wave_speed_figs = pt.return_wave_speed_figure(wave_speeds=wave_speeds, file_name=name_wo_ext)
-                    wave_speed_path = os.path.join(im_save_path, 'Wave_Speed_Plots')
-                    hf.os.makedirs(wave_speed_path, exist_ok=True)
-                    hf.save_plots(wave_speed_figs, wave_speed_path)
-
                 # save the individual CCF values for the file
                 indv_ccf_values = get_indv_CCF_values(
                     indv_ccfs=indv_ccfs,
@@ -406,4 +411,4 @@ def combined_workflow(
         log_params["Time Elapsed"] = f"{end - start:.2f} seconds"
         hf.make_log(main_save_path, log_params)
 
-        return summary_df, wave_speeds # only here for testing for now
+        return summary_df, wave_tracks # only here for testing for now

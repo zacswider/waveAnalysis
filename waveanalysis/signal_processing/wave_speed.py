@@ -6,7 +6,7 @@ def define_wave_tracks(file_path):
     viewer = napari.Viewer(title=f'Trace a polygon for {filename}. Press "s" to save and close the window')
     viewer.open(file_path)
 
-    shapes_layer = viewer.add_shapes()#time saving to automatically create the shapes layer
+    shapes_layer = viewer.add_shapes(shape_type='line')#time saving to automatically create the shapes layer
 
     @viewer.bind_key('s')
     def save_and_close_ROIs(viewer):
@@ -30,7 +30,7 @@ def calc_wave_speeds(wave_tracks, pixel_size, frame_interval):
         # wave_speed = np.linalg.norm(wave_track[-1] - wave_track[0]) / (len(wave_track) * frame_interval)
         x1, x2 = wave_track[0][1], wave_track[1][1]
         y1, y2 = wave_track[0][0], wave_track[1][0]
-        wave_speed =abs(y2-y1 / x2-x1)
+        wave_speed = abs(y2-y1 / x2-x1)
         wave_speed = wave_speed * pixel_size[0] / frame_interval
         wave_speeds.append(wave_speed)
 

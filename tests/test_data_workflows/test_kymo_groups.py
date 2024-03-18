@@ -48,14 +48,12 @@ def test_kymo(default_log_params):
     )
     assert pd.testing.assert_frame_equal(known_results, exp_results) is None
 
-    return result
-'''
 log_params = {
         'Line Size(px)': 5,
         'Line Shift(px)': 5,
         'Base Directory': 'tests/assets/kymo',
         'ACF Peak Prominence': 0.1,
-        'Group Names': ['Group1, Group2'],
+        'Group Names': ['Group2'],
         'Plot Summary ACFs': False,
         'Plot Summary CCFs': False,
         'Plot Summary Peaks': False,
@@ -70,5 +68,5 @@ log_params = {
         
     }
 
-result = test_kymo(log_params)
-print(result)'''
+
+

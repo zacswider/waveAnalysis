@@ -107,7 +107,6 @@ def return_mean_CCF_figure(
     channel_combo: str, 
     num_frames: int):
 
-
     # Plot mean cross-correlation curve with shaded area representing standard deviation
     arr_mean = np.nanmean(signal, axis = 0)
     arr_std = np.nanstd(signal, axis = 0)
@@ -140,5 +139,22 @@ def return_mean_CCF_figure(
     ax['C'].set_ylabel(f'Measured shift (frames)')
 
     fig.subplots_adjust(hspace=0.25, wspace=0.5)   
+    plt.close(fig)
+    return fig
+
+def return_mean_wave_speeds_figure(
+    wave_speeds: list[float]
+):
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+
+    ax1.hist(wave_speeds, bins = 10, color = 'tab:blue', alpha = 0.75)
+    ax1.set_xlabel('Histogram of wave speeds (µm/s)')
+    ax1.set_ylabel('Occurances')
+    ax1.set_title('Wave Speeds Histogram')
+
+    # Plot boxplots for peak properties
+    boxes = ax2.boxplot(wave_speeds)
+    ax2.set_xlabel('Boxplot of wave speeds (µm/s)')
+    
     plt.close(fig)
     return fig
