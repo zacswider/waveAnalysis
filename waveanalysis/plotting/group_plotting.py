@@ -8,7 +8,7 @@ def generate_group_comparison(
 ):
     print('Generating group comparisons...')
     
-    mean_parameter_figs = {}
+    group_mean_parameter_figs = {}
     parameters_to_compare = [column for column in summary_df.columns if 'Mean' in column]
 
     # generate and save figures for each parameter
@@ -27,10 +27,10 @@ def generate_group_comparison(
                             rotation=45)
             fig = ax.get_figure()
             
-            mean_parameter_figs[param] = fig
+            group_mean_parameter_figs[param] = fig
             plt.close(fig)
 
         except ValueError:
             log_params['Plotting errors'].append(f'No data to compare for {param}')
 
-    return mean_parameter_figs
+    return group_mean_parameter_figs, log_params

@@ -334,7 +334,7 @@ def kymograph_workflow(
 
         if group_names != ['']:
             # generate comparisons between each group
-            mean_parameter_figs = pt.generate_group_comparison(summary_df = summary_df, 
+            mean_parameter_figs, log_params = pt.generate_group_comparison(summary_df = summary_df, 
                                                             log_params = log_params)
             group_plots_save_path = os.path.join(main_save_path, "!group_comparison_graphs")
             os.makedirs(group_plots_save_path, exist_ok=True)
