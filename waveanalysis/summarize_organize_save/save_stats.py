@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from itertools import zip_longest
 from waveanalysis.signal_processing import normalize_signal
+from typing import Union, List, Tuple
 
 def save_parameter_means_to_csv(
     summary_df: pd.DataFrame,
@@ -41,7 +42,7 @@ def save_parameter_means_to_csv(
 
     return parameter_tables_dict
 
-def save_mean_CCF_values(
+def get_mean_CCF_values(
     channel_combos: list, 
     indv_ccfs: np.ndarray, 
 ) -> dict:
@@ -56,7 +57,7 @@ def save_mean_CCF_values(
 
     return mean_ccf_values
 
-def save_indv_ccfs(
+def get_indv_CCF_values(
     indv_ccfs:np.ndarray,
     channel_combos:np.ndarray,
     bin_values:np.ndarray,
@@ -76,7 +77,6 @@ def save_indv_ccfs(
 
             indv_ccf_values[f'Ch{combo[0]}-Ch{combo[1]} Bin {bin + 1} CCF'] = measurements
             
-    
     return indv_ccf_values
 
 def add_stats_for_parameter(
@@ -104,3 +104,32 @@ def add_stats_for_parameter(
             statified.append(meas_list)
         
         return statified
+
+def save_ccf_values_to_csv(
+    values: dict, 
+    path: str,
+):
+    for filename, measurements in values.items():
+        file_path = os.path.join(path, f'{filename}.csv')
+        headers, data = determine_structure_and_values(measurements)
+        write_to_csv(file_path, headers, data)
+
+def determine_structure_and_values(measurements: Union[List[Tuple], List[List]]) -> Tuple[List[str], List[Tuple]]:
+    # Check the structure of the measurements to determine headers and values
+    first_entry = measurements[0]
+    if len(first_entry) == 4:
+        # Individual CCFs
+        headers = ['Time', 'Ch1_Value', 'Ch2_Value', 'CCF_Value']
+    elif len(first_entry) == 3:
+        # Mean CCFs
+        headers = ['Time', 'Mean', 'StDev']
+    else:
+        raise ValueError("Unsupported measurements format")
+
+    return headers, measurements
+
+def write_to_csv(file_path: str, headers: List[str], data: List[Tuple]):
+    with open(file_path, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(headers)
+        writer.writerows(data)

@@ -1,9 +1,7 @@
 import os
 import sys
-import csv
 import datetime
 import numpy as np
-from typing import Union, List, Tuple
 
 def make_log(
     directory: str, 
@@ -91,33 +89,3 @@ def threshold_check(
         log_params["Errors"].append("Set 'ACF peak prominence threshold' to a value between 0 and 1")
         log_params["Errors"].append("More realistically, a value between 0 and 0.5")
         return log_params
-
-# TODO: move to save module
-def save_values_to_csv(
-    values: dict, 
-    path: str,
-):
-    for filename, measurements in values.items():
-        file_path = os.path.join(path, f'{filename}.csv')
-        headers, data = determine_structure_and_values(measurements)
-        write_to_csv(file_path, headers, data)
-
-def determine_structure_and_values(measurements: Union[List[Tuple], List[List]]) -> Tuple[List[str], List[Tuple]]:
-    # Check the structure of the measurements to determine headers and values
-    first_entry = measurements[0]
-    if len(first_entry) == 4:
-        # Individual CCFs
-        headers = ['Time', 'Ch1_Value', 'Ch2_Value', 'CCF_Value']
-    elif len(first_entry) == 3:
-        # Mean CCFs
-        headers = ['Time', 'Mean', 'StDev']
-    else:
-        raise ValueError("Unsupported measurements format")
-
-    return headers, measurements
-
-def write_to_csv(file_path: str, headers: List[str], data: List[Tuple]):
-    with open(file_path, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(headers)
-        writer.writerows(data)

@@ -14,7 +14,7 @@ import waveanalysis.housekeeping.housekeeping_functions as hf
 from waveanalysis.image_properties_signal.convert_images import convert_kymos 
 from waveanalysis.image_properties_signal.image_properties import get_kymo_image_properties
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_kymo
-from waveanalysis.summarize_organize_save.add_stats import save_parameter_means_to_csv, save_mean_CCF_values, save_indv_ccfs
+from waveanalysis.summarize_organize_save.save_stats import save_parameter_means_to_csv, get_mean_CCF_values, get_indv_CCF_values
 
 from waveanalysis.summarize_organize_save.summarize_kymo_standard import (
     organize_standard_kymo_measurements_for_file, 
@@ -199,8 +199,8 @@ def kymograph_workflow(
                 hf.save_plots(mean_ccf_figs, im_save_path)
 
                 # save the mean CCF values for the file
-                mean_ccf_values = save_mean_CCF_values(channel_combos=channel_combos,indv_ccfs=indv_ccfs)
-                hf.save_values_to_csv(mean_ccf_values, im_save_path)
+                mean_ccf_values = get_mean_CCF_values(channel_combos=channel_combos,indv_ccfs=indv_ccfs)
+                hf.save_ccf_values_to_csv(mean_ccf_values, im_save_path)
 
             # plot the individual ACF figures for the file
             if plot_indv_ACFs:
@@ -249,7 +249,7 @@ def kymograph_workflow(
                 hf.save_plots(indv_ccf_plots, indv_ccf_plots_path)
 
                 # save the individual CCF values for the file
-                indv_ccf_values = save_indv_ccfs(
+                indv_ccf_values = get_indv_CCF_values(
                     indv_ccfs=indv_ccfs,
                     channel_combos=channel_combos,
                     bin_values=bin_values,
@@ -258,7 +258,7 @@ def kymograph_workflow(
                 )
                 indv_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')
                 os.makedirs(indv_ccf_val_path, exist_ok=True)
-                hf.save_values_to_csv(indv_ccf_values, indv_ccf_val_path)
+                hf.save_ccf_values_to_csv(indv_ccf_values, indv_ccf_val_path)
 
             img_parameters_dict = {
                             'Period': indv_periods,

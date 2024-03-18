@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from .add_stats import add_stats_for_parameter
+from .save_stats import add_stats_for_parameter
 
 def organize_standard_kymo_measurements_for_file(
     num_bins: int,
