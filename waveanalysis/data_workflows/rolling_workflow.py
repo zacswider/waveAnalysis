@@ -13,7 +13,7 @@ import waveanalysis.housekeeping.housekeeping_functions as hf
 from waveanalysis.image_props.image_bin_calc import create_multi_frame_bin_array
 from waveanalysis.image_props.image_to_np_arrays import tiff_to_np_array_multi_frame
 from waveanalysis.image_props.image_properties import get_multi_frame_properties
-from waveanalysis.summarize_organize_save.summarize_rolling import summarize_rolling_file, organize_submovie_measurements
+from waveanalysis.summarize_save.summarize_rolling import summarize_rolling_file, organize_submovie_measurements
 
 def rolling_workflow(
     folder_path: str,

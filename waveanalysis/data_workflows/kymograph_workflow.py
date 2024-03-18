@@ -13,8 +13,8 @@ import waveanalysis.housekeeping.housekeeping_functions as hf
 from waveanalysis.image_props.image_bin_calc import create_kymo_bin_array
 from waveanalysis.image_props.image_to_np_arrays import tiff_to_np_array_single_frame
 from waveanalysis.image_props.image_properties import get_single_frame_properties
-from waveanalysis.summarize_organize_save.save_stats import save_parameter_means_to_csv, get_mean_CCF_values, get_indv_CCF_values
-from waveanalysis.summarize_organize_save.summarize_kymo_standard import (
+from waveanalysis.summarize_save.save_stats import save_parameter_means_to_csv, get_mean_CCF_values, get_indv_CCF_values
+from waveanalysis.summarize_save.summarize_kymo_standard import (
     summarize_image_standard_kymo, 
     combine_stats_for_image_kymo_standard)
 
