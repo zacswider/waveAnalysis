@@ -205,48 +205,74 @@ def standard_workflow(
             
             # plot the individual ACF figures for the file
             if plot_indv_ACFs:
-                indv_acf_plots = pt.plot_indv_acfs_workflow(
-                    num_channels=num_channels,
-                    num_bins=num_bins,
-                    bin_values=bin_values,
-                    analysis_type=analysis_type,
-                    acfs=indv_acfs,
-                    periods=indv_periods,
-                    num_frames=num_frames
-                )
+                indv_acf_plots = {}
+                its = num_channels*num_bins
+                with tqdm(total=its, miniters=its/100) as pbar:
+                    pbar.set_description('ind acfs')
+                    for channel in range(num_channels):
+                        for bin in range(num_bins):
+                            pbar.update(1) 
+                            to_plot = bin_values[:,channel, bin]
+                            # Generate and store the figure for the current channel and bin
+                            indv_acf_plots[f'Ch{channel + 1} Bin {bin + 1} ACF'] = pt.return_indv_acf_figure(
+                                raw_signal=to_plot, 
+                                acf_curve=indv_acfs[channel, bin], 
+                                Ch_name=f'Ch{channel + 1}', 
+                                period=indv_periods[channel, bin],
+                                num_frames= num_frames
+                                )
                 indv_acf_path = os.path.join(im_save_path, 'Individual_ACF_plots')
                 hf.os.makedirs(indv_acf_path, exist_ok=True)
                 hf.save_plots(indv_acf_plots, indv_acf_path)
 
             # plot the individual peak properties figures for the file
             if plot_indv_peaks:        
-                indv_peak_plots = pt.plot_indv_peak_props_workflow(
-                    num_channels=num_channels,
-                    num_bins=num_bins,
-                    bin_values=bin_values,
-                    analysis_type=analysis_type,
-                    indv_peak_props=indv_peak_props,
-                    indv_peak_offsets=indv_peak_offsets
+                indv_peak_figs = {}
 
-                )
+                # Generate plots for each channel
+                its = num_channels*num_bins
+                with tqdm(total=its, miniters=its/100) as pbar:
+                    pbar.set_description('ind peaks')
+                    for channel in range(num_channels):
+                        for bin in range(num_bins):
+                            pbar.update(1)
+                            to_plot = bin_values[:,channel, bin]
+                            # Generate and store the figure for the current channel and bin
+                            indv_peak_figs[f'Ch{channel + 1} Bin {bin + 1} Peak Props'] = pt.return_indv_peak_prop_figure(
+                                bin_signal=to_plot,
+                                prop_dict=indv_peak_props[f'Ch {channel} Bin {bin}'],
+                                Ch_name=f'Ch{channel + 1} Bin {bin + 1}',
+                                indv_peak_offsets=indv_peak_offsets[f'Ch {channel} Bin {bin}']
+                                )
                 indv_peak_path = os.path.join(im_save_path, 'Individual_peak_plots')
                 hf.os.makedirs(indv_peak_path, exist_ok=True)
-                hf.save_plots(indv_peak_plots, indv_peak_path)
+                hf.save_plots(indv_peak_figs, indv_peak_path)
                 
             # plot the individual CCF figures for the file
             if plot_indv_CCFs and num_channels > 1:
                 if num_channels == 1:
                     log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
+                indv_ccf_plots = {}
 
-                indv_ccf_plots = pt.plot_indv_ccfs_workflow(
-                    num_bins=num_bins,
-                    bin_values=bin_values,
-                    analysis_type=analysis_type,
-                    channel_combos=channel_combos,
-                    indv_shifts=indv_shifts,
-                    indv_ccfs=indv_ccfs,
-                    num_frames=num_frames
-                )
+                # Iterate through channel combinations and bins to plot individual cross-correlation curves
+                its = len(channel_combos)*num_bins
+                with tqdm(total=its, miniters=its/100) as pbar:
+                    pbar.set_description('ind ccfs')
+                    for combo_number, combo in enumerate(channel_combos):
+                        for bin in range(num_bins):
+                            pbar.update(1)
+                            to_plot1 = bin_values[:, combo[0], bin] 
+                            to_plot2 = bin_values[:, combo[1], bin] 
+                            # Generate and store the figure for the current channel combination and bin
+                            indv_ccf_plots[f'Ch{combo[0]}-Ch{combo[1]} Bin {bin + 1} CCF'] = pt.return_indv_ccf_figure(
+                                ch1 = pt.normalize_signal(to_plot1),
+                                ch2 = pt.normalize_signal(to_plot2),
+                                ccf_curve = indv_ccfs[combo_number, bin],
+                                ch1_name = f'Ch{combo[0] + 1}',
+                                ch2_name = f'Ch{combo[1] + 1}',
+                                shift = indv_shifts[combo_number, bin],
+                                num_frames = num_frames)
+                
                 indv_ccf_plots_path = os.path.join(im_save_path, 'Individual_CCF_plots')
                 hf.os.makedirs(indv_ccf_plots_path, exist_ok=True)
                 hf.save_plots(indv_ccf_plots, indv_ccf_plots_path)
