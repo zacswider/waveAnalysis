@@ -97,15 +97,13 @@ def standard_workflow(
             channel_combos = hf.get_channel_combos(num_channels=num_channels)
             num_combos = len(channel_combos)
 
-            # initialize arrays to store the individual ACFs, periods, peak properties, and CCFs
-            indv_periods = np.zeros(shape=(num_channels, num_bins))
+            # initialize arrays to store the individual ACFs, periods, peak properties, CCFs and shifts
             indv_acfs = np.zeros(shape=(num_channels, num_bins, num_frames * 2 - 1))
-
+            indv_periods = np.zeros(shape=(num_channels, num_bins))
             indv_peak_widths = np.zeros(shape=(num_channels, num_bins))
             indv_peak_maxs = np.zeros(shape=(num_channels, num_bins))
             indv_peak_mins = np.zeros(shape=(num_channels, num_bins))
             indv_peak_props = {}
-
             indv_shifts = np.zeros(shape=(num_combos, num_bins))
             indv_ccfs = np.zeros(shape=(num_combos, num_bins, num_frames*2-1))
 
@@ -115,9 +113,11 @@ def standard_workflow(
                     for bin in range(num_bins):
                         # calculate the individual ACFs and periods for each channel
                         signal = bin_values[:, channel, bin] 
-                        acf_curve, period = sp.calc_indv_ACF_period(signal=signal, num_frames=num_frames, peak_thresh=acf_peak_thresh)
-                        indv_periods[channel, bin] = period
+                        acf_curve = sp.calc_indv_ACF(signal=signal, num_frames=num_frames, peak_thresh=acf_peak_thresh)
                         indv_acfs[channel, bin] = acf_curve
+
+                        period = sp.calc_indv_period(acf_curve=acf_curve, peak_thresh=acf_peak_thresh)
+                        indv_periods[channel, bin] = period
 
                         # calculate the individual peak properties for each channel
                         smoothed_signal = sig.savgol_filter(signal, window_length = 11, polyorder = 2)                 
@@ -131,30 +131,25 @@ def standard_workflow(
                                                                 'heights': heights, 
                                                                 'leftIndex': leftIndex, 
                                                                 'rightIndex': rightIndex}
+                        
+                        # TODO: Calculate individual peak offsets
                     
                         # Calculate the individual CCFs and shifts for each channel
                         if num_channels > 1:
-                            signal1 = bin_values[:, combo[0], bin]
-                            signal2 = bin_values[:, combo[1], bin]
-                            signal1 = sig.savgol_filter(signal1, window_length=11, polyorder=3)
-                            signal2 = sig.savgol_filter(signal2, window_length=11, polyorder=3)
-                            shift, ccf = sp.calc_indv_CCFs_shifts(signal1=signal1, signal2=signal2, num_frames=num_frames)
+                            signal1 = sig.savgol_filter(bin_values[:, combo[0], bin], window_length=11, polyorder=3)
+                            signal2 = sig.savgol_filter(bin_values[:, combo[1], bin], window_length=11, polyorder=3)
+                            ccf = sp.calc_indv_CCF(signal1=signal1, signal2=signal2, num_frames=num_frames)
+                            indv_ccfs[combo_number, bin] = ccf
+
+                            shift = sp.calc_indv_shift(cc_curve=ccf)
+                            # If the shift is too small, correct it
                             average_period = np.mean(indv_periods[:, bin])
                             shift = sp.small_shifts_correction(delay_frames=shift, average_period=average_period)
                             indv_shifts[combo_number, bin] = shift
-                            indv_ccfs[combo_number, bin] = ccf
 
             # Calculate the peak amplitudes and relative amplitudes
             indv_peak_amps = indv_peak_maxs - indv_peak_mins
             indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
-
-            # TODO: complete this portion of the code
-            indv_peak_offsets = sp.calc_indv_peak_offset(
-                num_channels=num_channels,
-                num_bins=num_bins,
-                bin_values=bin_values,
-                analysis_type=analysis_type
-            )
 
             im_save_path = os.path.join(main_save_path, name_wo_ext)
             hf.os.makedirs(im_save_path, exist_ok=True)

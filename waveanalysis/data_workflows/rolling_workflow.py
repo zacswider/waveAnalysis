@@ -87,7 +87,8 @@ def rolling_workflow(
                         for bin in range(num_bins):
                             pbar.update(1)
                             signal = bin_values[roll_by * submovie: roll_size + roll_by * submovie, channel, bin]
-                            _, period = sp.calc_indv_ACF_period(signal=signal, num_frames=roll_size, peak_thresh=acf_peak_thresh)
+                            acf_curve = sp.calc_indv_ACF(signal=signal, num_frames=roll_size, peak_thresh=acf_peak_thresh)
+                            period = sp.calc_indv_period(acf_curve=acf_curve, peak_thresh=acf_peak_thresh)
 
                             indv_periods[submovie, channel, bin] = period
                 
@@ -129,13 +130,13 @@ def rolling_workflow(
                                 pbar.update(1)
                                 signal1 = bin_values[roll_by*submovie : roll_size + roll_by*submovie, combo[0], bin]
                                 signal2 = bin_values[roll_by*submovie : roll_size + roll_by*submovie, combo[1], bin]
-
-                                shift, ccf = sp.calc_indv_CCFs_shifts(signal1=signal1, signal2=signal2, num_frames=roll_size)
+                                ccf = sp.calc_indv_CCF(signal1=signal1, signal2=signal2, num_frames=roll_size)
+                                indv_ccfs[submovie, combo_number, bin] = ccf
+                                
+                                shift = sp.calc_indv_shift(cc_curve=ccf)
                                 average_period = np.mean(indv_periods[:, :, bin])
                                 shift = sp.small_shifts_correction(delay_frames=shift, average_period=average_period)
-
                                 indv_shifts[submovie, combo_number, bin] = shift
-                                indv_ccfs[submovie, combo_number, bin] = ccf
 
             # create a subfolder within the main save path with the same name as the image file
             im_save_path = os.path.join(main_save_path, name_wo_ext)

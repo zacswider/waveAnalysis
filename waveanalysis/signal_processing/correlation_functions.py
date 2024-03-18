@@ -1,12 +1,10 @@
 import numpy as np
 from scipy import signal as sig
 
-# TODO: combine the rolling, standard, and kymograph analysis into one function
-
-def calc_indv_ACF_period(
+def calc_indv_ACF(
     signal: np.ndarray,
     num_frames: int,
-    peak_thresh: float = 0.1
+    peak_thresh: float,
 ) -> (np.ndarray, np.ndarray): #type: ignore
 
     # calc autocorrelation and normalize
@@ -14,20 +12,26 @@ def calc_indv_ACF_period(
     acf_curve = np.correlate(corr_signal, corr_signal, mode='full')
     acf_curve = acf_curve / (num_frames * np.std(signal) ** 2)
 
+    peaks, _ = sig.find_peaks(acf_curve, prominence=peak_thresh)
+    if len(peaks) < 2:
+        acf_curve = np.full((num_frames * 2 - 1), np.nan)
+
+    return acf_curve
+
+def calc_indv_period(
+    acf_curve: np.ndarray,
+    peak_thresh: float,
+) -> float:
     # Find peaks in the autocorrelation curve, Calculate absolute differences between peaks and center
     peaks, _ = sig.find_peaks(acf_curve, prominence=peak_thresh)
     peaks_abs = np.abs(peaks - acf_curve.shape[0] // 2)
 
     # If peaks are identified, pick the closest one to the center as the period
-    if len(peaks) > 1:
-        period = np.min(peaks_abs[np.nonzero(peaks_abs)])
-    else:
-        period = np.nan
-        acf_curve = np.full((num_frames * 2 - 1), np.nan)
+    period = np.min(peaks_abs[np.nonzero(peaks_abs)]) if len(peaks) > 1 else np.nan
+        
+    return period
 
-    return acf_curve, period
-
-def calc_indv_CCFs_shifts(
+def calc_indv_CCF(
     signal1: np.ndarray,
     signal2: np.ndarray,
     num_frames: int,
@@ -56,22 +60,31 @@ def calc_indv_CCFs_shifts(
         cc_curve = cc_curve / (num_frames * signal1.std() * signal2.std())
         # Find peaks in the cross-correlation curve
         peaks, _ = sig.find_peaks(cc_curve, prominence=0.1)
-        peaks_abs = abs(peaks - cc_curve.shape[0] // 2)
-        # If multiple peaks found, select the one closest to the center
-        if len(peaks) > 1:
-            delay = np.argmin(peaks_abs[np.nonzero(peaks_abs)])
-            delayIndex = peaks[delay]
-            delay_frames = delayIndex - cc_curve.shape[0] // 2
-        # Otherwise, return NaNs
-        else:
-            delay_frames = np.nan
+
+        if len(peaks) < 2:
             cc_curve = np.full((num_frames * 2 - 1), np.nan)
+
     else:
         # If no peaks found, return NaNs
-        delay_frames = np.nan
         cc_curve = np.full((num_frames * 2 - 1), np.nan)
 
-    return delay_frames, cc_curve
+    return cc_curve
+
+def calc_indv_shift(cc_curve: np.ndarray) -> np.ndarray:
+    # Find peaks in the cross-correlation curve
+    peaks, _ = sig.find_peaks(cc_curve, prominence=0.1)
+    peaks_abs = abs(peaks - cc_curve.shape[0] // 2)
+
+    # If multiple peaks found, select the one closest to the center
+    if len(peaks) > 1:
+        delay = np.argmin(peaks_abs[np.nonzero(peaks_abs)])
+        delayIndex = peaks[delay]
+        delay_frames = delayIndex - cc_curve.shape[0] // 2
+    # Otherwise, return NaNs
+    else:
+        delay_frames = np.nan
+    
+    return delay_frames
 
 def small_shifts_correction(delay_frames, average_period):
     if abs(delay_frames) > abs(average_period * .6):
