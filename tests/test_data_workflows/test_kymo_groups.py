@@ -26,7 +26,7 @@ def test_kymo(default_log_params):
     # load csv
     known_results = pd.read_csv('tests/assets/kymo/kymo_known_results.csv')
     assert isinstance(known_results, pd.DataFrame)
-    exp_results = combined_workflow(
+    exp_results, wave_tracks = combined_workflow(
         folder_path=str(Path('tests/assets/kymo/')),
         group_names=['Group1','Group2'],
         log_params=default_log_params,
@@ -43,3 +43,25 @@ def test_kymo(default_log_params):
         plot_indv_peaks=default_log_params['Plot Individual Peaks'],
     )
     assert pd.testing.assert_frame_equal(known_results, exp_results) is None
+
+    return wave_tracks
+
+log_params = {
+        'Line Size(px)': 5,
+        'Line Shift(px)': 5,
+        'Base Directory': 'tests/assets/kymo',
+        'ACF Peak Prominence': 0.1,
+        'Group Names': ['Group1, Group2'],
+        'Plot Summary ACFs': False,
+        'Plot Summary CCFs': False,
+        'Plot Summary Peaks': False,
+        'Plot Individual ACFs': False,
+        'Plot Individual CCFs': False,
+        'Plot Individual Peaks': False,
+        'Files Processed': [],
+        'Files Not Processed': [],
+        'Errors': []
+    }
+
+# wave_tracks = test_kymo(log_params)
+# print(wave_tracks)
