@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def return_indv_peak_prop_figure(
     bin_signal: np.ndarray, 
     prop_dict: dict, 

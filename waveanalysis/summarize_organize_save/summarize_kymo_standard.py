@@ -47,11 +47,8 @@ def summarize_standard_kymo_measurements_for_file(
     ) -> dict:
     # dictionary to store the summarized measurements for each image
     file_data_summary = {}
-    
-    if file_name:
-        file_data_summary['File Name'] = file_name
-    if group_name:
-        file_data_summary['Group Name'] = group_name
+    file_data_summary['File Name'] = file_name if file_name else 'None'
+    file_data_summary['Group Name'] = group_name if group_name else 'None'
     file_data_summary['Num Bins'] = num_bins
 
     stats_location = ['Mean', 'Median', 'StdDev', 'SEM']

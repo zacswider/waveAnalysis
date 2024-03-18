@@ -2,8 +2,6 @@ from tqdm import tqdm
 import numpy as np
 from .indv_figure_creation import return_indv_peak_prop_figure, return_indv_acf_figure, return_indv_ccf_figure
 from waveanalysis.signal_processing import normalize_signal
-from itertools import zip_longest
-
 
 def plot_indv_peak_props_workflow(
     num_channels:int,

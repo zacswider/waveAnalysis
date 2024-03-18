@@ -16,8 +16,6 @@ from waveanalysis.image_properties_signal.image_properties import get_image_prop
 from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling
 from waveanalysis.summarize_organize_save.add_stats import save_parameter_means_to_csv, save_mean_CCF_values, save_indv_ccfs
 
-
-
 from waveanalysis.summarize_organize_save.summarize_kymo_standard import (
     organize_standard_kymo_measurements_for_file, 
     summarize_standard_kymo_measurements_for_file)
@@ -42,9 +40,7 @@ def standard_workflow(
     file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
 
     # check for group name errors          
-    hf.group_name_error_check(file_names=file_names,
-                            group_names=group_names, 
-                            log_params=log_params)
+    hf.group_name_error_check(file_names=file_names, group_names=group_names, log_params=log_params)
 
     # performance tracker
     start = timeit.default_timer()
@@ -194,7 +190,7 @@ def standard_workflow(
                 for combo_number, combo in enumerate(channel_combos):
                     # Generate figure for mean CCF
                     mean_ccf_figs[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF'] = pt.return_mean_CCF_figure(
-                        signal=signal[combo_number], 
+                        signal=indv_ccfs[combo_number], 
                         shifts=indv_shifts[combo_number], 
                         channel_combo=f'Ch{combo[0] + 1}-Ch{combo[1] + 1}',
                         num_frames= num_frames)
@@ -202,8 +198,7 @@ def standard_workflow(
 
                 # save the mean CCF values for the file
                 mean_ccf_values = save_mean_CCF_values(channel_combos=channel_combos,indv_ccfs=indv_ccfs)
-                hf.save_values_to_csv(mean_ccf_values, im_save_path, indv_ccfs_bool = False)
-                # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
+                hf.save_values_to_csv(mean_ccf_values, im_save_path)
 
             elif plot_summary_CCFs and num_channels == 1:
                 log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
@@ -264,10 +259,10 @@ def standard_workflow(
                     analysis_type=analysis_type,
                     num_bins=num_bins
                 )
+                
                 indv_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')
                 hf.os.makedirs(indv_ccf_val_path, exist_ok=True)
-                hf.save_values_to_csv(indv_ccf_values, indv_ccf_val_path, indv_ccfs_bool = True)
-                # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
+                hf.save_values_to_csv(indv_ccf_values, indv_ccf_val_path)
 
             img_parameters_dict = {
                             'Period': indv_periods,

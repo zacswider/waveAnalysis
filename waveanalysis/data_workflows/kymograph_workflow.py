@@ -192,7 +192,7 @@ def kymograph_workflow(
                 for combo_number, combo in enumerate(channel_combos):
                     # Generate figure for mean CCF
                     mean_ccf_figs[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF'] = pt.return_mean_CCF_figure(
-                        signal=signal[combo_number], 
+                        signal=indv_ccfs[combo_number], 
                         shifts=indv_shifts[combo_number], 
                         channel_combo=f'Ch{combo[0] + 1}-Ch{combo[1] + 1}',
                         num_frames= num_frames)
@@ -200,7 +200,7 @@ def kymograph_workflow(
 
                 # save the mean CCF values for the file
                 mean_ccf_values = save_mean_CCF_values(channel_combos=channel_combos,indv_ccfs=indv_ccfs)
-                hf.save_values_to_csv(mean_ccf_values, im_save_path, indv_ccfs_bool = False)
+                hf.save_values_to_csv(mean_ccf_values, im_save_path)
 
             # plot the individual ACF figures for the file
             if plot_indv_ACFs:
@@ -258,8 +258,7 @@ def kymograph_workflow(
                 )
                 indv_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')
                 os.makedirs(indv_ccf_val_path, exist_ok=True)
-                hf.save_values_to_csv(indv_ccf_values, indv_ccf_val_path, indv_ccfs_bool = True)
-                # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
+                hf.save_values_to_csv(indv_ccf_values, indv_ccf_val_path)
 
             img_parameters_dict = {
                             'Period': indv_periods,

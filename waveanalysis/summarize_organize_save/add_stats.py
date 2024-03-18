@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from itertools import zip_longest
+from waveanalysis.signal_processing import normalize_signal
 
 def save_parameter_means_to_csv(
     summary_df: pd.DataFrame,

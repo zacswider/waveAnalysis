@@ -198,6 +198,3 @@ def rolling_workflow(
 
             if name_wo_ext == '1_Group2':
                 return summary_df # only return this now for testing purposes. Will remove later
-
-
-            

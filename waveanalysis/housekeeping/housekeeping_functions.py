@@ -3,15 +3,12 @@ import sys
 import csv
 import datetime
 import numpy as np
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-
+from typing import Union, List, Tuple
 
 def make_log(
     directory: str, 
     logParams: dict
-):
+) -> None:
     '''
     Convert dictionary of parameters to a log file and save it in the directory
     '''
@@ -21,13 +18,13 @@ def make_log(
     logFile.write("\n" + now.strftime("%Y-%m-%d %H:%M") + "\n")     
     for key, value in logParams.items():                            
         logFile.write('%s: %s\n' % (key, value))                    
-    logFile.close()           
+    logFile.close()
 
 def group_name_error_check(
-    file_names: list,
-    group_names: list,
+    file_names: list[str],
+    group_names: list[str],
     log_params: dict
-):
+) -> None:
     # list of groups that matched to file names
     groups_found = np.unique([group for group in group_names for file in file_names if group in file]).tolist()
 
@@ -56,14 +53,17 @@ def group_name_error_check(
             "\n****** ERROR ******")
         sys.exit()
 
-def save_plots(dict_of_plots: dict, save_path: str):
+def save_plots(
+    dict_of_plots: dict, 
+    save_path: str
+) -> None:
     for plot_name, plot in dict_of_plots.items():
         plot.savefig(f'{save_path}/{plot_name}.png')
 
 def match_group_to_file(
-    name_wo_ext: str,
-    group_names: list
-):
+    name_wo_ext: str, 
+    group_names: list[str]
+) -> str:
     group_name = None
     if group_names != ['']:
         try:
@@ -71,34 +71,9 @@ def match_group_to_file(
         except IndexError:
             pass
 
-    return group_name
+    return group_name     
 
-# TODO: move this to the saving module
-def save_values_to_csv(
-    values: dict, 
-    path: str,
-    indv_ccfs_bool: bool = False
-):
-    
-    # TODO: figure out a way so that the code is not hard coded to the indv vs mean CCFs
-
-    #save the indv CCF values for each bin to csv file
-    for filename, measurements in values.items():
-        path = os.path.join(path, f'{filename}.csv')
-        # Write measurements to CSV file
-        with open(path, 'w', newline='') as csvfile:
-            if indv_ccfs_bool:
-                writer = csv.writer(csvfile)
-                writer.writerow(['Time', 'Ch1_Value', 'Ch2_Value', 'CCF_Value'])
-                for time, ch1_val, ch2_val, ccf_val in measurements:
-                    writer.writerow([time, ch1_val, ch2_val, ccf_val])                
-            else:
-                writer = csv.writer(csvfile)
-                writer.writerow(['Time', 'Mean', 'StDev'])
-                for time, mean, stdev in measurements:
-                    writer.writerow([time, mean, stdev])         
-
-def get_channel_combos(num_channels: int):
+def get_channel_combos(num_channels: int) -> list[list[int]]:
     channels = list(range(num_channels))
     channel_combos = []
     for i in range(num_channels):
@@ -110,10 +85,39 @@ def get_channel_combos(num_channels: int):
 def threshold_check(
     threshold: float,
     log_params: dict
-):
+) -> dict:
     if threshold > 1:
         log_params["Errors"].append("The ACF peak prominence can not be greater than 1")
         log_params["Errors"].append("Set 'ACF peak prominence threshold' to a value between 0 and 1")
         log_params["Errors"].append("More realistically, a value between 0 and 0.5")
         return log_params
 
+# TODO: move to save module
+def save_values_to_csv(
+    values: dict, 
+    path: str,
+):
+    for filename, measurements in values.items():
+        file_path = os.path.join(path, f'{filename}.csv')
+        headers, data = determine_structure_and_values(measurements)
+        write_to_csv(file_path, headers, data)
+
+def determine_structure_and_values(measurements: Union[List[Tuple], List[List]]) -> Tuple[List[str], List[Tuple]]:
+    # Check the structure of the measurements to determine headers and values
+    first_entry = measurements[0]
+    if len(first_entry) == 4:
+        # Individual CCFs
+        headers = ['Time', 'Ch1_Value', 'Ch2_Value', 'CCF_Value']
+    elif len(first_entry) == 3:
+        # Mean CCFs
+        headers = ['Time', 'Mean', 'StDev']
+    else:
+        raise ValueError("Unsupported measurements format")
+
+    return headers, measurements
+
+def write_to_csv(file_path: str, headers: List[str], data: List[Tuple]):
+    with open(file_path, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(headers)
+        writer.writerows(data)
