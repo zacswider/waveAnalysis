@@ -6,16 +6,14 @@ import pandas as pd
 from tqdm import tqdm
 from typing import Any
 import scipy.signal as sig
-
 import waveanalysis.plotting as pt
 import waveanalysis.signal_processing as sp
 import waveanalysis.housekeeping.housekeeping_functions as hf 
 
-from waveanalysis.image_properties_signal.convert_images import convert_movies 
-from waveanalysis.image_properties_signal.image_properties import get_image_properties
-from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling
+from waveanalysis.image_props.image_bin_calc import create_multi_frame_bin_array
+from waveanalysis.image_props.image_to_np_arrays import tiff_to_np_array_multi_frame
+from waveanalysis.image_props.image_properties import get_multi_frame_properties
 from waveanalysis.summarize_organize_save.save_stats import save_parameter_means_to_csv, get_mean_CCF_values, get_indv_CCF_values
-
 from waveanalysis.summarize_organize_save.summarize_kymo_standard import (
     organize_standard_kymo_measurements_for_file, 
     summarize_standard_kymo_measurements_for_file)
@@ -56,7 +54,7 @@ def standard_workflow(
     col_headers = []
 
     # convert images to numpy arrays
-    all_images = convert_movies(folder_path=folder_path)
+    all_images = tiff_to_np_array_multi_frame(folder_path=folder_path)
 
     print('Processing files...')
 
@@ -68,7 +66,7 @@ def standard_workflow(
 
             # Get image properties
             image_path = f'{folder_path}/{file_name}'        
-            num_channels, num_frames, frame_interval, pixel_size, pixel_unit = get_image_properties(image_path=image_path)
+            num_channels, num_frames, frame_interval, pixel_size, pixel_unit = get_multi_frame_properties(image_path=image_path)
 
             # log error and skip image if frames < 2; otherwise, log image as processed
             if num_frames < 2:
@@ -80,7 +78,7 @@ def standard_workflow(
             log_params['Files Processed'].append(f'{file_name}')
 
             # Create the array for which all future processing will be based on
-            bin_values, num_bins, _, _ = create_array_from_standard_rolling(
+            bin_values, num_bins, _, _ = create_multi_frame_bin_array(
                                                                 kernel_size = box_size, 
                                                                 step = box_shift, 
                                                                 num_channels = num_channels, 
@@ -223,7 +221,6 @@ def standard_workflow(
             # plot the individual peak properties figures for the file
             if plot_indv_peaks:        
                 indv_peak_figs = {}
-
                 # Generate plots for each channel
                 its = num_channels*num_bins
                 with tqdm(total=its, miniters=its/100) as pbar:
@@ -248,7 +245,6 @@ def standard_workflow(
                 if num_channels == 1:
                     log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
                 indv_ccf_plots = {}
-
                 # Iterate through channel combinations and bins to plot individual cross-correlation curves
                 its = len(channel_combos)*num_bins
                 with tqdm(total=its, miniters=its/100) as pbar:

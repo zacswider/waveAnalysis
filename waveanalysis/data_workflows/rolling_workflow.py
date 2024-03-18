@@ -6,14 +6,13 @@ import pandas as pd
 from tqdm import tqdm
 from typing import Any
 import scipy.signal as sig
-
+import waveanalysis.plotting as pt
 import waveanalysis.signal_processing as sp
 import waveanalysis.housekeeping.housekeeping_functions as hf
 
-from waveanalysis.plotting import plot_rolling_summary
-from waveanalysis.image_properties_signal.convert_images import convert_movies  
-from waveanalysis.image_properties_signal.image_properties import get_image_properties
-from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_standard_rolling
+from waveanalysis.image_props.image_bin_calc import create_multi_frame_bin_array
+from waveanalysis.image_props.image_to_np_arrays import tiff_to_np_array_multi_frame
+from waveanalysis.image_props.image_properties import get_multi_frame_properties
 from waveanalysis.summarize_organize_save.summarize_rolling import summarize_rolling_file, organize_submovie_measurements
 
 def rolling_workflow(
@@ -40,7 +39,7 @@ def rolling_workflow(
     # list of file names in specified directory
     file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
 
-    all_images = convert_movies(folder_path=folder_path)
+    all_images = tiff_to_np_array_multi_frame(folder_path=folder_path)
 
     print('Processing files...')
 
@@ -52,7 +51,7 @@ def rolling_workflow(
 
             # Get image properties
             image_path = f'{folder_path}/{file_name}'
-            num_channels, num_frames, frame_interval, pixel_size, pixel_unit = get_image_properties(image_path=image_path)
+            num_channels, num_frames, frame_interval, pixel_size, pixel_unit = get_multi_frame_properties(image_path=image_path)
             assert isinstance(roll_size, int) and isinstance(roll_by, int), 'Roll size and roll by must be integers'
             num_submovies = (num_frames - roll_size) // roll_by
 
@@ -66,7 +65,7 @@ def rolling_workflow(
             log_params['Files Processed'].append(f'{file_name}')
             
             # Create the array for which all future processing will be based on
-            bin_values, num_bins, num_x_bins, num_y_bins = create_array_from_standard_rolling(
+            bin_values, num_bins, num_x_bins, num_y_bins = create_multi_frame_bin_array(
                                                                 kernel_size = box_size, 
                                                                 step = box_shift, 
                                                                 num_channels = num_channels, 
@@ -191,7 +190,7 @@ def rolling_workflow(
             summary_df.to_csv(f'{im_save_path}/{name_wo_ext}_summary.csv', index = False)
 
             # make and save the summary plot for rolling data
-            summary_plots = plot_rolling_summary(
+            summary_plots = pt.plot_rolling_summary(
                 num_channels=num_channels,
                 fullmovie_summary=summary_df,
                 channel_combos=channel_combos

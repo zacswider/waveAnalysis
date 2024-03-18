@@ -6,16 +6,14 @@ import pandas as pd
 from tqdm import tqdm
 from typing import Any
 import scipy.signal as sig
-
 import waveanalysis.plotting as pt
 import waveanalysis.signal_processing as sp
 import waveanalysis.housekeeping.housekeeping_functions as hf 
 
-from waveanalysis.image_properties_signal.convert_images import convert_kymos 
-from waveanalysis.image_properties_signal.image_properties import get_kymo_image_properties
-from waveanalysis.image_properties_signal.create_np_arrays import create_array_from_kymo
+from waveanalysis.image_props.image_bin_calc import create_kymo_bin_array
+from waveanalysis.image_props.image_to_np_arrays import tiff_to_np_array_single_frame
+from waveanalysis.image_props.image_properties import get_single_frame_properties
 from waveanalysis.summarize_organize_save.save_stats import save_parameter_means_to_csv, get_mean_CCF_values, get_indv_CCF_values
-
 from waveanalysis.summarize_organize_save.summarize_kymo_standard import (
     organize_standard_kymo_measurements_for_file, 
     summarize_standard_kymo_measurements_for_file)
@@ -58,7 +56,7 @@ def kymograph_workflow(
     col_headers = []
 
     # convert images to numpy arrays
-    all_images = convert_kymos(folder_path=folder_path)
+    all_images = tiff_to_np_array_single_frame(folder_path=folder_path)
 
     print('Processing files...')
 
@@ -70,7 +68,7 @@ def kymograph_workflow(
         
             # Get image properties
             image_path = f'{folder_path}/{file_name}'
-            num_channels, num_columns, num_frames, frame_interval, pixel_size, pixel_unit = get_kymo_image_properties(image_path=image_path, image=all_images[file_name])
+            num_channels, num_columns, num_frames, frame_interval, pixel_size, pixel_unit = get_single_frame_properties(image_path=image_path, image=all_images[file_name])
 
             # log error and skip image if frames < 2 
             if num_frames < 2:
@@ -82,7 +80,7 @@ def kymograph_workflow(
             log_params['Files Processed'].append(f'{file_name}')
 
             # Create the array for which all future processing will be based on
-            bin_values, num_bins = create_array_from_kymo(
+            bin_values, num_bins = create_kymo_bin_array(
                                         line_width = line_width,
                                         total_columns = num_columns,
                                         step = box_shift,
@@ -224,7 +222,6 @@ def kymograph_workflow(
             # plot the individual peak properties figures for the file
             if plot_indv_peaks:        
                 indv_peak_figs = {}
-
                 # Generate plots for each channel
                 its = num_channels*num_bins
                 with tqdm(total=its, miniters=its/100) as pbar:
@@ -249,7 +246,6 @@ def kymograph_workflow(
                 if num_channels == 1:
                     log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
                 indv_ccf_plots = {}
-
                 # Iterate through channel combinations and bins to plot individual cross-correlation curves
                 its = len(channel_combos)*num_bins
                 with tqdm(total=its, miniters=its/100) as pbar:

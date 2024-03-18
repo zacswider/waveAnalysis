@@ -2,7 +2,7 @@ import numpy as np
 import scipy.ndimage as nd
 from scipy import signal as sig
 
-def create_array_from_kymo(
+def create_kymo_bin_array(
     line_width: int,
     total_columns: int,
     step: int,
@@ -33,7 +33,7 @@ def create_array_from_kymo(
 
     return line_values, num_bins
 
-def create_array_from_standard_rolling(
+def create_multi_frame_bin_array(
     kernel_size: int, 
     step: int, 
     num_channels: int, 
@@ -51,6 +51,5 @@ def create_array_from_standard_rolling(
     num_x_bins, num_y_bins = box_values.shape[-2:]
     num_bins = num_x_bins * num_y_bins
     box_values = box_values.reshape(num_frames, num_channels, num_bins)
-    # box_values = np.moveaxis(box_values, [0, 1, 2], [1, 2, 0])
 
     return box_values, num_bins, num_x_bins, num_y_bins

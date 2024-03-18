@@ -2,7 +2,7 @@ import tifffile
 import pathlib
 import numpy as np
 
-def convert_kymos(
+def tiff_to_np_array_single_frame(
     folder_path: str, 
 ) -> dict:
     
@@ -28,7 +28,7 @@ def convert_kymos(
 
     return images
 
-def convert_movies(
+def tiff_to_np_array_multi_frame(
     folder_path: str, 
 ) -> dict:
     
@@ -50,9 +50,11 @@ def convert_movies(
             print('Max projecting image stack')
             image = np.max(image, axis=1)
             num_slices = 1
-            image = image.reshape(num_frames, num_slices, num_channels, *image.shape[-2:])
             
-        image = image.reshape(num_frames, num_slices, num_channels, *image.shape[-2:])
+        image = image.reshape(num_frames, 
+                            num_slices, 
+                            num_channels, 
+                            *image.shape[-2:])
 
         images[file_path.name] = image
 

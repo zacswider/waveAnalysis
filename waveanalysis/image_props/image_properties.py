@@ -1,7 +1,7 @@
 import numpy as np
 import tifffile
 
-def get_image_properties(image_path: str, image=None):
+def get_multi_frame_properties(image_path: str):
     with tifffile.TiffFile(image_path) as tif_file:
         tags = tif_file.pages[0].tags
         metadata = tif_file.imagej_metadata
@@ -18,7 +18,7 @@ def get_image_properties(image_path: str, image=None):
         
     return num_channels, num_frames, frame_interval, pixel_size, pixel_unit
 
-def get_kymo_image_properties(image_path: str, image: np.ndarray):
+def get_single_frame_properties(image_path: str, image: np.ndarray):
     with tifffile.TiffFile(image_path) as tif_file:
         tags = tif_file.pages[0].tags
         metadata = tif_file.imagej_metadata
@@ -31,9 +31,8 @@ def get_kymo_image_properties(image_path: str, image: np.ndarray):
         num_channels = metadata.get('channels')
         frame_interval = metadata.get('finterval', np.nan)
         pixel_unit = metadata.get('unit')
-
-        num_columns = image.shape[-1]
         num_frames = image.shape[-2]
+        num_columns = image.shape[-1]
         
     return num_channels, num_columns, num_frames, frame_interval, pixel_size, pixel_unit
 
