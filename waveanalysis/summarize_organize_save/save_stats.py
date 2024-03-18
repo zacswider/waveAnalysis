@@ -1,8 +1,10 @@
-import pandas as pd
+import os
+import csv
 import numpy as np
+import pandas as pd
 from itertools import zip_longest
-from waveanalysis.signal_processing import normalize_signal
 from typing import Union, List, Tuple
+from waveanalysis.signal_processing import normalize_signal
 
 def save_parameter_means_to_csv(
     summary_df: pd.DataFrame,
@@ -78,32 +80,6 @@ def get_indv_CCF_values(
             indv_ccf_values[f'Ch{combo[0]}-Ch{combo[1]} Bin {bin + 1} CCF'] = measurements
             
     return indv_ccf_values
-
-def add_stats_for_parameter(
-        measurements: np.ndarray, 
-        measurement_name: str, 
-        num_channels: int, 
-        channel_combos: list = None
-) -> list:
-        
-        statified = []
-        for index, item in enumerate(channel_combos if measurement_name == 'Shift' else range(num_channels)):
-            if measurement_name == 'Shift':
-                measurements_subset = measurements[index]
-                channel_label = f'Ch{channel_combos[index][0]+1}-Ch{channel_combos[index][1]+1} {measurement_name}'
-            else:
-                measurements_subset = measurements[item]
-                channel_label = f'Ch {item + 1} {measurement_name}'
-            
-            meas_mean = np.nanmean(measurements_subset)
-            meas_median = np.nanmedian(measurements_subset)
-            meas_std = np.nanstd(measurements_subset)
-            meas_sem = meas_std / np.sqrt(len(measurements_subset))
-            meas_list = [channel_label, meas_mean, meas_median, meas_std, meas_sem]
-            meas_list.extend(measurements_subset.tolist())
-            statified.append(meas_list)
-        
-        return statified
 
 def save_ccf_values_to_csv(
     values: dict, 

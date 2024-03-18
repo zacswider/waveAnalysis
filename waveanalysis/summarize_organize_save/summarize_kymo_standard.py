@@ -1,8 +1,7 @@
 import numpy as np
 import pandas as pd
-from .save_stats import add_stats_for_parameter
 
-def organize_standard_kymo_measurements_for_file(
+def summarize_image_standard_kymo(
     num_bins: int,
     num_channels: int,
     channel_combos: list,
@@ -35,8 +34,7 @@ def organize_standard_kymo_measurements_for_file(
 
     return im_measurements, parameter_with_stats_dict
 
-
-def summarize_standard_kymo_measurements_for_file(
+def combine_stats_for_image_kymo_standard(
     file_name: str, 
     group_name: str,
     num_bins: int,
@@ -74,3 +72,29 @@ def summarize_standard_kymo_measurements_for_file(
                 file_data_summary[f'Ch {channel + 1} {stat} {key}'] = parameters_with_stats_dict[key][channel][ind + 1]
 
     return file_data_summary
+
+def add_stats_for_parameter(
+        measurements: np.ndarray, 
+        measurement_name: str, 
+        num_channels: int, 
+        channel_combos: list = None
+) -> list:
+        
+        statified = []
+        for index, item in enumerate(channel_combos if measurement_name == 'Shift' else range(num_channels)):
+            if measurement_name == 'Shift':
+                measurements_subset = measurements[index]
+                channel_label = f'Ch{channel_combos[index][0]+1}-Ch{channel_combos[index][1]+1} {measurement_name}'
+            else:
+                measurements_subset = measurements[item]
+                channel_label = f'Ch {item + 1} {measurement_name}'
+            
+            meas_mean = np.nanmean(measurements_subset)
+            meas_median = np.nanmedian(measurements_subset)
+            meas_std = np.nanstd(measurements_subset)
+            meas_sem = meas_std / np.sqrt(len(measurements_subset))
+            meas_list = [channel_label, meas_mean, meas_median, meas_std, meas_sem]
+            meas_list.extend(measurements_subset.tolist())
+            statified.append(meas_list)
+        
+        return statified

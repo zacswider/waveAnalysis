@@ -15,8 +15,8 @@ from waveanalysis.image_props.image_to_np_arrays import tiff_to_np_array_single_
 from waveanalysis.image_props.image_properties import get_single_frame_properties
 from waveanalysis.summarize_organize_save.save_stats import save_parameter_means_to_csv, get_mean_CCF_values, get_indv_CCF_values
 from waveanalysis.summarize_organize_save.summarize_kymo_standard import (
-    organize_standard_kymo_measurements_for_file, 
-    summarize_standard_kymo_measurements_for_file)
+    summarize_image_standard_kymo, 
+    combine_stats_for_image_kymo_standard)
 
 def kymograph_workflow(
     folder_path: str,
@@ -292,7 +292,7 @@ def kymograph_workflow(
             }
 
             # Summarize the data for current image as dataframe, and save as .csv
-            im_measurements_df, parameters_with_stats_dict = organize_standard_kymo_measurements_for_file(
+            im_measurements_df, parameters_with_stats_dict = summarize_image_standard_kymo(
                 num_bins=num_bins,
                 num_channels=num_channels,
                 channel_combos=channel_combos,
@@ -301,7 +301,7 @@ def kymograph_workflow(
             im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)  # type: ignore
 
             # generate summary data for current image
-            im_summary_dict = summarize_standard_kymo_measurements_for_file(
+            im_summary_dict = combine_stats_for_image_kymo_standard(
                 file_name=file_name, 
                 group_name=group_name,
                 num_bins=num_bins,
