@@ -110,18 +110,11 @@ def combined_workflow(
                                     )
                 
                 if calc_wave_speeds:
-                    wave_tracks = sp.define_wave_tracks(file_path=image_path)
+                    # wave_tracks = sp.define_wave_tracks(file_path=image_path)
                     # wave_tracks = np.array(wave_tracks)
                     # wave_tracks = [np.array([[52, 1], [7,  36]]), np.array([[26,   2], [7,  32]]), np.array([[9, 72], [64,  35]])]
                     # wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, pixel_size=pixel_size, frame_interval=frame_interval)
-                    wave_speeds = []
-                    for wave_track in wave_tracks:
-                        # wave_speed = np.linalg.norm(wave_track[-1] - wave_track[0]) / (len(wave_track) * frame_interval)
-                        x1, x2 = wave_track[0][1], wave_track[1][1]
-                        y1, y2 = wave_track[0][0], wave_track[1][0]
-                        wave_speed = abs(y2-y1 / x2-x1)
-                        wave_speed = wave_speed * pixel_size[0] / frame_interval
-                        wave_speeds.append(wave_speed)
+                    
 
             # name without the extension
             name_wo_ext = file_name.rsplit(".",1)[0]
