@@ -10,21 +10,17 @@ import waveanalysis.plotting as pt
 import waveanalysis.signal_processing as sp
 import waveanalysis.housekeeping.housekeeping_functions as hf 
 
-from waveanalysis.image_props.image_bin_calc import create_multi_frame_bin_array
-from waveanalysis.image_props.image_to_np_arrays import tiff_to_np_array_multi_frame
-from waveanalysis.image_props.image_properties import get_multi_frame_properties
+from waveanalysis.image_props.image_bin_calc import create_multi_frame_bin_array, create_kymo_bin_array
+from waveanalysis.image_props.image_to_np_arrays import tiff_to_np_array_multi_frame, tiff_to_np_array_single_frame
+from waveanalysis.image_props.image_properties import get_multi_frame_properties, get_single_frame_properties
 from waveanalysis.summarize_save.save_stats import save_parameter_means_to_csv, get_mean_CCF_values, get_indv_CCF_values
-from waveanalysis.summarize_save.summarize_kymo_standard import (
-    summarize_image_standard_kymo, 
-    combine_stats_for_image_kymo_standard)
+from waveanalysis.summarize_save.summarize_kymo_standard import summarize_image_standard_kymo, combine_stats_for_image_kymo_standard
 
-def standard_workflow(
+def combined_workflow(
     folder_path: str,
     group_names: list[str],
     log_params: dict[str, Any],
     analysis_type: str,
-    box_size: int,
-    box_shift: int,
     acf_peak_thresh: float,
     plot_summary_ACFs: bool,
     plot_summary_CCFs: bool,
@@ -32,7 +28,10 @@ def standard_workflow(
     plot_indv_ACFs: bool,
     plot_indv_CCFs: bool,
     plot_indv_peaks: bool,
-) -> pd.DataFrame:             
+    box_size: int = None,
+    box_shift: int = None,
+    line_width: int = None,
+) -> pd.DataFrame:                
 
     # list of file names in specified directory
     file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
@@ -54,7 +53,7 @@ def standard_workflow(
     col_headers = []
 
     # convert images to numpy arrays
-    all_images = tiff_to_np_array_multi_frame(folder_path=folder_path)
+    all_images = tiff_to_np_array_multi_frame(folder_path=folder_path) if analysis_type == 'standard' else tiff_to_np_array_single_frame(folder_path=folder_path)
 
     print('Processing files...')
 
@@ -65,8 +64,13 @@ def standard_workflow(
             print(f'Processing {file_name}...')
 
             # Get image properties
-            image_path = f'{folder_path}/{file_name}'        
-            num_channels, num_frames, frame_interval, pixel_size, pixel_unit = get_multi_frame_properties(image_path=image_path)
+            image_path = f'{folder_path}/{file_name}'   
+            # TODO: add the ability to save the values in terms of seconds if frame_interval is provided
+            # TODO: add the ability to calculate wave speed if pixel_size and frame_interval are provided
+            if analysis_type == 'standard':
+                num_channels, num_frames, frame_interval, pixel_size, pixel_unit = get_multi_frame_properties(image_path=image_path)
+            else: 
+                num_channels, num_columns, num_frames, frame_interval, pixel_size, pixel_unit = get_single_frame_properties(image_path=image_path, image=all_images[file_name])
 
             # log error and skip image if frames < 2; otherwise, log image as processed
             if num_frames < 2:
@@ -78,13 +82,23 @@ def standard_workflow(
             log_params['Files Processed'].append(f'{file_name}')
 
             # Create the array for which all future processing will be based on
-            bin_values, num_bins, _, _ = create_multi_frame_bin_array(
-                                                                kernel_size = box_size, 
-                                                                step = box_shift, 
-                                                                num_channels = num_channels, 
-                                                                num_frames = num_frames, 
-                                                                image = all_images[file_name]
-                                                            )
+            if analysis_type == 'standard':
+                bin_values, num_bins, _, _ = create_multi_frame_bin_array(
+                                                                    kernel_size = box_size, 
+                                                                    step = box_shift, 
+                                                                    num_channels = num_channels, 
+                                                                    num_frames = num_frames, 
+                                                                    image = all_images[file_name]
+                                                                )
+            else:
+                bin_values, num_bins = create_kymo_bin_array(
+                                        line_width = line_width,
+                                        total_columns = num_columns,
+                                        step = box_shift,
+                                        num_channels = num_channels,
+                                        num_frames = num_frames,
+                                        image = all_images[file_name]
+                                    )
 
             # name without the extension
             name_wo_ext = file_name.rsplit(".",1)[0]
@@ -111,7 +125,7 @@ def standard_workflow(
                 for channel in range(num_channels):
                     for bin in range(num_bins):
                         # calculate the individual ACFs and periods for each channel
-                        signal = bin_values[:, channel, bin] 
+                        signal = bin_values[:, channel, bin] if analysis_type == 'standard' else bin_values[channel, bin]
                         acf_curve = sp.calc_indv_ACF(signal=signal, num_frames=num_frames, peak_thresh=acf_peak_thresh)
                         indv_acfs[channel, bin] = acf_curve
 
@@ -138,8 +152,12 @@ def standard_workflow(
 
                         # Calculate the individual CCFs and shifts for each channel
                         if num_channels > 1:
-                            signal1 = sig.savgol_filter(bin_values[:, combo[0], bin], window_length=11, polyorder=3)
-                            signal2 = sig.savgol_filter(bin_values[:, combo[1], bin], window_length=11, polyorder=3)
+                            if analysis_type == 'standard':
+                                signal1 = sig.savgol_filter(bin_values[:, combo[0], bin], window_length=11, polyorder=3)
+                                signal2 = sig.savgol_filter(bin_values[:, combo[1], bin], window_length=11, polyorder=3)
+                            else:
+                                signal1 = sig.savgol_filter(bin_values[combo[0], bin], window_length=11, polyorder=3)
+                                signal2 = sig.savgol_filter(bin_values[combo[1], bin], window_length=11, polyorder=3)
                             ccf = sp.calc_indv_CCF(signal1=signal1, signal2=signal2, num_frames=num_frames)
                             indv_ccfs[combo_number, bin] = ccf
 
@@ -152,6 +170,18 @@ def standard_workflow(
             # Calculate the peak amplitudes and relative amplitudes
             indv_peak_amps = indv_peak_maxs - indv_peak_mins
             indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
+
+            # create dictionary of image parameters and their values
+            img_parameters_dict = {
+                            'Period': indv_periods,
+                            'Shift': indv_shifts,
+                            'Peak Amp': indv_peak_amps,
+                            'Peak Rel Amp': indv_peak_rel_amps,
+                            'Peak Width': indv_peak_widths,
+                            'Peak Max': indv_peak_maxs,
+                            'Peak Min': indv_peak_mins,
+                            'Peak Offset': indv_peak_offsets
+                            }        
 
             im_save_path = os.path.join(main_save_path, name_wo_ext)
             hf.os.makedirs(im_save_path, exist_ok=True)
@@ -210,7 +240,7 @@ def standard_workflow(
                     for channel in range(num_channels):
                         for bin in range(num_bins):
                             pbar.update(1) 
-                            to_plot = bin_values[:,channel, bin]
+                            to_plot = bin_values[:,channel, bin] if analysis_type == 'standard' else bin_values[channel, bin]
                             # Generate and store the figure for the current channel and bin
                             indv_acf_plots[f'Ch{channel + 1} Bin {bin + 1} ACF'] = pt.return_indv_acf_figure(
                                 raw_signal=to_plot, 
@@ -233,7 +263,7 @@ def standard_workflow(
                     for channel in range(num_channels):
                         for bin in range(num_bins):
                             pbar.update(1)
-                            to_plot = bin_values[:,channel, bin]
+                            to_plot = bin_values[:,channel, bin] if analysis_type == 'standard' else bin_values[channel, bin]
                             # Generate and store the figure for the current channel and bin
                             indv_peak_figs[f'Ch{channel + 1} Bin {bin + 1} Peak Props'] = pt.return_indv_peak_prop_figure(
                                 bin_signal=to_plot,
@@ -256,8 +286,12 @@ def standard_workflow(
                     for combo_number, combo in enumerate(channel_combos):
                         for bin in range(num_bins):
                             pbar.update(1)
-                            to_plot1 = bin_values[:, combo[0], bin] 
-                            to_plot2 = bin_values[:, combo[1], bin] 
+                            if analysis_type == 'standard':
+                                to_plot1 = bin_values[:, combo[0], bin] 
+                                to_plot2 = bin_values[:, combo[1], bin] 
+                            else:
+                                to_plot1 = bin_values[combo[0], bin]
+                                to_plot2 = bin_values[combo[1], bin]
                             # Generate and store the figure for the current channel combination and bin
                             indv_ccf_plots[f'Ch{combo[0]}-Ch{combo[1]} Bin {bin + 1} CCF'] = pt.return_indv_ccf_figure(
                                 ch1 = pt.normalize_signal(to_plot1),
@@ -283,19 +317,7 @@ def standard_workflow(
                 
                 indv_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')
                 hf.os.makedirs(indv_ccf_val_path, exist_ok=True)
-                hf.save_ccf_values_to_csv(indv_ccf_values, indv_ccf_val_path)
-
-            # create dictionary of image parameters and their values
-            img_parameters_dict = {
-                            'Period': indv_periods,
-                            'Shift': indv_shifts,
-                            'Peak Amp': indv_peak_amps,
-                            'Peak Rel Amp': indv_peak_rel_amps,
-                            'Peak Width': indv_peak_widths,
-                            'Peak Max': indv_peak_maxs,
-                            'Peak Min': indv_peak_mins,
-                            'Peak Offset': indv_peak_offsets
-                            }                            
+                hf.save_ccf_values_to_csv(indv_ccf_values, indv_ccf_val_path)                    
 
             # Summarize the data for current image as dataframe, and save as .csv
             im_measurements_df, parameters_with_stats_dict = summarize_image_standard_kymo(

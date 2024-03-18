@@ -14,7 +14,7 @@ def calc_indv_peak_props(
         mean_max = np.mean(signal[peaks], axis = 0)
         mean_min = np.mean(signal[peaks]-proms, axis = 0)
 
-        # calculate the left and right bases of the peaks, then peak offsets
+        # calculate the left and right bases of the peaks, then midpoints and peak offsets
         _, _, left_bases, right_bases = sig.peak_widths(signal, peaks, rel_height=.99)
         midpoints = (leftIndex + rightIndex) / 2
         peak_offsets = peaks - midpoints

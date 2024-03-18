@@ -1,6 +1,8 @@
 import housekeeping.housekeeping_functions as hf
 from custom_gui import BaseGUI, RollingGUI, KymographGUI
-from data_workflows import standard_workflow, rolling_workflow, kymograph_workflow
+
+from data_workflows import rolling_workflow
+from data_workflows.combined_workflow import combined_workflow
 
 ####################################################################################################################################
 ####################################################################################################################################
@@ -120,7 +122,7 @@ def main():
         log_params["Errors"].append("You didn't enter a directory to analyze")        
         
     if analysis_type == "standard":                         
-        result_df = standard_workflow(
+        result_df = combined_workflow(
             folder_path=folder_path,
             group_names=group_names,
             log_params=log_params,
@@ -137,7 +139,7 @@ def main():
         )
         
     if analysis_type == "kymograph":                         
-        result_df = kymograph_workflow(
+        result_df = combined_workflow(
             folder_path=folder_path,
             group_names=group_names,
             log_params=log_params,
