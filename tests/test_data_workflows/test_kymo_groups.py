@@ -17,6 +17,8 @@ def default_log_params():
         'Plot Individual ACFs': False,
         'Plot Individual CCFs': False,
         'Plot Individual Peaks': False,
+        'Calc Wave Speeds': True,
+        'Plot Wave Speeds': False, 
         'Files Processed': [],
         'Files Not Processed': [],
         'Errors': []
@@ -41,11 +43,13 @@ def test_kymo(default_log_params):
         plot_indv_ACFs=default_log_params['Plot Individual ACFs'],
         plot_indv_CCFs=default_log_params['Plot Individual CCFs'],
         plot_indv_peaks=default_log_params['Plot Individual Peaks'],
+        calc_wave_speeds=default_log_params['Calc Wave Speeds'],
+        plot_wave_speeds=default_log_params['Plot Wave Speeds'],
     )
     assert pd.testing.assert_frame_equal(known_results, exp_results) is None
 
     return result
-
+'''
 log_params = {
         'Line Size(px)': 5,
         'Line Shift(px)': 5,
@@ -58,10 +62,13 @@ log_params = {
         'Plot Individual ACFs': False,
         'Plot Individual CCFs': False,
         'Plot Individual Peaks': False,
+        'Calc Wave Speeds': True,
+        'Plot Wave Speeds': False,
         'Files Processed': [],
         'Files Not Processed': [],
-        'Errors': []
+        'Errors': [],
+        
     }
 
 result = test_kymo(log_params)
-print(result)
+print(result)'''

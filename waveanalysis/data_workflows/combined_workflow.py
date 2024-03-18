@@ -28,6 +28,8 @@ def combined_workflow(
     plot_indv_ACFs: bool,
     plot_indv_CCFs: bool,
     plot_indv_peaks: bool,
+    calc_wave_speeds: bool,
+    plot_wave_speeds: bool,
     box_size: int = None,
     box_shift: int = None,
     line_width: int = None,
@@ -82,6 +84,12 @@ def combined_workflow(
                 continue
             log_params['Files Processed'].append(f'{file_name}')
 
+            if frame_interval == None or frame_interval == 0 or frame_interval == 1:
+                print(f"****** WARNING ******",
+                    f"\n{file_name} frame interval is not provided or is 0 or 1. Ensure this is the correct value",
+                    "\n****** ERROR ******")
+                log_params['Errors'].append(f'{file_name} frame interval is not provided or is 0 or 1. Ensure this is the correct value')
+
             # Create the array for which all future processing will be based on
             if analysis_type == 'standard':
                 bin_values, num_bins, _, _ = create_multi_frame_bin_array(
@@ -101,13 +109,14 @@ def combined_workflow(
                                         image = all_images[file_name]
                                     )
                 
-                # have the user create lines to calculate the wave speed
-                # wave_tracks = sp.define_wave_tracks(file_path=image_path)
-                wave_tracks = [np.array([[52, 1], [7,  36]]), 
-                            np.array([[26,   2], [7,  32]]), 
-                            np.array([[9, 72], [64,  35]])]
-                # calculate the wave speeds
-                wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, pixel_size=pixel_size, frame_interval=frame_interval)
+                if calc_wave_speeds:
+                    # have the user create lines to calculate the wave speed
+                    # wave_tracks = sp.define_wave_tracks(file_path=image_path)
+                    wave_tracks = [np.array([[52, 1], [7,  36]]), 
+                                np.array([[26,   2], [7,  32]]), 
+                                np.array([[9, 72], [64,  35]])]
+                    # calculate the wave speeds
+                    wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, pixel_size=pixel_size, frame_interval=frame_interval)
 
             # name without the extension
             name_wo_ext = file_name.rsplit(".",1)[0]
@@ -314,6 +323,13 @@ def combined_workflow(
                 indv_ccf_plots_path = os.path.join(im_save_path, 'Individual_CCF_plots')
                 hf.os.makedirs(indv_ccf_plots_path, exist_ok=True)
                 hf.save_plots(indv_ccf_plots, indv_ccf_plots_path)
+
+                if plot_wave_speeds:
+                    # plot the wave speeds for the file
+                    wave_speed_figs = pt.return_wave_speed_figure(wave_speeds=wave_speeds, file_name=name_wo_ext)
+                    wave_speed_path = os.path.join(im_save_path, 'Wave_Speed_Plots')
+                    hf.os.makedirs(wave_speed_path, exist_ok=True)
+                    hf.save_plots(wave_speed_figs, wave_speed_path)
 
                 # save the individual CCF values for the file
                 indv_ccf_values = get_indv_CCF_values(
