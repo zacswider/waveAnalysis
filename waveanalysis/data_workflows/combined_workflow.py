@@ -103,13 +103,11 @@ def combined_workflow(
                 
                 # have the user create lines to calculate the wave speed
                 # wave_tracks = sp.define_wave_tracks(file_path=image_path)
-                wave_tracks = [np.array([[116.72047884, 0.02904635], [ 90.06047795,  20.56547861]]), 
-                            np.array([[150.04547995,   0.25309698], [124.97238388,  28.50000269]]), 
-                            np.array([[115.13357403,  16.12214513], [100.85143069,  40.56047928]])]
-                
+                wave_tracks = [np.array([[52, 1], [7,  36]]), 
+                            np.array([[26,   2], [7,  32]]), 
+                            np.array([[9, 72], [64,  35]])]
                 # calculate the wave speeds
-                frame_interval = 1
-                wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, frame_interval=frame_interval)
+                wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, pixel_size=pixel_size, frame_interval=frame_interval)
 
             # name without the extension
             name_wo_ext = file_name.rsplit(".",1)[0]
@@ -392,4 +390,4 @@ def combined_workflow(
         log_params["Time Elapsed"] = f"{end - start:.2f} seconds"
         hf.make_log(main_save_path, log_params)
 
-        return summary_df, wave_tracks # only here for testing for now
+        return summary_df, wave_speeds # only here for testing for now

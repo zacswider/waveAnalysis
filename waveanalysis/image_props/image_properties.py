@@ -29,7 +29,7 @@ def get_single_frame_properties(image_path: str, image: np.ndarray):
         pixel_size = [x, y, z]
         
         num_channels = metadata.get('channels')
-        frame_interval = metadata.get('finterval', np.nan)
+        frame_interval = metadata.get('finterval')
         pixel_unit = metadata.get('unit')
         num_frames = image.shape[-2]
         num_columns = image.shape[-1]
