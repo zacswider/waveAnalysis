@@ -6,7 +6,6 @@ def return_indv_peak_prop_figure(
     bin_signal: np.ndarray, 
     prop_dict: dict, 
     Ch_name: str,
-    indv_peak_offsets: dict
 ) -> plt.Figure:
 
 # Extract peak properties from the dictionary
@@ -16,11 +15,8 @@ def return_indv_peak_prop_figure(
     heights = prop_dict['heights']
     leftIndex = prop_dict['leftIndex']
     rightIndex = prop_dict['rightIndex']
-    peak_offsets = indv_peak_offsets['offsets']
-    midpoints = indv_peak_offsets['midpoints']
-    left_base = indv_peak_offsets['left_base']
-    right_base = indv_peak_offsets['right_base']
-	
+    peak_offsets = prop_dict['peak_offsets']
+    midpoints = prop_dict['midpoints']
 
     # Create the figure and plot raw and smoothed signals
     fig, ax = plt.subplots()
@@ -41,16 +37,11 @@ def return_indv_peak_prop_figure(
                     color='tab:purple', 
                     linestyle = '-')
 
-            ax.hlines(heights[i], 
+            ax.hlines(heights[i]-5, 
                     peaks[i], 
                     midpoints[i], 
                     color='tab:orange', 
                     linestyle = '-')
-            ax.vlines(midpoints[i],
-                    smoothed_signal[peaks[i]]-proms[i],
-                    smoothed_signal[peaks[i]], 
-                    color='tab:orange',
-                    linestyle = '--')
 
         # Plot the legend for the first peak
         ax.hlines(heights[0], 
@@ -59,6 +50,12 @@ def return_indv_peak_prop_figure(
                 color='tab:olive', 
                 linestyle = '-',
                 label='FWHM')
+        ax.hlines(heights[0] - 5, 
+                    peaks[0], 
+                    midpoints[0], 
+                    color='tab:orange', 
+                    linestyle = '-',
+                    label='Peak offset')
         ax.vlines(peaks[0], 
                 smoothed_signal[peaks[0]]-proms[0],
                 smoothed_signal[peaks[0]], 

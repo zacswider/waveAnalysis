@@ -95,6 +95,7 @@ def rolling_workflow(
             indv_peak_widths = np.zeros(shape=(num_submovies, num_channels, num_bins))
             indv_peak_maxs = np.zeros(shape=(num_submovies, num_channels, num_bins))
             indv_peak_mins = np.zeros(shape=(num_submovies, num_channels, num_bins))
+            indv_peak_offsets = np.zeros(shape=(num_submovies, num_channels, num_bins))
 
             its = num_submovies*num_channels*num_x_bins*num_y_bins
             with tqdm(total = its, miniters=its/100) as pbar:
@@ -105,7 +106,7 @@ def rolling_workflow(
                             pbar.update(1)
                             signal = sig.savgol_filter(bin_values[roll_by*submovie : roll_size + roll_by*submovie, channel, bin], window_length=11, polyorder=2)
 
-                            mean_width, mean_max, mean_min, _, _, _, _, _ = sp.calc_indv_peak_props(signal=signal)
+                            mean_width, mean_max, mean_min, mean_offset, _, _, _, _, _, _, _, _, _ = sp.calc_indv_peak_props(signal=signal)
 
                             # Store peak measurements for each bin in each channel
                             indv_peak_widths[submovie, channel, bin] = mean_width
@@ -171,8 +172,10 @@ def rolling_workflow(
                             'Peak Width': indv_peak_widths,
                             'Peak Max': indv_peak_maxs,
                             'Peak Min': indv_peak_mins,
+                            'Peak Offset': indv_peak_offsets
             }
             
+            # TODO: add peak offsets to this function as well
             # summarize the data for each subframe as a single dataframe, and save as .csv
             summary_df = summarize_rolling_file(
                 num_bins=num_bins,

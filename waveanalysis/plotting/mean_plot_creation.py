@@ -49,6 +49,7 @@ def return_mean_prop_peaks_figure(
     max_array: np.ndarray, 
     amp_array: np.ndarray, 
     width_array: np.ndarray,
+    offsets_array: np.ndarray,
     Ch_name: str
 ) -> plt.Figure:
     # Create subplots for histograms and boxplots
@@ -59,11 +60,13 @@ def return_mean_prop_peaks_figure(
     max_array = [val for val in max_array if not np.isnan(val)]
     amp_array = [val for val in amp_array if not np.isnan(val)]
     width_array = [val for val in width_array if not np.isnan(val)]
+    offsets_array = [val for val in offsets_array if not np.isnan(val)]
 
     # Define plot parameters for histograms and boxplots
     plot_params = { 'amp' : (amp_array, 'tab:blue'),
                     'min' : (min_array, 'tab:purple'),
-                    'max' : (max_array, 'tab:orange')}
+                    'max' : (max_array, 'tab:orange'),
+                    'offsets' : (offsets_array, 'tab:red')}
     
     # Plot histograms for peak properties
     for labels, (arr, arr_color) in plot_params.items():

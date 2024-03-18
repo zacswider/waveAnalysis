@@ -101,6 +101,7 @@ def standard_workflow(
             indv_peak_widths = np.zeros(shape=(num_channels, num_bins))
             indv_peak_maxs = np.zeros(shape=(num_channels, num_bins))
             indv_peak_mins = np.zeros(shape=(num_channels, num_bins))
+            indv_peak_offsets = np.zeros(shape=(num_channels, num_bins))
             indv_peak_props = {}
             indv_shifts = np.zeros(shape=(num_combos, num_bins))
             indv_ccfs = np.zeros(shape=(num_combos, num_bins, num_frames*2-1))
@@ -119,19 +120,22 @@ def standard_workflow(
 
                         # calculate the individual peak properties for each channel
                         smoothed_signal = sig.savgol_filter(signal, window_length = 11, polyorder = 2)                 
-                        mean_width, mean_max, mean_min, peaks, proms, heights, leftIndex, rightIndex = sp.calc_indv_peak_props(signal=smoothed_signal)
+                        mean_width, mean_max, mean_min, mean_offset, peaks, proms, heights, leftIndex, rightIndex, midpoints, peak_offsets, left_base, right_base = sp.calc_indv_peak_props(signal=smoothed_signal)
                         indv_peak_widths[channel, bin] = mean_width
                         indv_peak_maxs[channel, bin] = mean_max
                         indv_peak_mins[channel, bin] = mean_min
+                        indv_peak_offsets[channel, bin] = mean_offset
                         indv_peak_props[f'Ch {channel} Bin {bin}'] = {'smoothed': smoothed_signal, 
                                                                 'peaks': peaks,
                                                                 'proms': proms, 
                                                                 'heights': heights, 
                                                                 'leftIndex': leftIndex, 
-                                                                'rightIndex': rightIndex}
-                        
-                        # TODO: Calculate individual peak offsets
-                    
+                                                                'rightIndex': rightIndex,
+                                                                'midpoints': midpoints,
+                                                                'peak_offsets': peak_offsets,
+                                                                'left_base': left_base,
+                                                                'right_base': right_base}
+
                         # Calculate the individual CCFs and shifts for each channel
                         if num_channels > 1:
                             signal1 = sig.savgol_filter(bin_values[:, combo[0], bin], window_length=11, polyorder=3)
@@ -173,6 +177,7 @@ def standard_workflow(
                         max_array=indv_peak_maxs[channel], 
                         amp_array=indv_peak_amps[channel], 
                         width_array=indv_peak_widths[channel], 
+                        offsets_array=indv_peak_offsets[channel],
                         Ch_name=f'Ch{channel + 1}')
                 hf.save_plots(mean_peak_figs, im_save_path)
 
@@ -233,8 +238,7 @@ def standard_workflow(
                             indv_peak_figs[f'Ch{channel + 1} Bin {bin + 1} Peak Props'] = pt.return_indv_peak_prop_figure(
                                 bin_signal=to_plot,
                                 prop_dict=indv_peak_props[f'Ch {channel} Bin {bin}'],
-                                Ch_name=f'Ch{channel + 1} Bin {bin + 1}',
-                                indv_peak_offsets=indv_peak_offsets[f'Ch {channel} Bin {bin}']
+                                Ch_name=f'Ch{channel + 1} Bin {bin + 1}'
                                 )
                 indv_peak_path = os.path.join(im_save_path, 'Individual_peak_plots')
                 hf.os.makedirs(indv_peak_path, exist_ok=True)
@@ -281,6 +285,7 @@ def standard_workflow(
                 hf.os.makedirs(indv_ccf_val_path, exist_ok=True)
                 hf.save_ccf_values_to_csv(indv_ccf_values, indv_ccf_val_path)
 
+            # create dictionary of image parameters and their values
             img_parameters_dict = {
                             'Period': indv_periods,
                             'Shift': indv_shifts,
@@ -289,7 +294,8 @@ def standard_workflow(
                             'Peak Width': indv_peak_widths,
                             'Peak Max': indv_peak_maxs,
                             'Peak Min': indv_peak_mins,
-            }
+                            'Peak Offset': indv_peak_offsets
+                            }                            
 
             # Summarize the data for current image as dataframe, and save as .csv
             im_measurements_df, parameters_with_stats_dict = summarize_image_standard_kymo(

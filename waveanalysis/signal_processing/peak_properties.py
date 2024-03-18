@@ -8,54 +8,41 @@ def calc_indv_peak_props(
 
     # If peaks detected, calculate properties, otherwise return NaNs
     if len(peaks) > 0:
-        proms, _, _ = sig.peak_prominences(signal, peaks)
         widths, heights, leftIndex, rightIndex = sig.peak_widths(signal, peaks, rel_height=0.5)
+        proms, _, _ = sig.peak_prominences(signal, peaks)
         mean_width = np.mean(widths, axis=0)
         mean_max = np.mean(signal[peaks], axis = 0)
         mean_min = np.mean(signal[peaks]-proms, axis = 0)
+
+        # calculate the left and right bases of the peaks, then peak offsets
+        _, _, left_bases, right_bases = sig.peak_widths(signal, peaks, rel_height=.99)
+        midpoints = (leftIndex + rightIndex) / 2
+        peak_offsets = peaks - midpoints
+        # Check if one peak entirely encompasses another
+        for i in range(len(peaks)):
+            for j in range(len(peaks)):
+                if i != j:  # Avoid self-comparison
+                    if left_bases[j] >= left_bases[i] and right_bases[j] <= right_bases[i]:
+                        # Peak j is entirely encompassed by peak i
+                        left_bases[i] = np.nan
+                        right_bases[i] = np.nan
+                        peak_offsets[i] = np.nan
+                        midpoints[i] = np.nan
+        
+        # Drop NaN values because it will mess up the mean calculation
+        valid_indices = ~np.isnan(peak_offsets)
+        valid_offsets = peak_offsets[valid_indices]
+        # Calculate the mean of valid peak offsets
+        mean_offset = np.nanmean(valid_offsets)
     else:
         mean_width = np.nan
         mean_max = np.nan
         mean_min = np.nan
+        mean_offset = np.nan
         peaks = np.nan
         proms = np.nan 
         heights = np.nan
         leftIndex = np.nan
         rightIndex = np.nan
     
-    return mean_width, mean_max, mean_min, peaks, proms, heights, leftIndex, rightIndex
-
-def calc_indv_peak_offset(
-    num_channels:int,
-    num_bins:int,
-    bin_values:np.ndarray,
-    analysis_type:str
-) -> dict:
-    indv_peak_offsets = {}
-
-    # Loop through channels and bins for standard or kymograph analysis
-    for channel in range(num_channels):
-        for bin in range(num_bins):
-            if analysis_type == "standard":
-                signal = sig.savgol_filter(bin_values[:,channel, bin], window_length = 11, polyorder = 2)  
-            else:                     
-                signal = sig.savgol_filter(bin_values[channel, bin], window_length = 11, polyorder = 2)   
-            
-            peaks, _ = sig.find_peaks(signal, prominence=(np.max(signal)-np.min(signal))*0.1)
-
-            # If peaks detected, calculate properties, otherwise return NaNs
-            if len(peaks) > 0:
-                _, left_base, right_base = sig.peak_prominences(signal, peaks)
-
-                midpoint = (left_base + right_base) / 2
-                peak_offsets = peaks - midpoint
-                indv_peak_offsets[f'Ch {channel} Bin {bin}'] ={'offsets': peak_offsets, 
-                                                                'midpoints': midpoint,
-                                                                'left_base': left_base, 
-                                                                'right_base': right_base
-                                                                }
-
-            else:
-                indv_peak_offsets[f'Ch {channel} Bin {bin}'] = np.nan
-
-    return indv_peak_offsets
+    return mean_width, mean_max, mean_min, mean_offset, peaks, proms, heights, leftIndex, rightIndex, midpoints, peak_offsets, left_bases, right_bases
