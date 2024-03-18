@@ -162,6 +162,16 @@ def rolling_workflow(
             os.makedirs(csv_save_path, exist_ok=True)
             for measurement_index, submovie_meas_df in enumerate(submovie_meas_list):  # type: ignore
                 submovie_meas_df.to_csv(f'{csv_save_path}/{name_wo_ext}_subframe{measurement_index}_measurements.csv', index = False)
+
+            img_parameters_dict = {
+                            'Period': indv_periods,
+                            'Shift': indv_shifts,
+                            'Peak Amp': indv_peak_amps,
+                            'Peak Rel Amp': indv_peak_rel_amps,
+                            'Peak Width': indv_peak_widths,
+                            'Peak Max': indv_peak_maxs,
+                            'Peak Min': indv_peak_mins,
+            }
             
             # summarize the data for each subframe as a single dataframe, and save as .csv
             summary_df = summarize_rolling_file(
