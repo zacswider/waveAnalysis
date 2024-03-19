@@ -70,6 +70,32 @@ def calc_indv_period(
         
     return period
 
+def calc_indv_CCF_workflow(
+    bin_values: np.ndarray,
+    img_props: dict
+) -> np.ndarray:
+    
+    num_combos = img_props['num_combos']
+    num_bins = img_props['num_bins']
+    num_frames = img_props['num_frames']
+    channel_combos = img_props['channel_combos']
+    analysis_type = img_props['analysis_type']
+
+    indv_ccfs = np.zeros(shape=(num_combos, num_bins, num_frames*2-1))
+    
+    for combo_number, combo in enumerate(channel_combos):
+        for bin in range(num_bins):
+            if analysis_type == 'standard':
+                signal1 = sig.savgol_filter(bin_values[:, combo[0], bin], window_length=11, polyorder=3)
+                signal2 = sig.savgol_filter(bin_values[:, combo[1], bin], window_length=11, polyorder=3)
+            else:
+                signal1 = sig.savgol_filter(bin_values[combo[0], bin], window_length=11, polyorder=3)
+                signal2 = sig.savgol_filter(bin_values[combo[1], bin], window_length=11, polyorder=3)
+            ccf = calc_indv_CCF(signal1=signal1, signal2=signal2, num_frames=num_frames)
+            indv_ccfs[combo_number, bin] = ccf
+
+    return indv_ccfs
+
 def calc_indv_CCF(
     signal1: np.ndarray,
     signal2: np.ndarray,
@@ -108,6 +134,27 @@ def calc_indv_CCF(
         cc_curve = np.full((num_frames * 2 - 1), np.nan)
 
     return cc_curve
+
+def calc_indv_shift_workflow(
+    indv_ccfs: np.ndarray,
+    indv_periods: np.ndarray,
+    img_props: dict
+) -> np.ndarray:
+    
+    num_combos = img_props['num_combos']
+    num_bins = img_props['num_bins']
+    channel_combos = img_props['channel_combos']
+    
+    indv_shifts = np.zeros(shape=(num_combos, num_bins))
+
+    for combo_number, combo in enumerate(channel_combos):
+        for bin in range(num_bins):
+            shift = calc_indv_shift(cc_curve=indv_ccfs[combo_number, bin])
+            average_period = np.mean(indv_periods[:, bin]) # If the shift is too small, correct it
+            shift = small_shifts_correction(delay_frames=shift, average_period=average_period)
+            indv_shifts[combo_number, bin] = shift
+
+    return indv_shifts
 
 def calc_indv_shift(cc_curve: np.ndarray) -> np.ndarray:
     # Find peaks in the cross-correlation curve
