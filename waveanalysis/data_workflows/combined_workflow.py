@@ -204,15 +204,21 @@ def combined_workflow(
             # create dictionary of image parameters and their values for later use
             img_parameters_dict = {
                             'Period': indv_periods,
-                            'Shift': indv_shifts,
                             'Peak Amp': indv_peak_amps,
                             'Peak Rel Amp': indv_peak_rel_amps,
                             'Peak Width': indv_peak_widths,
                             'Peak Max': indv_peak_maxs,
                             'Peak Min': indv_peak_mins,
                             'Peak Offset': indv_peak_offsets,
-                            # TODO: add wave speed to the stats
-                            }        
+                            }    
+            
+            # add shifts to the dictionary if there are multiple channels
+            if num_channels > 1:
+                img_parameters_dict['Shift'] = indv_shifts
+
+            # add wave speeds to the dictionary if they were calculated
+            if calc_wave_speeds:
+                img_parameters_dict['Wave Speed'] = wave_speeds    
 
             # create the directory to save the figures and data for the image
             im_save_path = os.path.join(main_save_path, name_wo_ext)

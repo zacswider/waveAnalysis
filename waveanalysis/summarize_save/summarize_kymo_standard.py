@@ -19,10 +19,21 @@ def summarize_image_standard_kymo(
     for key, value in img_parameters.items():
         if key == 'Shift':
             continue
-        parameter_with_stats = add_stats_for_parameter(img_parameters[key], key, num_channels, channel_combos)
-        parameter_with_stats_dict[key] = parameter_with_stats
-        for channel in range(num_channels):
-            statified_measurements.append(parameter_with_stats[channel])
+        elif key == 'Wave Speed':
+            label = 'Wave Speed'
+            meas_mean = np.nanmean(value)
+            meas_median = np.nanmedian(value)
+            meas_std = np.nanstd(value)
+            meas_sem = meas_std / np.sqrt(len(value))
+            meas_list = [label, meas_mean, meas_median, meas_std, meas_sem]
+            meas_list.extend(value)
+            parameter_with_stats_dict[key] = meas_list
+            statified_measurements.append(meas_list)
+        else:
+            parameter_with_stats = add_stats_for_parameter(img_parameters[key], key, num_channels, channel_combos)
+            parameter_with_stats_dict[key] = parameter_with_stats
+            for channel in range(num_channels):
+                statified_measurements.append(parameter_with_stats[channel])
             
     if num_channels > 1:
         shifts_with_stats = add_stats_for_parameter(img_parameters['Shift'], 'Shift', num_channels, channel_combos)
@@ -67,9 +78,13 @@ def combine_stats_for_image_kymo_standard(
                 pcnt_no_parameter = np.count_nonzero(np.isnan(img_parameters_dict[key][channel])) / img_parameters_dict[key][channel].shape[0] * 100
                 param = 'Peaks' if key == 'Peak Amp' else 'Periods'
                 file_data_summary[f'Ch {channel + 1} Pcnt No {param}'] = pcnt_no_parameter
-        for channel in range(num_channels):        
+        elif key != 'Wave Speed':
+            for channel in range(num_channels):        
+                for ind, stat in enumerate(stats_location):
+                    file_data_summary[f'Ch {channel + 1} {stat} {key}'] = parameters_with_stats_dict[key][channel][ind + 1]
+        elif key == 'Wave Speed':
             for ind, stat in enumerate(stats_location):
-                file_data_summary[f'Ch {channel + 1} {stat} {key}'] = parameters_with_stats_dict[key][channel][ind + 1]
+                file_data_summary[f'{stat} {key}'] = parameters_with_stats_dict[key][ind + 1]
 
     return file_data_summary
 
