@@ -31,7 +31,7 @@ def combined_workflow(
     calc_wave_speeds: bool,
     plot_wave_speeds: bool,
     box_size: int = None,
-    box_shift: int = None,
+    box_shift: int = None, # TODO: rename to be more inclusive to line shift
     line_width: int = None,
     frame_interval: float = None,
     pixel_size: float = None
@@ -73,6 +73,22 @@ def combined_workflow(
                 num_channels, num_frames, frame_interval, pixel_size, pixel_unit = get_multi_frame_properties(image_path=image_path)
             else: 
                 num_channels, num_columns, num_frames, frame_interval, pixel_size, pixel_unit = get_single_frame_properties(image_path=image_path, image=all_images[file_name])
+                # TODO: just return these as a dictionary
+
+            # create dictionary to store image properties for later use
+            img_props_dict = {
+                'num_channels': num_channels,
+                'num_columns': num_columns if analysis_type == 'kymograph' else None,
+                'num_frames': num_frames,
+                'frame_interval': frame_interval,
+                'pixel_size': pixel_size,
+                'pixel_unit': pixel_unit,
+                'step': box_shift,
+                'box_size': box_size if analysis_type == 'standard' else None,
+                'line_width': line_width if analysis_type == 'kymograph' else None,
+                'analysis_type': analysis_type,
+                'peak_thresh': acf_peak_thresh
+            }
 
             # log image properties
             log_params['Pixel Size'] = f"{file_name}: {pixel_size} {pixel_unit}s"
@@ -91,22 +107,12 @@ def combined_workflow(
 
             # Create the array of bin values for which all the stats will be calculated
             if analysis_type == 'standard':
-                bin_values, num_bins, _, _ = create_multi_frame_bin_array(
-                                                                    kernel_size = box_size, 
-                                                                    step = box_shift, 
-                                                                    num_channels = num_channels, 
-                                                                    num_frames = num_frames, 
-                                                                    image = all_images[file_name]
-                                                                )
+                bin_values, num_bins, _, _ = create_multi_frame_bin_array(image = all_images[file_name], 
+                                                                          img_props = img_props_dict)
             else: # analysis_type == 'kymograph'
-                bin_values, num_bins = create_kymo_bin_array(
-                                        line_width = line_width,
-                                        total_columns = num_columns,
-                                        step = box_shift,
-                                        num_channels = num_channels,
-                                        num_frames = num_frames,
-                                        image = all_images[file_name]
-                                    )
+                bin_values, num_bins = create_kymo_bin_array(image = all_images[file_name],
+                                                             img_props = img_props_dict)
+                
                 if calc_wave_speeds:
                     # user defined wave tracks. will open a window to draw the tracks
                     # wave_tracks = sp.define_wave_tracks(file_path=image_path)
@@ -114,14 +120,26 @@ def combined_workflow(
                         np.array([[40, 1], [7,  30]]), 
                         np.array([[26, 2], [3,  30]]), 
                         np.array([[9, 22], [12, 30]])
-                        ]
+                        ] # for testing
 
                     # check if wave tracks were created and if they are within the image
-                    hf.check_if_wave_tracks_created(wave_tracks=wave_tracks, log_params=log_params, file_name=file_name)
-                    hf.check_wave_track_coords(wave_tracks=wave_tracks, log_params=log_params, file_name=file_name, num_columns=num_columns, num_frames=num_frames)
+                    hf.check_if_wave_tracks_created(wave_tracks=wave_tracks, 
+                                                    log_params=log_params, 
+                                                    file_name=file_name)
+                    hf.check_wave_track_coords(wave_tracks=wave_tracks, 
+                                               log_params=log_params, 
+                                               file_name=file_name, 
+                                               num_columns=num_columns, 
+                                               num_frames=num_frames)
 
                     # calculate the wave speeds form the wave tracks
-                    wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, pixel_size=pixel_size, frame_interval=frame_interval)
+                    wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, 
+                                                      pixel_size=pixel_size, 
+                                                      frame_interval=frame_interval)
+
+            # store the number of bins and the bin values in the image properties dictionary
+            img_props_dict['num_bins'] = num_bins
+            img_props_dict['bin_values'] = bin_values
             
             # log that the file was processed
             log_params['Files Processed'].append(f'{file_name}')
@@ -133,10 +151,10 @@ def combined_workflow(
             # get the channel combinations
             channel_combos = hf.get_channel_combos(num_channels=num_channels)
             num_combos = len(channel_combos)
+            img_props_dict['channel_combos'] = channel_combos
+            img_props_dict['num_combos'] = num_combos
 
             # initialize arrays to store the individual ACFs, periods, peak properties, CCFs and shifts
-            indv_acfs = np.zeros(shape=(num_channels, num_bins, num_frames * 2 - 1))
-            indv_periods = np.zeros(shape=(num_channels, num_bins))
             indv_peak_widths = np.zeros(shape=(num_channels, num_bins))
             indv_peak_maxs = np.zeros(shape=(num_channels, num_bins))
             indv_peak_mins = np.zeros(shape=(num_channels, num_bins))
@@ -145,20 +163,18 @@ def combined_workflow(
             indv_shifts = np.zeros(shape=(num_combos, num_bins))
             indv_ccfs = np.zeros(shape=(num_combos, num_bins, num_frames*2-1))
 
+            # Calculate the ACF
+            indv_acfs = sp.calc_indv_ACF_workflow(bin_values=bin_values, img_props=img_props_dict)
+
+            # Calculate the period
+            indv_periods = sp.calc_indv_period_workflow(acf_curve=indv_acfs, img_props=img_props_dict)
+
             # iterate over each channel and bin to calculate the ACFs, periods, peak properties, and CCFs
             for combo_number, combo in enumerate(channel_combos):
                 for channel in range(num_channels):
                     for bin in range(num_bins):
-                        # calculate the individual ACFs for each channel
-                        signal = bin_values[:, channel, bin] if analysis_type == 'standard' else bin_values[channel, bin]
-                        acf_curve = sp.calc_indv_ACF(signal=signal, num_frames=num_frames, peak_thresh=acf_peak_thresh)
-                        indv_acfs[channel, bin] = acf_curve
-
-                        # calculate the individual periods for each channel
-                        period = sp.calc_indv_period(acf_curve=acf_curve, peak_thresh=acf_peak_thresh)
-                        indv_periods[channel, bin] = period
-
                         # calculate the individual peak properties for each channel
+                        signal = bin_values[:, channel, bin] if analysis_type == 'standard' else bin_values[channel, bin]
                         smoothed_signal = sig.savgol_filter(signal, window_length = 11, polyorder = 2)                 
                         mean_width, mean_max, mean_min, mean_offset, peaks, proms, heights, leftIndex, rightIndex, midpoints, peak_offsets, left_base, right_base = sp.calc_indv_peak_props(signal=smoothed_signal)
                         indv_peak_widths[channel, bin] = mean_width
@@ -190,6 +206,7 @@ def combined_workflow(
                             # calculate the individual CCFs for each channel combination
                             ccf = sp.calc_indv_CCF(signal1=signal1, signal2=signal2, num_frames=num_frames)
                             indv_ccfs[combo_number, bin] = ccf
+
 
                             # calculate the individual shifts for each channel combination
                             shift = sp.calc_indv_shift(cc_curve=ccf)

@@ -1,6 +1,27 @@
 import numpy as np
 from scipy import signal as sig
 
+def calc_indv_ACF_workflow(
+    bin_values: np.ndarray,
+    img_props: dict
+) -> np.ndarray: 
+    
+    num_channels = img_props['num_channels']
+    num_bins = img_props['num_bins']
+    num_frames = img_props['num_frames']
+    acf_peak_thresh = img_props['peak_thresh']
+    analysis_type = img_props['analysis_type']
+
+    indv_acfs = np.zeros(shape=(num_channels, num_bins, num_frames * 2 - 1))
+
+    for channel in range(num_channels):
+        for bin in range(num_bins):
+            signal = bin_values[:, channel, bin] if analysis_type == 'standard' else bin_values[channel, bin]
+            acf_curve = calc_indv_ACF(signal=signal, num_frames=num_frames, peak_thresh=acf_peak_thresh)
+            indv_acfs[channel, bin] = acf_curve
+
+    return indv_acfs
+
 def calc_indv_ACF(
     signal: np.ndarray,
     num_frames: int,
@@ -17,6 +38,24 @@ def calc_indv_ACF(
         acf_curve = np.full((num_frames * 2 - 1), np.nan)
 
     return acf_curve
+
+def calc_indv_period_workflow(
+    acf_curve: np.ndarray,
+    img_props: dict
+) -> np.ndarray: 
+    
+    num_channels = img_props['num_channels']
+    num_bins = img_props['num_bins']
+    acf_peak_thresh = img_props['peak_thresh']
+
+    indv_periods = np.zeros(shape=(num_channels, num_bins))
+
+    for channel in range(num_channels):
+        for bin in range(num_bins):
+            period = calc_indv_period(acf_curve=acf_curve[channel, bin], peak_thresh=acf_peak_thresh)
+            indv_periods[channel, bin] = period
+
+    return indv_periods
 
 def calc_indv_period(
     acf_curve: np.ndarray,
