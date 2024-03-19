@@ -82,12 +82,11 @@ def combined_workflow(
                     "\n****** ERROR ******")
                 log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
                 continue
-            log_params['Files Processed'].append(f'{file_name}')
 
             if frame_interval == None or frame_interval == 0 or frame_interval == 1:
                 print(f"****** WARNING ******",
                     f"\n{file_name} frame interval is not provided or is 0 or 1. Ensure this is the correct value",
-                    "\n****** ERROR ******")
+                    "\n****** WARNING ******")
                 log_params['Errors'].append(f'{file_name} frame interval is not provided or is 0 or 1. Ensure this is the correct value')
 
             # Create the array for which all future processing will be based on
@@ -99,7 +98,7 @@ def combined_workflow(
                                                                     num_frames = num_frames, 
                                                                     image = all_images[file_name]
                                                                 )
-            else:
+            else: # analysis_type == 'kymograph'
                 bin_values, num_bins = create_kymo_bin_array(
                                         line_width = line_width,
                                         total_columns = num_columns,
@@ -108,13 +107,35 @@ def combined_workflow(
                                         num_frames = num_frames,
                                         image = all_images[file_name]
                                     )
-                
+                # Calculate wave speeds if selected
                 if calc_wave_speeds:
                     # wave_tracks = sp.define_wave_tracks(file_path=image_path)
-                    # wave_tracks = np.array(wave_tracks)
-                    # wave_tracks = [np.array([[52, 1], [7,  36]]), np.array([[26,   2], [7,  32]]), np.array([[9, 72], [64,  35]])]
-                    # wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, pixel_size=pixel_size, frame_interval=frame_interval)
+                    wave_tracks = [
+                        np.array([[52, 1], [7,  36]]), 
+                        np.array([[26,   2], [7,  32]]), 
+                        np.array([[9, 72], [64,  35]])
+                        ]
+
+                    # Check if any of the coordinates fall outside the image coordinates
+                    for track in wave_tracks:
+                        x1, x2 = track[0][1], track[1][1]
+                        y1, y2 = track[0][0], track[1][0]
+                        if x1 < 0 or x1 >= num_columns or x2 < 0 or x2 >= num_columns or y1 < 0 or y1 >= num_frames or y2 < 0 or y2 >= num_frames:
+                            print(f"****** WARNING ******",
+                                f"\nAll lines are not drawn within the image for {file_name}",
+                                "\n****** WARNING ******")
+                            log_params['Errors'].append(f'All lines are not drawn within the image for {file_name}')
+
+                    # Check if any wave tracks were created
+                    if len(wave_tracks) < 1:
+                        print(f"****** WARNING ******",
+                            f"\n NO WAVE TRACKS SELECTED FOR {file_name} ",
+                            "\n****** WARNING ******") 
+                        log_params['Errors'].append(f'No wave tracks created for {file_name} ')
+
+                    wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, pixel_size=pixel_size, frame_interval=frame_interval)
                     
+            log_params['Files Processed'].append(f'{file_name}')
 
             # name without the extension
             name_wo_ext = file_name.rsplit(".",1)[0]
