@@ -111,27 +111,13 @@ def combined_workflow(
                 if calc_wave_speeds:
                     # wave_tracks = sp.define_wave_tracks(file_path=image_path)
                     wave_tracks = [
-                        np.array([[52, 1], [7,  36]]), 
-                        np.array([[26,   2], [7,  32]]), 
-                        np.array([[9, 72], [64,  35]])
+                        np.array([[40, 1], [7,  30]]), 
+                        np.array([[26, 2], [3,  30]]), 
+                        np.array([[9, 22], [12, 30]])
                         ]
 
-                    # Check if any of the coordinates fall outside the image coordinates
-                    for track in wave_tracks:
-                        x1, x2 = track[0][1], track[1][1]
-                        y1, y2 = track[0][0], track[1][0]
-                        if x1 < 0 or x1 >= num_columns or x2 < 0 or x2 >= num_columns or y1 < 0 or y1 >= num_frames or y2 < 0 or y2 >= num_frames:
-                            print(f"****** WARNING ******",
-                                f"\nAll lines are not drawn within the image for {file_name}",
-                                "\n****** WARNING ******")
-                            log_params['Errors'].append(f'All lines are not drawn within the image for {file_name}')
-
-                    # Check if any wave tracks were created
-                    if len(wave_tracks) < 1:
-                        print(f"****** WARNING ******",
-                            f"\n NO WAVE TRACKS SELECTED FOR {file_name} ",
-                            "\n****** WARNING ******") 
-                        log_params['Errors'].append(f'No wave tracks created for {file_name} ')
+                    log_params = hf.check_wave_track_coords(wave_tracks=wave_tracks, log_params=log_params, file_name=file_name, num_columns=num_columns, num_frames=num_frames)
+                    log_params = hf.check_wave_track_length(wave_tracks=wave_tracks, log_params=log_params, file_name=file_name)
 
                     wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, pixel_size=pixel_size, frame_interval=frame_interval)
                     

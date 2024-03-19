@@ -89,3 +89,29 @@ def threshold_check(
         log_params["Errors"].append("Set 'ACF peak prominence threshold' to a value between 0 and 1")
         log_params["Errors"].append("More realistically, a value between 0 and 0.5")
         return log_params
+    
+def check_wave_track_length(
+    wave_tracks,
+    log_params: dict,
+    file_name: str
+) -> dict:
+    if len(wave_tracks) == 0:
+        log_params["Errors"].append(f'No wave tracks were found for {file_name}')
+    return log_params
+
+def check_wave_track_coords(
+    wave_tracks,
+    log_params: dict,
+    file_name: str,
+    num_columns: int,
+    num_frames: int
+) -> dict:
+    for track in wave_tracks:
+        x1, x2 = track[0][1], track[1][1]
+        y1, y2 = track[0][0], track[1][0]
+        if x1 < 0 or x1 >= num_columns or x2 < 0 or x2 >= num_columns or y1 < 0 or y1 >= num_frames or y2 < 0 or y2 >= num_frames:
+            print(f"****** WARNING ******",
+                f"\nAll lines are not drawn within the image for {file_name}",
+                "\n****** WARNING ******")
+            log_params['Errors'].append(f'All lines are not drawn within the image for {file_name}')
+    return log_params
