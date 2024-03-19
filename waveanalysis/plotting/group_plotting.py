@@ -33,4 +33,4 @@ def generate_group_comparison(
         except ValueError:
             log_params['Plotting errors'].append(f'No data to compare for {param}')
 
-    return group_mean_parameter_figs, log_params
+    return group_mean_parameter_figs

@@ -90,14 +90,13 @@ def threshold_check(
         log_params["Errors"].append("More realistically, a value between 0 and 0.5")
         return log_params
     
-def check_wave_track_length(
+def check_if_wave_tracks_created(
     wave_tracks,
     log_params: dict,
     file_name: str
 ) -> dict:
     if len(wave_tracks) == 0:
         log_params["Errors"].append(f'No wave tracks were found for {file_name}')
-    return log_params
 
 def check_wave_track_coords(
     wave_tracks,
@@ -114,4 +113,14 @@ def check_wave_track_coords(
                 f"\nAll lines are not drawn within the image for {file_name}",
                 "\n****** WARNING ******")
             log_params['Errors'].append(f'All lines are not drawn within the image for {file_name}')
-    return log_params
+
+def check_frame_interval(
+    frame_interval: float,
+    log_params: dict,
+    file_name: str
+) -> dict:
+    if frame_interval == None or frame_interval == 0 or frame_interval == 1:
+        print(f"****** WARNING ******",
+            f"\n{file_name} frame interval is not provided or is 0 or 1. Ensure this is the correct value",
+            "\n****** WARNING ******")
+        log_params['Errors'].append(f'{file_name} frame interval is not provided or is 0 or 1. Ensure this is the correct value')

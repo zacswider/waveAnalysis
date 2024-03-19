@@ -33,6 +33,8 @@ def combined_workflow(
     box_size: int = None,
     box_shift: int = None,
     line_width: int = None,
+    frame_interval: float = None,
+    pixel_size: float = None
 ) -> pd.DataFrame:                
 
     # list of file names in specified directory
@@ -47,12 +49,10 @@ def combined_workflow(
     # create main save path
     now = datetime.datetime.now()
     main_save_path = os.path.join(folder_path, f"0_signalProcessing-{now.strftime('%Y%m%d%H%M')}")
-    hf.os.makedirs(main_save_path, exist_ok=True)
+    os.makedirs(main_save_path, exist_ok=True)
 
-    # empty list to fill with summary data for each file
-    summary_list = []
-    # column headers to use with summary data during conversion to dataframe
-    col_headers = []
+    # empty list to fill with summary data for each file, and column headers list
+    summary_list, col_headers = [], []
 
     # convert images to numpy arrays
     all_images = tiff_to_np_array_multi_frame(folder_path=folder_path) if analysis_type == 'standard' else tiff_to_np_array_single_frame(folder_path=folder_path)
@@ -65,15 +65,17 @@ def combined_workflow(
             print('******'*10)
             print(f'Processing {file_name}...')
 
-            # Get image properties
             image_path = f'{folder_path}/{file_name}'  
-
             # TODO: add the ability to save the values in terms of seconds if frame_interval is provided
-            # TODO: add the ability to calculate wave speed if pixel_size and frame_interval are provided
+
+            # Get image properties
             if analysis_type == 'standard':
                 num_channels, num_frames, frame_interval, pixel_size, pixel_unit = get_multi_frame_properties(image_path=image_path)
             else: 
                 num_channels, num_columns, num_frames, frame_interval, pixel_size, pixel_unit = get_single_frame_properties(image_path=image_path, image=all_images[file_name])
+
+            log_params['Pixel Size'] = f"{pixel_size} {pixel_unit}s"
+            log_params['Frame Interval'] = f"{frame_interval} seconds"
 
             # log error and skip image if frames < 2; otherwise, log image as processed
             if num_frames < 2:
@@ -83,11 +85,7 @@ def combined_workflow(
                 log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
                 continue
 
-            if frame_interval == None or frame_interval == 0 or frame_interval == 1:
-                print(f"****** WARNING ******",
-                    f"\n{file_name} frame interval is not provided or is 0 or 1. Ensure this is the correct value",
-                    "\n****** WARNING ******")
-                log_params['Errors'].append(f'{file_name} frame interval is not provided or is 0 or 1. Ensure this is the correct value')
+            hf.check_frame_interval(frame_interval=frame_interval, log_params=log_params, file_name=file_name)
 
             # Create the array for which all future processing will be based on
             if analysis_type == 'standard':
@@ -116,8 +114,8 @@ def combined_workflow(
                         np.array([[9, 22], [12, 30]])
                         ]
 
-                    log_params = hf.check_wave_track_coords(wave_tracks=wave_tracks, log_params=log_params, file_name=file_name, num_columns=num_columns, num_frames=num_frames)
-                    log_params = hf.check_wave_track_length(wave_tracks=wave_tracks, log_params=log_params, file_name=file_name)
+                    hf.check_if_wave_tracks_created(wave_tracks=wave_tracks, log_params=log_params, file_name=file_name)
+                    hf.check_wave_track_coords(wave_tracks=wave_tracks, log_params=log_params, file_name=file_name, num_columns=num_columns, num_frames=num_frames)
 
                     wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, pixel_size=pixel_size, frame_interval=frame_interval)
                     
@@ -208,7 +206,7 @@ def combined_workflow(
                             }        
 
             im_save_path = os.path.join(main_save_path, name_wo_ext)
-            hf.os.makedirs(im_save_path, exist_ok=True)
+            os.makedirs(im_save_path, exist_ok=True)
 
             # plot the mean ACF figures for the file
             if plot_summary_ACFs:
@@ -280,7 +278,7 @@ def combined_workflow(
                                 num_frames= num_frames
                                 )
                 indv_acf_path = os.path.join(im_save_path, 'Individual_ACF_plots')
-                hf.os.makedirs(indv_acf_path, exist_ok=True)
+                os.makedirs(indv_acf_path, exist_ok=True)
                 hf.save_plots(indv_acf_plots, indv_acf_path)
 
             # plot the individual peak properties figures for the file
@@ -301,7 +299,7 @@ def combined_workflow(
                                 Ch_name=f'Ch{channel + 1} Bin {bin + 1}'
                                 )
                 indv_peak_path = os.path.join(im_save_path, 'Individual_peak_plots')
-                hf.os.makedirs(indv_peak_path, exist_ok=True)
+                os.makedirs(indv_peak_path, exist_ok=True)
                 hf.save_plots(indv_peak_figs, indv_peak_path)
                 
             # plot the individual CCF figures for the file
@@ -333,7 +331,7 @@ def combined_workflow(
                                 num_frames = num_frames)
                 
                 indv_ccf_plots_path = os.path.join(im_save_path, 'Individual_CCF_plots')
-                hf.os.makedirs(indv_ccf_plots_path, exist_ok=True)
+                os.makedirs(indv_ccf_plots_path, exist_ok=True)
                 hf.save_plots(indv_ccf_plots, indv_ccf_plots_path)
 
                 # save the individual CCF values for the file
@@ -346,7 +344,7 @@ def combined_workflow(
                 )
                 
                 indv_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')
-                hf.os.makedirs(indv_ccf_val_path, exist_ok=True)
+                os.makedirs(indv_ccf_val_path, exist_ok=True)
                 hf.save_ccf_values_to_csv(indv_ccf_values, indv_ccf_val_path)                    
 
             # Summarize the data for current image as dataframe, and save as .csv
@@ -392,15 +390,15 @@ def combined_workflow(
 
         if group_names != ['']:
             # generate comparisons between each group
-            mean_parameter_figs, log_params = pt.generate_group_comparison(summary_df = summary_df, log_params = log_params)
+            mean_parameter_figs = pt.generate_group_comparison(summary_df = summary_df, log_params = log_params)
             group_plots_save_path = os.path.join(main_save_path, "!group_comparison_graphs")
-            hf.os.makedirs(group_plots_save_path, exist_ok=True)
+            os.makedirs(group_plots_save_path, exist_ok=True)
             hf.save_plots(mean_parameter_figs, group_plots_save_path)
 
             # save the means each parameter for the attributes to make them easier to work with in prism
             parameter_tables_dict = save_parameter_means_to_csv(summary_df=summary_df,group_names=group_names)
             mean_measurements_save_path = os.path.join(main_save_path, "!mean_parameter_measurements")
-            hf.os.makedirs(mean_measurements_save_path, exist_ok=True)
+            os.makedirs(mean_measurements_save_path, exist_ok=True)
             for filename, table in parameter_tables_dict.items():
                 table.to_csv(f"{mean_measurements_save_path}/{filename}", index = False)
 

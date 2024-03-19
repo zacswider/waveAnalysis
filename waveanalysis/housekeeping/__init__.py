@@ -6,7 +6,8 @@ from .housekeeping_functions import (
     get_channel_combos,
     threshold_check,
     check_wave_track_coords,
-    check_wave_track_length
+    check_if_wave_tracks_created,
+    check_frame_interval
 )
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "get_channel_combos",
     "threshold_check",
     "check_wave_track_coords",
-    "check_wave_track_length"
+    "check_if_wave_tracks_created",
+    "check_frame_interval"
     ]
