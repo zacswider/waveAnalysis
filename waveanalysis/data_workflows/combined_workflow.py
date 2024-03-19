@@ -64,8 +64,8 @@ def combined_workflow(
         for file_name in file_names: 
             print('******'*10)
             print(f'Processing {file_name}...')
-
             image_path = f'{folder_path}/{file_name}'  
+            
             # TODO: add the ability to save the values in terms of seconds if frame_interval is provided
 
             # Get image properties
@@ -74,8 +74,9 @@ def combined_workflow(
             else: 
                 num_channels, num_columns, num_frames, frame_interval, pixel_size, pixel_unit = get_single_frame_properties(image_path=image_path, image=all_images[file_name])
 
-            log_params['Pixel Size'] = f"{pixel_size} {pixel_unit}s"
-            log_params['Frame Interval'] = f"{frame_interval} seconds"
+            # log image properties
+            log_params['Pixel Size'] = f"{file_name}: {pixel_size} {pixel_unit}s"
+            log_params['Frame Interval'] = f"{file_name}: {frame_interval} seconds"
 
             # log error and skip image if frames < 2; otherwise, log image as processed
             if num_frames < 2:
@@ -85,9 +86,10 @@ def combined_workflow(
                 log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
                 continue
 
+            # check if frame interval is not 1 or None and log it
             hf.check_frame_interval(frame_interval=frame_interval, log_params=log_params, file_name=file_name)
 
-            # Create the array for which all future processing will be based on
+            # Create the array of bin values for which all the stats will be calculated
             if analysis_type == 'standard':
                 bin_values, num_bins, _, _ = create_multi_frame_bin_array(
                                                                     kernel_size = box_size, 
@@ -105,8 +107,8 @@ def combined_workflow(
                                         num_frames = num_frames,
                                         image = all_images[file_name]
                                     )
-                # Calculate wave speeds if selected
                 if calc_wave_speeds:
+                    # user defined wave tracks. will open a window to draw the tracks
                     # wave_tracks = sp.define_wave_tracks(file_path=image_path)
                     wave_tracks = [
                         np.array([[40, 1], [7,  30]]), 
@@ -114,14 +116,16 @@ def combined_workflow(
                         np.array([[9, 22], [12, 30]])
                         ]
 
+                    # check if wave tracks were created and if they are within the image
                     hf.check_if_wave_tracks_created(wave_tracks=wave_tracks, log_params=log_params, file_name=file_name)
                     hf.check_wave_track_coords(wave_tracks=wave_tracks, log_params=log_params, file_name=file_name, num_columns=num_columns, num_frames=num_frames)
 
+                    # calculate the wave speeds form the wave tracks
                     wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, pixel_size=pixel_size, frame_interval=frame_interval)
-                    
+            
+            # log that the file was processed
             log_params['Files Processed'].append(f'{file_name}')
 
-            # name without the extension
             name_wo_ext = file_name.rsplit(".",1)[0]
             # if user entered group name(s) into GUI, match the group for this file. If no match, keep set to None
             group_name = hf.match_group_to_file(name_wo_ext=name_wo_ext, group_names=group_names)
@@ -145,11 +149,12 @@ def combined_workflow(
             for combo_number, combo in enumerate(channel_combos):
                 for channel in range(num_channels):
                     for bin in range(num_bins):
-                        # calculate the individual ACFs and periods for each channel
+                        # calculate the individual ACFs for each channel
                         signal = bin_values[:, channel, bin] if analysis_type == 'standard' else bin_values[channel, bin]
                         acf_curve = sp.calc_indv_ACF(signal=signal, num_frames=num_frames, peak_thresh=acf_peak_thresh)
                         indv_acfs[channel, bin] = acf_curve
 
+                        # calculate the individual periods for each channel
                         period = sp.calc_indv_period(acf_curve=acf_curve, peak_thresh=acf_peak_thresh)
                         indv_periods[channel, bin] = period
 
@@ -170,6 +175,8 @@ def combined_workflow(
                                                                 'peak_offsets': peak_offsets,
                                                                 'left_base': left_base,
                                                                 'right_base': right_base}
+                        
+                        # TODO: rename the keys to be more descriptive
 
                         # Calculate the individual CCFs and shifts for each channel
                         if num_channels > 1:
@@ -179,12 +186,14 @@ def combined_workflow(
                             else:
                                 signal1 = sig.savgol_filter(bin_values[combo[0], bin], window_length=11, polyorder=3)
                                 signal2 = sig.savgol_filter(bin_values[combo[1], bin], window_length=11, polyorder=3)
+                            
+                            # calculate the individual CCFs for each channel combination
                             ccf = sp.calc_indv_CCF(signal1=signal1, signal2=signal2, num_frames=num_frames)
                             indv_ccfs[combo_number, bin] = ccf
 
+                            # calculate the individual shifts for each channel combination
                             shift = sp.calc_indv_shift(cc_curve=ccf)
-                            # If the shift is too small, correct it
-                            average_period = np.mean(indv_periods[:, bin])
+                            average_period = np.mean(indv_periods[:, bin]) # If the shift is too small, correct it
                             shift = sp.small_shifts_correction(delay_frames=shift, average_period=average_period)
                             indv_shifts[combo_number, bin] = shift
 
@@ -192,7 +201,7 @@ def combined_workflow(
             indv_peak_amps = indv_peak_maxs - indv_peak_mins
             indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
 
-            # create dictionary of image parameters and their values
+            # create dictionary of image parameters and their values for later use
             img_parameters_dict = {
                             'Period': indv_periods,
                             'Shift': indv_shifts,
@@ -205,13 +214,13 @@ def combined_workflow(
                             # TODO: add wave speed to the stats
                             }        
 
+            # create the directory to save the figures and data for the image
             im_save_path = os.path.join(main_save_path, name_wo_ext)
             os.makedirs(im_save_path, exist_ok=True)
 
             # plot the mean ACF figures for the file
             if plot_summary_ACFs:
                 mean_acf_figs = {}
-                # Generate plots for each channel
                 for channel in range(num_channels):
                     mean_acf_figs[f'Ch{channel + 1} Mean ACF'] = pt.return_mean_ACF_figure(
                         signal=indv_acfs[channel], 
@@ -236,9 +245,7 @@ def combined_workflow(
             # plot the mean CCF figures for the file
             if plot_summary_CCFs and num_channels > 1:
                 mean_ccf_figs = {}
-                # Iterate over each channel combination
                 for combo_number, combo in enumerate(channel_combos):
-                    # Generate figure for mean CCF
                     mean_ccf_figs[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF'] = pt.return_mean_CCF_figure(
                         signal=indv_ccfs[combo_number], 
                         shifts=indv_shifts[combo_number], 
@@ -250,14 +257,15 @@ def combined_workflow(
                 mean_ccf_values = get_mean_CCF_values(channel_combos=channel_combos,indv_ccfs=indv_ccfs)
                 hf.save_ccf_values_to_csv(mean_ccf_values, im_save_path)
 
+            # Error check for plotting individual CCFs
+            elif plot_summary_CCFs and num_channels == 1:
+                log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
+
+            # plot the wave speeds for the file
             if plot_wave_speeds:
-                # plot the wave speeds for the file
                 wave_speed_figs = {}
                 wave_speed_figs[f'{name_wo_ext} wave speeds'] = pt.return_mean_wave_speeds_figure(wave_speeds=wave_speeds)
                 hf.save_plots(wave_speed_figs, im_save_path)
-
-            elif plot_summary_CCFs and num_channels == 1:
-                log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
             
             # plot the individual ACF figures for the file
             if plot_indv_ACFs:
@@ -269,7 +277,6 @@ def combined_workflow(
                         for bin in range(num_bins):
                             pbar.update(1) 
                             to_plot = bin_values[:,channel, bin] if analysis_type == 'standard' else bin_values[channel, bin]
-                            # Generate and store the figure for the current channel and bin
                             indv_acf_plots[f'Ch{channel + 1} Bin {bin + 1} ACF'] = pt.return_indv_acf_figure(
                                 raw_signal=to_plot, 
                                 acf_curve=indv_acfs[channel, bin], 
@@ -284,7 +291,6 @@ def combined_workflow(
             # plot the individual peak properties figures for the file
             if plot_indv_peaks:        
                 indv_peak_figs = {}
-                # Generate plots for each channel
                 its = num_channels*num_bins
                 with tqdm(total=its, miniters=its/100) as pbar:
                     pbar.set_description('ind peaks')
@@ -307,7 +313,6 @@ def combined_workflow(
                 if num_channels == 1:
                     log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
                 indv_ccf_plots = {}
-                # Iterate through channel combinations and bins to plot individual cross-correlation curves
                 its = len(channel_combos)*num_bins
                 with tqdm(total=its, miniters=its/100) as pbar:
                     pbar.set_description('ind ccfs')
@@ -320,7 +325,6 @@ def combined_workflow(
                             else:
                                 to_plot1 = bin_values[combo[0], bin]
                                 to_plot2 = bin_values[combo[1], bin]
-                            # Generate and store the figure for the current channel combination and bin
                             indv_ccf_plots[f'Ch{combo[0]}-Ch{combo[1]} Bin {bin + 1} CCF'] = pt.return_indv_ccf_figure(
                                 ch1 = pt.normalize_signal(to_plot1),
                                 ch2 = pt.normalize_signal(to_plot2),
@@ -342,7 +346,6 @@ def combined_workflow(
                     analysis_type=analysis_type,
                     num_bins=num_bins
                 )
-                
                 indv_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')
                 os.makedirs(indv_ccf_val_path, exist_ok=True)
                 hf.save_ccf_values_to_csv(indv_ccf_values, indv_ccf_val_path)                    
@@ -356,7 +359,7 @@ def combined_workflow(
             )
             im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)  # type: ignore
             
-            # generate summary data for current image
+            # generate stats for the image such as mean, median, std, etc
             im_summary_dict = combine_stats_for_image_kymo_standard(
                 file_name=file_name, 
                 group_name=group_name,
@@ -380,7 +383,6 @@ def combined_workflow(
                 dummy_pbar.set_description('cleanup:')
                 for i in range(10):
                     dummy_pbar.update(1)
-
             pbar.update(1)
 
         # create dataframe from summary list, then sort and save the summary to a csv file
@@ -395,7 +397,7 @@ def combined_workflow(
             os.makedirs(group_plots_save_path, exist_ok=True)
             hf.save_plots(mean_parameter_figs, group_plots_save_path)
 
-            # save the means each parameter for the attributes to make them easier to work with in prism
+            # save the means each parameter for the attributes to make them easier to work with 
             parameter_tables_dict = save_parameter_means_to_csv(summary_df=summary_df,group_names=group_names)
             mean_measurements_save_path = os.path.join(main_save_path, "!mean_parameter_measurements")
             os.makedirs(mean_measurements_save_path, exist_ok=True)
