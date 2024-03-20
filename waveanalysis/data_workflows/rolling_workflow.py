@@ -13,7 +13,7 @@ import waveanalysis.housekeeping.housekeeping_functions as hf
 from waveanalysis.image_props.image_bin_calc import create_multi_frame_bin_array
 from waveanalysis.image_props.image_to_np_arrays import tiff_to_np_array_multi_frame
 from waveanalysis.image_props.image_properties import get_multi_frame_properties
-from waveanalysis.summarize_save.summarize_rolling import summarize_rolling_file, organize_submovie_measurements
+from waveanalysis.summarize_save.summarize_rolling import combine_stats_rolling, summarize_submovie_measurements
 
 def rolling_workflow(
     folder_path: str,
@@ -63,6 +63,7 @@ def rolling_workflow(
 
             assert isinstance(roll_size, int) and isinstance(roll_by, int), 'Roll size and roll by must be integers'
             num_submovies = (num_frames - roll_size) // roll_by
+            img_props_dict['num_submovies'] = num_submovies
 
             # log error and skip image if frames < 2 
             if num_frames < 2:
@@ -78,6 +79,10 @@ def rolling_workflow(
                                                                 image = all_images[file_name],
                                                                 img_props = img_props_dict
                                                             )
+            
+            img_props_dict['num_bins'] = num_bins
+            img_props_dict['num_x_bins'] = num_x_bins
+            img_props_dict['num_y_bins'] = num_y_bins
 
             # name without the extension
             name_wo_ext = file_name.rsplit(".",1)[0]
@@ -124,6 +129,9 @@ def rolling_workflow(
 
             channel_combos = hf.get_channel_combos(num_channels=num_channels)
             num_combos = len(channel_combos)
+            img_props_dict['channel_combos'] = channel_combos
+            img_props_dict['num_combos'] = num_combos
+
             # Calculate the individual CCFs and shifts for each channel
             if num_channels > 1:
                 indv_shifts = np.zeros(shape=(num_submovies, num_combos, num_bins))
@@ -167,18 +175,9 @@ def rolling_workflow(
             log_params['Submovies Used'].append(num_submovies)
 
             # summarize the data for each subframe as individual dataframes, and save as .csv
-            submovie_meas_list = organize_submovie_measurements(
-                num_bins=num_bins,
-                num_channels=num_channels,
-                num_submovies=num_submovies,
-                indv_periods=indv_periods,
-                indv_ccfs=indv_ccfs,
-                indv_peak_widths=indv_peak_widths,
-                indv_peak_maxs=indv_peak_maxs,
-                indv_peak_mins=indv_peak_mins,
-                indv_peak_amps=indv_peak_amps,
-                indv_peak_rel_amps=indv_peak_rel_amps,
-                channel_combos=channel_combos
+            submovie_meas_list = summarize_submovie_measurements(
+                img_props_dict=img_props_dict,
+                img_parameters_dict=img_parameters_dict
             )
             csv_save_path = os.path.join(im_save_path, 'rolling_measurements')
             os.makedirs(csv_save_path, exist_ok=True)
@@ -187,17 +186,9 @@ def rolling_workflow(
             
             # TODO: add peak offsets to this function as well
             # summarize the data for each subframe as a single dataframe, and save as .csv
-            summary_df = summarize_rolling_file(
-                num_bins=num_bins,
-                num_channels=num_channels,
-                channel_combos=channel_combos,
-                num_submovies=num_submovies,
-                indv_periods=indv_periods,
-                indv_shifts=indv_shifts,
-                indv_peak_widths=indv_peak_widths,
-                indv_peak_maxs=indv_peak_maxs,
-                indv_peak_mins=indv_peak_mins,
-                indv_peak_amps=indv_peak_amps,
+            summary_df = combine_stats_rolling(
+                img_props_dict=img_props_dict,
+                img_parameters_dict=img_parameters_dict,
                 indv_ccfs=indv_ccfs
             )
             summary_df.to_csv(f'{im_save_path}/{name_wo_ext}_summary.csv', index = False)
