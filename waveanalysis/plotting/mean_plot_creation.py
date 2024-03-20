@@ -1,6 +1,25 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+def plot_mean_ACF_workflow(
+    img_parameters_dict: dict,
+    img_props: dict,
+    indv_acfs: np.ndarray,
+) -> dict:
+    num_channels = img_props['num_channels']
+    num_frames = img_props['num_frames']
+    indv_periods = img_parameters_dict['Period']
+
+    mean_acf_figs = {}
+    for channel in range(num_channels):
+        mean_acf_figs[f'Ch{channel + 1} Mean ACF'] = return_mean_ACF_figure(
+            signal=indv_acfs[channel], 
+            periods=indv_periods[channel], 
+            channel=f'Ch{channel + 1}',
+            num_frames= num_frames)    
+
+    return mean_acf_figs 
+
 def return_mean_ACF_figure(
     signal: np.ndarray, 
     periods: np.ndarray, 
@@ -43,6 +62,29 @@ def return_mean_ACF_figure(
     plt.close(fig)
 
     return fig
+
+def plot_mean_peak_props_workflow(
+    img_parameters_dict: dict,
+    img_props: dict
+) -> dict:
+    indv_peak_mins = img_parameters_dict['Peak Min']
+    indv_peak_maxs = img_parameters_dict['Peak Max']
+    indv_peak_amps = img_parameters_dict['Peak Amp']
+    indv_peak_widths = img_parameters_dict['Peak Width']
+    indv_peak_offsets = img_parameters_dict['Peak Offset']
+    num_channels = img_props['num_channels']
+
+    mean_peak_figs = {}
+    for channel in range(num_channels):
+        mean_peak_figs[f'Ch{channel + 1} Peak Props'] = return_mean_prop_peaks_figure(
+            min_array=indv_peak_mins[channel], 
+            max_array=indv_peak_maxs[channel], 
+            amp_array=indv_peak_amps[channel], 
+            width_array=indv_peak_widths[channel], 
+            offsets_array=indv_peak_offsets[channel],
+            Ch_name=f'Ch{channel + 1}')
+
+    return mean_peak_figs
 
 def return_mean_prop_peaks_figure(
     min_array: np.ndarray, 
@@ -100,6 +142,25 @@ def return_mean_prop_peaks_figure(
     plt.close(fig)
 
     return fig
+
+def plot_mean_CCF_workflow(
+    img_parameters_dict: dict,
+    img_props: dict,
+    indv_ccfs: np.ndarray
+) -> dict:
+    indv_shifts = img_parameters_dict['Shift']
+    channel_combos = img_props['channel_combos']
+    num_frames = img_props['num_frames']
+
+    mean_ccf_figs = {}
+    for combo_number, combo in enumerate(channel_combos):
+        mean_ccf_figs[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF'] = return_mean_CCF_figure(
+        signal=indv_ccfs[combo_number], 
+        shifts=indv_shifts[combo_number], 
+        channel_combo=f'Ch{combo[0] + 1}-Ch{combo[1] + 1}',
+        num_frames= num_frames)
+
+    return mean_ccf_figs
 
 def return_mean_CCF_figure(
     signal: np.ndarray, 

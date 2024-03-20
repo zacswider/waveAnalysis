@@ -13,7 +13,7 @@ import waveanalysis.housekeeping.housekeeping_functions as hf
 from waveanalysis.image_props.image_bin_calc import create_multi_frame_bin_array, create_kymo_bin_array
 from waveanalysis.image_props.image_to_np_arrays import tiff_to_np_array_multi_frame, tiff_to_np_array_single_frame
 from waveanalysis.image_props.image_properties import get_multi_frame_properties, get_single_frame_properties
-from waveanalysis.summarize_save.save_stats import save_parameter_means_to_csv, get_mean_CCF_values, get_indv_CCF_values
+from waveanalysis.summarize_save.save_stats import save_parameter_means_to_csv, get_mean_CCF_values, get_indv_CCF_values, save_ccf_values_to_csv
 from waveanalysis.summarize_save.summarize_kymo_standard import summarize_image_standard_kymo, combine_stats_for_image_kymo_standard
 
 def combined_workflow(
@@ -160,10 +160,8 @@ def combined_workflow(
 
             # Calculate the ACF
             indv_acfs = sp.calc_indv_ACF_workflow(bin_values=bin_values, img_props=img_props_dict)
-            
             # Calculate the period
             indv_periods = sp.calc_indv_period_workflow(acf_curve=indv_acfs, img_props=img_props_dict)
-            
             # Calculate the peak properties
             indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_offsets, indv_peak_props = sp.calc_indv_peak_props_workflow(bin_values=bin_values, img_props=img_props_dict)
             indv_peak_amps = indv_peak_maxs - indv_peak_mins
@@ -200,49 +198,40 @@ def combined_workflow(
 
             # plot the mean ACF figures for the file
             if plot_summary_ACFs:
-                mean_acf_figs = {}
-                for channel in range(num_channels):
-                    mean_acf_figs[f'Ch{channel + 1} Mean ACF'] = pt.return_mean_ACF_figure(
-                        signal=indv_acfs[channel], 
-                        periods=indv_periods[channel], 
-                        channel=f'Ch{channel + 1}',
-                        num_frames= num_frames)     
+                mean_acf_figs = pt.plot_mean_ACF_workflow(
+                    img_parameters_dict=img_parameters_dict,
+                    img_props=img_props_dict,
+                    indv_acfs=indv_acfs
+                )
                 hf.save_plots(mean_acf_figs, im_save_path)
 
             # plot the mean peak properties figures for the file
             if plot_summary_peaks:
-                mean_peak_figs = {}
-                for channel in range(num_channels):
-                    mean_peak_figs[f'Ch{channel + 1} Peak Props'] = pt.return_mean_prop_peaks_figure(
-                        min_array=indv_peak_mins[channel], 
-                        max_array=indv_peak_maxs[channel], 
-                        amp_array=indv_peak_amps[channel], 
-                        width_array=indv_peak_widths[channel], 
-                        offsets_array=indv_peak_offsets[channel],
-                        Ch_name=f'Ch{channel + 1}')
+                mean_peak_figs = pt.plot_mean_peak_props_workflow(
+                    img_parameters_dict=img_parameters_dict,
+                    img_props=img_props_dict
+                )
                 hf.save_plots(mean_peak_figs, im_save_path)
 
             # plot the mean CCF figures for the file
             if plot_summary_CCFs and num_channels > 1:
-                mean_ccf_figs = {}
-                for combo_number, combo in enumerate(channel_combos):
-                    mean_ccf_figs[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF'] = pt.return_mean_CCF_figure(
-                        signal=indv_ccfs[combo_number], 
-                        shifts=indv_shifts[combo_number], 
-                        channel_combo=f'Ch{combo[0] + 1}-Ch{combo[1] + 1}',
-                        num_frames= num_frames)
+                mean_ccf_figs = pt.plot_mean_CCF_workflow(
+                    img_parameters_dict=img_parameters_dict,
+                    img_props=img_props_dict,
+                    indv_ccfs=indv_ccfs
+                )
                 hf.save_plots(mean_ccf_figs, im_save_path)
 
                 # save the mean CCF values for the file
                 mean_ccf_values = get_mean_CCF_values(channel_combos=channel_combos,indv_ccfs=indv_ccfs)
-                hf.save_ccf_values_to_csv(mean_ccf_values, im_save_path)
+                save_ccf_values_to_csv(mean_ccf_values, im_save_path)
 
             # Error check for plotting individual CCFs
             elif plot_summary_CCFs and num_channels == 1:
                 log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
 
             # plot the wave speeds for the file
-            if plot_wave_speeds:
+            if calc_wave_speeds and plot_wave_speeds:
                 wave_speed_figs = {}
                 wave_speed_figs[f'{name_wo_ext} wave speeds'] = pt.return_mean_wave_speeds_figure(wave_speeds=wave_speeds)
                 hf.save_plots(wave_speed_figs, im_save_path)
