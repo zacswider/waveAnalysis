@@ -15,8 +15,16 @@ def get_multi_frame_properties(image_path: str):
         frame_interval = metadata.get('finterval', np.nan)
         pixel_unit = metadata.get('unit')
         num_frames = metadata.get('frames')
+    
+    img_props_dict = {
+        'num_channels': num_channels,
+        'num_frames': num_frames,
+        'frame_interval': frame_interval,
+        'pixel_size': pixel_size,
+        'pixel_unit': pixel_unit
+    }
         
-    return num_channels, num_frames, frame_interval, pixel_size, pixel_unit
+    return img_props_dict
 
 def get_single_frame_properties(image_path: str, image: np.ndarray):
     with tifffile.TiffFile(image_path) as tif_file:
@@ -33,8 +41,17 @@ def get_single_frame_properties(image_path: str, image: np.ndarray):
         pixel_unit = metadata.get('unit')
         num_frames = image.shape[-2]
         num_columns = image.shape[-1]
+
+    img_props_dict = {
+        'num_channels': num_channels,
+        'num_columns': num_columns,
+        'num_frames': num_frames,
+        'frame_interval': frame_interval,
+        'pixel_size': pixel_size,
+        'pixel_unit': pixel_unit
+    }
         
-    return num_channels, num_columns, num_frames, frame_interval, pixel_size, pixel_unit
+    return img_props_dict
 
 def get_voxel_size(tags, key):
     assert key in ['XResolution', 'YResolution']

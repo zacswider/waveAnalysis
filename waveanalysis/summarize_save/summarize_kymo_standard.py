@@ -20,9 +20,8 @@ def summarize_image_standard_kymo(
         if key == 'Shift':
             continue
         elif key == 'Wave Speed':
-            label = 'Wave Speed'
             parameter_with_stats = add_stats_for_parameter(img_parameters[key], key, num_channels, channel_combos)
-            parameter_with_stats = sum(parameter_with_stats, [])
+            parameter_with_stats = sum(parameter_with_stats, []) # flatten the list
             parameter_with_stats_dict[key] = parameter_with_stats
             statified_measurements.append(parameter_with_stats)
         else:
@@ -44,12 +43,15 @@ def summarize_image_standard_kymo(
 def combine_stats_for_image_kymo_standard(
     file_name: str, 
     group_name: str,
-    num_bins: int,
-    num_channels: int,
-    channel_combos: list,
+    img_props: dict,
     img_parameters_dict: dict,
     parameters_with_stats_dict: dict
     ) -> dict:
+
+    num_bins = img_props['num_bins']
+    num_channels = img_props['num_channels']
+    channel_combos = img_props['channel_combos']
+
     # dictionary to store the summarized measurements for each image
     file_data_summary = {}
     file_data_summary['File Name'] = file_name if file_name else 'None'

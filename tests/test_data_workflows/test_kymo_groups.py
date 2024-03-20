@@ -31,7 +31,7 @@ def test_kymo(default_log_params):
     # load csv
     known_results = pd.read_csv('tests/assets/kymo/kymo_known_results.csv')
     assert isinstance(known_results, pd.DataFrame)
-    exp_results, result = combined_workflow(
+    exp_results = combined_workflow(
         folder_path=str(Path('tests/assets/kymo/')),
         group_names=['Group1','Group2'],
         log_params=default_log_params,

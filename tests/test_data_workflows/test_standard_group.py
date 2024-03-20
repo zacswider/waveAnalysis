@@ -1,4 +1,4 @@
-'''import pytest
+import pytest
 import pandas as pd
 from pathlib import Path
 from waveanalysis.data_workflows.combined_workflow import combined_workflow
@@ -19,6 +19,8 @@ def default_log_params():
         'Plot Individual Peaks': False,
         'Calc Wave Speeds': False,
         'Plot Wave Speeds': False, 
+        'Frame Interval': None,
+        'Pixel Size': None,
         'Files Processed': [],
         'Files Not Processed': [],
         'Errors': [],
@@ -45,6 +47,8 @@ def test_standard(default_log_params):
         plot_indv_CCFs=default_log_params['Plot Individual CCFs'],
         plot_indv_peaks=default_log_params['Plot Individual Peaks'],
         calc_wave_speeds=None, #type: ignore
-        plot_wave_speeds=None #type: ignore
+        plot_wave_speeds=None, #type: ignore
+        frame_interval=default_log_params['Frame Interval'],
+        pixel_size=default_log_params['Pixel Size']
     )
-    assert pd.testing.assert_frame_equal(known_results, exp_results) is None'''
+    assert pd.testing.assert_frame_equal(known_results, exp_results) is None

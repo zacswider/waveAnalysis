@@ -205,7 +205,7 @@ def return_mean_CCF_figure(
 
 def return_mean_wave_speeds_figure(
     wave_speeds: list[float]
-):
+) -> plt.Figure:
     fig, (ax1, ax2) = plt.subplots(1, 2)
 
     ax1.hist(wave_speeds, bins = 10, color = 'tab:blue', alpha = 0.75)

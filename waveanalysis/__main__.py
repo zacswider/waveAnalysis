@@ -67,6 +67,7 @@ def main():
         box_shift = gui.box_shift
         group_names = gui.group_names
         acf_peak_thresh = gui.acf_peak_thresh
+        calc_wave_speeds = gui.calc_wave_speeds
         # set the analysis type
         analysis_type = "kymograph"
 
@@ -82,6 +83,8 @@ def main():
                     "Plot Individual ACFs" : plot_indv_ACFs,
                     "Plot Individual CCFs" : plot_indv_CCFs,
                     "Plot Individual Peaks" : plot_indv_peaks,
+                    'Frame Interval': None,
+                    'Pixel Size': None,
                     "Files Processed" : [],
                     "Files Not Processed" : [],
                     "Errors" : []
@@ -108,6 +111,10 @@ def main():
                         "Plot Individual ACFs": plot_indv_ACFs,
                         "Plot Individual CCFs": plot_indv_CCFs,
                         "Plot Individual Peaks": plot_indv_peaks,  
+                        'Frame Interval': None,
+                        'Pixel Size': None,
+                        'Calc Wave Speeds': calc_wave_speeds,
+                        'Plot Wave Speeds': True, 
                         "Line width": line_width,
                         "Group Names" : group_names,
                         "Files Processed": [],
@@ -152,7 +159,9 @@ def main():
             plot_summary_peaks=plot_summary_peaks,
             plot_indv_ACFs=plot_indv_ACFs,
             plot_indv_CCFs=plot_indv_CCFs,
-            plot_indv_peaks=plot_indv_peaks
+            plot_indv_peaks=plot_indv_peaks,
+            calc_wave_speeds=calc_wave_speeds,
+            plot_wave_speeds=True
         )
     
     if analysis_type == "rolling":

@@ -329,6 +329,8 @@ class KymographGUI(tk.Tk):
         self.plot_indv_CCFs.set(False)
         self.plot_indv_peaks = tk.BooleanVar()
         self.plot_indv_peaks.set(False)
+        self.calc_wave_speeds = tk.BooleanVar()
+        self.calc_wave_speeds.set(False)
         self.group_names = tk.StringVar()
         # self.group_names.set("003,007")
         self.folder_path = tk.StringVar()
@@ -405,16 +407,22 @@ class KymographGUI(tk.Tk):
         self.plot_indv_peaks_checkbox.grid(row = 9, column = 2, padx = 10, sticky = 'E')
         self.plot_indv_peaks_label = ttk.Label(self, text = 'Plot individual peaks')
         self.plot_indv_peaks_label.grid(row = 9, column = 3, padx = 10, sticky = 'W')
+
+        # create checkbox for calculating wave speeds
+        self.calc_wave_speeds_checkbox = ttk.Checkbutton(self, variable = self.calc_wave_speeds)
+        self.calc_wave_speeds_checkbox.grid(row = 10, column = 0, padx = 10, sticky = 'E')
+        self.calc_wave_speeds_label = ttk.Label(self, text = 'Calculate wave speeds')
+        self.calc_wave_speeds_label.grid(row = 10, column = 1, padx = 10, sticky = 'W')
         
         # create start button
         self.start_button = ttk.Button(self, text = 'Start analysis')
         self.start_button['command'] = self.start_analysis
-        self.start_button.grid(row = 10, column = 0, padx = 10, sticky = 'E')
+        self.start_button.grid(row = 11, column = 0, padx = 10, sticky = 'E')
 
         # create cancel button
         self.cancel_button = ttk.Button(self, text = 'Cancel')
         self.cancel_button['command'] = self.cancel_analysis
-        self.cancel_button.grid(row = 10, column = 1, padx = 10, sticky = 'W')
+        self.cancel_button.grid(row = 11, column = 1, padx = 10, sticky = 'W')
 
     def get_folder_path(self):
         self.folder_path.set(askdirectory())
@@ -435,6 +443,7 @@ class KymographGUI(tk.Tk):
         self.folder_path = self.folder_path.get()
         self.acf_peak_thresh = self.acf_peak_thresh.get()
         self.box_shift = self.box_shift.get()
+        self.calc_wave_speeds = self.calc_wave_speeds.get()
 
         self.rolling = False
         
