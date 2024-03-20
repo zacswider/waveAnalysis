@@ -54,6 +54,10 @@ def rolling_workflow(
             # TODO: add the ability to save the values in terms of seconds if frame_interval is provided
             img_props_dict = get_multi_frame_properties(image_path=image_path)
 
+            # add other image properties to the dictionary for later use
+            img_props_dict['step'] = box_shift
+            img_props_dict['box_size'] = box_size
+            img_props_dict['peak_thresh'] = acf_peak_thresh
             num_frames = img_props_dict['num_frames']
             num_channels = img_props_dict['num_channels']
 
@@ -71,11 +75,8 @@ def rolling_workflow(
             
             # Create the array for which all future processing will be based on
             bin_values, num_bins, num_x_bins, num_y_bins = create_multi_frame_bin_array(
-                                                                kernel_size = box_size, 
-                                                                step = box_shift, 
-                                                                num_channels = num_channels, 
-                                                                num_frames = num_frames, 
-                                                                image = all_images[file_name]
+                                                                image = all_images[file_name],
+                                                                img_props = img_props_dict
                                                             )
 
             # name without the extension
@@ -111,12 +112,13 @@ def rolling_workflow(
                             pbar.update(1)
                             signal = sig.savgol_filter(bin_values[roll_by*submovie : roll_size + roll_by*submovie, channel, bin], window_length=11, polyorder=2)
 
-                            mean_width, mean_max, mean_min, mean_offset, _, _, _, _, _, _, _, _, _ = sp.calc_indv_peak_props(signal=signal)
+                            mean_width, mean_max, mean_min, mean_offset = sp.calc_indv_peak_props_rolling(signal=signal)
 
                             # Store peak measurements for each bin in each channel
                             indv_peak_widths[submovie, channel, bin] = mean_width
                             indv_peak_maxs[submovie, channel, bin] = mean_max
                             indv_peak_mins[submovie, channel, bin] = mean_min
+                            indv_peak_offsets[submovie, channel, bin] = mean_offset
                             indv_peak_amps = indv_peak_maxs - indv_peak_mins
                             indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
 
@@ -147,6 +149,20 @@ def rolling_workflow(
             im_save_path = os.path.join(main_save_path, name_wo_ext)
             os.makedirs(im_save_path, exist_ok=True)
 
+            img_parameters_dict = {
+                            'Period': indv_periods,
+                            'Peak Amp': indv_peak_amps,
+                            'Peak Rel Amp': indv_peak_rel_amps,
+                            'Peak Width': indv_peak_widths,
+                            'Peak Max': indv_peak_maxs,
+                            'Peak Min': indv_peak_mins,
+                            'Peak Offset': indv_peak_offsets
+            }
+
+            # add shifts to the dictionary if there are multiple channels
+            if img_props_dict['num_channels'] > 1:
+                img_parameters_dict['Shift'] = indv_shifts
+
             # calculate the number of subframes used
             log_params['Submovies Used'].append(num_submovies)
 
@@ -168,17 +184,6 @@ def rolling_workflow(
             os.makedirs(csv_save_path, exist_ok=True)
             for measurement_index, submovie_meas_df in enumerate(submovie_meas_list):  # type: ignore
                 submovie_meas_df.to_csv(f'{csv_save_path}/{name_wo_ext}_subframe{measurement_index}_measurements.csv', index = False)
-
-            img_parameters_dict = {
-                            'Period': indv_periods,
-                            'Shift': indv_shifts,
-                            'Peak Amp': indv_peak_amps,
-                            'Peak Rel Amp': indv_peak_rel_amps,
-                            'Peak Width': indv_peak_widths,
-                            'Peak Max': indv_peak_maxs,
-                            'Peak Min': indv_peak_mins,
-                            'Peak Offset': indv_peak_offsets
-            }
             
             # TODO: add peak offsets to this function as well
             # summarize the data for each subframe as a single dataframe, and save as .csv

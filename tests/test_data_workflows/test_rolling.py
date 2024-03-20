@@ -1,4 +1,4 @@
-'''import pytest
+import pytest
 import warnings
 import pandas as pd
 from pathlib import Path
@@ -33,4 +33,4 @@ def test_rolling(default_log_params):
         roll_by=5,       
         acf_peak_thresh=default_log_params['ACF Peak Prominence']
     )
-    assert pd.testing.assert_frame_equal(known_results, exp_results) is None'''
+    assert pd.testing.assert_frame_equal(known_results, exp_results) is None
