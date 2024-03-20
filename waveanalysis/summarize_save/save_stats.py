@@ -23,11 +23,11 @@ def save_parameter_means_to_csv(
         for group_name in group_names:
             group_data = summary_df.loc[summary_df['File Name'].str.contains(group_name)]
             values = group_data[parameter].tolist()
-            individual_parameter_table = pd.concat([individual_parameter_table, 
-                                        pd.DataFrame({'Data Type': parameter, 
-                                                        'Group Name': group_name, 
-                                                        'Value': values})], 
-                                        ignore_index=True)
+            df_to_concat = pd.DataFrame({'Data Type': parameter, 'Group Name': group_name, 'Value': values})
+            if not individual_parameter_table.empty:
+                individual_parameter_table = pd.concat([individual_parameter_table, df_to_concat], ignore_index=True)
+            else:
+                individual_parameter_table = df_to_concat
 
         # pivot the table to have the group names as columns
         individual_parameter_table = pd.pivot_table(individual_parameter_table, 

@@ -18,9 +18,7 @@ def default_log_params():
         'Plot Individual CCFs': False,
         'Plot Individual Peaks': False,
         'Calc Wave Speeds': False,
-        'Plot Wave Speeds': False, 
-        'Frame Interval': None,
-        'Pixel Size': None,
+        'Plot Wave Speeds': False,
         'Files Processed': [],
         'Files Not Processed': [],
         'Errors': [],
@@ -48,7 +46,5 @@ def test_standard(default_log_params):
         plot_indv_peaks=default_log_params['Plot Individual Peaks'],
         calc_wave_speeds=None, #type: ignore
         plot_wave_speeds=None, #type: ignore
-        frame_interval=default_log_params['Frame Interval'],
-        pixel_size=default_log_params['Pixel Size']
     )
     assert pd.testing.assert_frame_equal(known_results, exp_results) is None

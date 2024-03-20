@@ -16,15 +16,17 @@ def generate_group_comparison(
         try:
             ax = sns.boxplot(x='Group Name', 
                             y=param, 
+                            hue='Group Name',  # Assign 'Group Name' to 'hue'
                             data=summary_df, 
-                            palette = "Set2", 
-                            showfliers = False)
+                            palette="Set2", 
+                            showfliers=False,
+                            )  
             ax = sns.swarmplot(x='Group Name', 
                             y=param, 
                             data=summary_df, 
                             color=".25")	
-            ax.set_xticklabels(ax.get_xticklabels(), 
-                            rotation=45)
+            ax.set_xticks(ax.get_xticks())  # Set the tick positions explicitly
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
             fig = ax.get_figure()
             
             group_mean_parameter_figs[param] = fig

@@ -1,5 +1,4 @@
 import pytest
-import warnings
 import pandas as pd
 from pathlib import Path
 from waveanalysis.data_workflows import rolling_workflow

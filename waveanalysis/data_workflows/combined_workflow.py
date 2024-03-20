@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from typing import Any
-import scipy.signal as sig
 import waveanalysis.plotting as pt
 import waveanalysis.signal_processing as sp
 import waveanalysis.housekeeping.housekeeping_functions as hf 
@@ -33,9 +32,7 @@ def combined_workflow(
     box_size: int = None,
     box_shift: int = None, # TODO: rename to be more inclusive to line shift
     line_width: int = None,
-    frame_interval: float = None,
-    pixel_size: float = None
-) -> pd.DataFrame:                
+    ) -> pd.DataFrame:                
 
     # list of file names in specified directory
     file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
@@ -81,8 +78,8 @@ def combined_workflow(
             img_props_dict['peak_thresh'] = acf_peak_thresh
 
             # log image properties
-            log_params['Pixel Size'] = f"{file_name}: {pixel_size} {img_props_dict['pixel_unit']}s"
-            log_params['Frame Interval'] = f"{file_name}: {frame_interval} seconds"
+            log_params['Pixel Size'] = f"{file_name}: {img_props_dict['pixel_size']} {img_props_dict['pixel_unit']}s"
+            log_params['Frame Interval'] = f"{file_name}: {img_props_dict['frame_interval']} seconds"
 
             # log error and skip image if frames < 2; otherwise, log image as processed
             if img_props_dict['num_frames'] < 2:
@@ -93,7 +90,7 @@ def combined_workflow(
                 continue
 
             # check if frame interval is not 1 or None and log it
-            hf.check_frame_interval(frame_interval=frame_interval, log_params=log_params, file_name=file_name)
+            hf.check_frame_interval(frame_interval=img_props_dict['frame_interval'], log_params=log_params, file_name=file_name)
 
             # Create the array of bin values for which all the stats will be calculated
             if analysis_type == 'standard':
@@ -120,8 +117,8 @@ def combined_workflow(
 
                     # calculate the wave speeds form the wave tracks
                     wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, 
-                                                      pixel_size=pixel_size, 
-                                                      frame_interval=frame_interval)
+                                                      pixel_size=img_props_dict['pixel_size'], 
+                                                      frame_interval=img_props_dict['frame_interval'])
 
             # store the number of bins and the bin values in the image properties dictionary
             img_props_dict['num_bins'] = num_bins

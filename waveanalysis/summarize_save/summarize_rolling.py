@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from .summarize_kymo_standard import add_stats_for_parameter
 
+
 def summarize_submovie_measurements(
     img_props_dict: dict,
     img_parameters_dict: dict,
@@ -48,8 +49,8 @@ def combine_stats_rolling(
 
     stat_name_and_func = {'Mean' : np.nanmean,
                             'Median' : np.nanmedian,
-                            'StdDev' : np.nanstd
-                            }
+                            'StdDev' : np.nanstd                            
+                        }
     
     num_channels = img_props_dict['num_channels']
     num_bins = img_props_dict['num_bins']
@@ -59,15 +60,11 @@ def combine_stats_rolling(
     indv_periods = img_parameters_dict['Period']
     indv_shifts = img_parameters_dict['Shift']
     indv_peak_widths = img_parameters_dict['Peak Width']
-    indv_peak_maxs = img_parameters_dict['Peak Max']
-    indv_peak_mins = img_parameters_dict['Peak Min']
-    indv_peak_amps = img_parameters_dict['Peak Amp']
 
     for submovie in range(num_submovies):
         submovie_summary = {}
         submovie_summary['Submovie'] = submovie + 1 
         
-
         for channel in range(num_channels):
             pcnt_no_period = (np.count_nonzero(np.isnan(indv_periods[submovie, channel])) / num_bins) * 100
             submovie_summary[f'Ch {channel + 1} Pcnt No Periods'] = pcnt_no_period
@@ -81,17 +78,17 @@ def combine_stats_rolling(
                 for stat_name, func in stat_name_and_func.items():
                     submovie_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} {stat_name} Shift'] = func(indv_shifts[submovie, combo_number])
 
-    
         for channel in range(num_channels):
             # using widths, but because these are all assigned together it applies to all peak properties
             pcnt_no_peaks = np.count_nonzero(np.isnan(indv_peak_widths[submovie, channel])) / num_bins * 100
             submovie_summary[f'Ch {channel + 1} Pcnt No Peaks'] = pcnt_no_peaks
-            for stat_name, func in stat_name_and_func.items():
-                submovie_summary[f'Ch {channel + 1} {stat_name} Peak Width'] = func(indv_peak_widths[submovie, channel])
-                submovie_summary[f'Ch {channel + 1} {stat_name} Peak Max'] = func(indv_peak_maxs[submovie, channel])
-                submovie_summary[f'Ch {channel + 1} {stat_name} Peak Min'] = func(indv_peak_mins[submovie, channel])
-                submovie_summary[f'Ch {channel + 1} {stat_name} Peak Amp'] = func(indv_peak_amps[submovie, channel])
-        
+            for name, measurements in img_parameters_dict.items():
+                if name == 'Shift':
+                    continue
+                else:
+                    for stat_name, func in stat_name_and_func.items():
+                        submovie_summary[f'Ch {channel + 1} {stat_name} {name}'] = func(measurements[submovie, channel])
+
         all_submovie_summary.append(submovie_summary)
     
     col_names = [key for key in all_submovie_summary[0].keys()]

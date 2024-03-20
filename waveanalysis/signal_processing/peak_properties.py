@@ -1,5 +1,8 @@
+import warnings
 import numpy as np
 import scipy.signal as sig
+
+warnings.filterwarnings("ignore")
 
 def calc_indv_peak_props_workflow(
     bin_values:np.ndarray,
