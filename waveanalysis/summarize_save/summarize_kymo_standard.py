@@ -21,14 +21,10 @@ def summarize_image_standard_kymo(
             continue
         elif key == 'Wave Speed':
             label = 'Wave Speed'
-            meas_mean = np.nanmean(value)
-            meas_median = np.nanmedian(value)
-            meas_std = np.nanstd(value)
-            meas_sem = meas_std / np.sqrt(len(value))
-            meas_list = [label, meas_mean, meas_median, meas_std, meas_sem]
-            meas_list.extend(value)
-            parameter_with_stats_dict[key] = meas_list
-            statified_measurements.append(meas_list)
+            parameter_with_stats = add_stats_for_parameter(img_parameters[key], key, num_channels, channel_combos)
+            parameter_with_stats = sum(parameter_with_stats, [])
+            parameter_with_stats_dict[key] = parameter_with_stats
+            statified_measurements.append(parameter_with_stats)
         else:
             parameter_with_stats = add_stats_for_parameter(img_parameters[key], key, num_channels, channel_combos)
             parameter_with_stats_dict[key] = parameter_with_stats
@@ -96,20 +92,31 @@ def add_stats_for_parameter(
 ) -> list:
         
         statified = []
-        for index, item in enumerate(channel_combos if measurement_name == 'Shift' else range(num_channels)):
-            if measurement_name == 'Shift':
-                measurements_subset = measurements[index]
-                channel_label = f'Ch{channel_combos[index][0]+1}-Ch{channel_combos[index][1]+1} {measurement_name}'
-            else:
-                measurements_subset = measurements[item]
-                channel_label = f'Ch {item + 1} {measurement_name}'
-            
-            meas_mean = np.nanmean(measurements_subset)
-            meas_median = np.nanmedian(measurements_subset)
-            meas_std = np.nanstd(measurements_subset)
-            meas_sem = meas_std / np.sqrt(len(measurements_subset))
-            meas_list = [channel_label, meas_mean, meas_median, meas_std, meas_sem]
-            meas_list.extend(measurements_subset.tolist())
+
+        if measurement_name != 'Wave Speed':
+            for index, item in enumerate(channel_combos if measurement_name == 'Shift' else range(num_channels)):
+                if measurement_name == 'Shift':
+                    measurements_subset = measurements[index]
+                    channel_label = f'Ch{channel_combos[index][0]+1}-Ch{channel_combos[index][1]+1} {measurement_name}'
+                else:
+                    measurements_subset = measurements[item]
+                    channel_label = f'Ch {item + 1} {measurement_name}'
+                
+                meas_mean = np.nanmean(measurements_subset)
+                meas_median = np.nanmedian(measurements_subset)
+                meas_std = np.nanstd(measurements_subset)
+                meas_sem = meas_std / np.sqrt(len(measurements_subset))
+                meas_list = [channel_label, meas_mean, meas_median, meas_std, meas_sem]
+                meas_list.extend(measurements_subset.tolist())
+                statified.append(meas_list)
+
+        else:
+            meas_mean = np.nanmean(measurements)
+            meas_median = np.nanmedian(measurements)
+            meas_std = np.nanstd(measurements)
+            meas_sem = meas_std / np.sqrt(len(measurements))
+            meas_list = [measurement_name, meas_mean, meas_median, meas_std, meas_sem]
+            meas_list.extend(measurements)
             statified.append(meas_list)
-        
+            
         return statified
