@@ -106,11 +106,7 @@ def combined_workflow(
                 if calc_wave_speeds:
                     # user defined wave tracks. will open a window to draw the tracks
                     # wave_tracks = sp.define_wave_tracks(file_path=image_path)
-                    wave_tracks = [
-                        np.array([[40, 1], [7,  30]]), 
-                        np.array([[26, 2], [3,  30]]), 
-                        np.array([[9, 22], [12, 30]])
-                        ] # for testing
+                    wave_tracks = [np.array([[40, 1], [7,  30]]), np.array([[26, 2], [3,  30]]), np.array([[9, 22], [12, 30]])] # for testing
 
                     # check if wave tracks were created and if they are within the image
                     hf.check_if_wave_tracks_created(wave_tracks=wave_tracks, 

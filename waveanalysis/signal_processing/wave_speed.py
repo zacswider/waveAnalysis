@@ -29,7 +29,7 @@ def calc_wave_speeds(wave_tracks: np.array, pixel_size: float, frame_interval: f
         x1, x2 = wave_track[0][1], wave_track[1][1]
         y1, y2 = wave_track[0][0], wave_track[1][0]
         wave_speed = abs(y2-y1 / x2-x1)
-        # wave_speed = wave_speed * pixel_size[0] / frame_interval
+        wave_speed = wave_speed * pixel_size[0] / frame_interval
         wave_speeds.append(wave_speed)
 
     return wave_speeds
