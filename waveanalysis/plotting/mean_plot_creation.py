@@ -51,7 +51,7 @@ def return_mean_ACF_figure(
     ax['B'].hist(periods)
     periods = [val for val in periods if not np.isnan(val)]
     ax['B'].set_xlabel(f'Histogram of period values (frames)')
-    ax['B'].set_ylabel('Occurances')
+    ax['B'].set_ylabel('Occurrences')
 
     # Plot boxplot of period values
     ax['C'].boxplot(periods)
@@ -123,14 +123,14 @@ def return_mean_prop_peaks_figure(
     # Set labels and legends for histograms and boxplots
     ax1.legend(loc='upper right', fontsize = 'small', ncol = 1)
     ax1.set_xlabel(f'{Ch_name} histogram of peak values')
-    ax1.set_ylabel('Occurances')
+    ax1.set_ylabel('Occurrences')
     ax2.set_xlabel(f'{Ch_name} boxplot of peak values')
     ax2.set_ylabel('Value (AU)')
     
     # Plot histogram for peak widths
     ax3.hist(width_array, color = 'dimgray', alpha = 0.75)
     ax3.set_xlabel(f'{Ch_name} histogram of peak widths')
-    ax3.set_ylabel('Occurances')
+    ax3.set_ylabel('Occurrences')
 
     # Plot boxplot for peak widths
     bp = ax4.boxplot(width_array, vert=True, patch_artist=True)
@@ -192,7 +192,7 @@ def return_mean_CCF_figure(
     ax['B'].hist(shifts)
     shifts = [val for val in shifts if not np.isnan(val)]
     ax['B'].set_xlabel(f'Histogram of shift values (frames)')
-    ax['B'].set_ylabel('Occurances')
+    ax['B'].set_ylabel('Occurrences')
 
     # Plot boxplot of period values
     ax['C'].boxplot(shifts)
@@ -210,7 +210,7 @@ def return_mean_wave_speeds_figure(
 
     ax1.hist(wave_speeds, bins = 10, color = 'tab:blue', alpha = 0.75)
     ax1.set_xlabel('Histogram of wave speeds (µm/s)')
-    ax1.set_ylabel('Occurances')
+    ax1.set_ylabel('Occurrences')
     ax1.set_title('Wave Speeds Histogram')
 
     # Plot boxplots for peak properties
