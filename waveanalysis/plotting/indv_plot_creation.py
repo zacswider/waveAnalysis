@@ -62,36 +62,36 @@ def return_indv_peak_prop_figure(
 	if not np.isnan(peaks).any():
 		for i in range(peaks.shape[0]):
 			ax.hlines(heights[i], 
-					leftIndex[i], 
-					rightIndex[i], 
+					leftIndex[i] * frame_interval, 
+					rightIndex[i] * frame_interval, 
 					color='tab:olive', 
 					linestyle = '-')
-			ax.vlines(peaks[i], 
+			ax.vlines(peaks[i] * frame_interval, 
 					smoothed_signal[peaks[i]]-proms[i],
 					smoothed_signal[peaks[i]], 
 					color='tab:purple', 
 					linestyle = '-')
 
 			ax.hlines(heights[i]-5, 
-					peaks[i], 
-					midpoints[i], 
+					peaks[i] * frame_interval, 
+					midpoints[i] * frame_interval, 
 					color='tab:orange', 
 					linestyle = '-')
 
 		# Plot the legend for the first peak
 		ax.hlines(heights[0], 
-				leftIndex[0], 
-				rightIndex[0], 
+				leftIndex[0] * frame_interval, 
+				rightIndex[0] * frame_interval, 
 				color='tab:olive', 
 				linestyle = '-',
 				label='FWHM')
 		ax.hlines(heights[0] - 5, 
-					peaks[0], 
-					midpoints[0], 
+					peaks[0] * frame_interval, 
+					midpoints[0] * frame_interval, 
 					color='tab:orange', 
 					linestyle = '-',
 					label='Peak offset')
-		ax.vlines(peaks[0], 
+		ax.vlines(peaks[0] * frame_interval, 
 				smoothed_signal[peaks[0]]-proms[0],
 				smoothed_signal[peaks[0]], 
 				color='tab:purple', 
@@ -99,7 +99,7 @@ def return_indv_peak_prop_figure(
 				label = 'Peak amplitude')
 		
 		ax.legend(loc='upper right', fontsize='small', ncol=1)
-		ax.set_xlabel('Time (frames)')
+		ax.set_xlabel('Time (seconds)')
 		ax.set_ylabel('Signal (AU)')
 		ax.set_title(f'{Ch_name} peak properties')
 	plt.close(fig)
@@ -117,6 +117,7 @@ def plot_indv_acf_workflow(
 	num_frames = img_props['num_frames']
 	indv_periods = img_parameters_dict['Period']
 	analysis_type = img_props['analysis_type']
+	frame_interval = img_props['frame_interval']
 
 	indv_acf_plots = {}
 	its = num_channels*num_bins
@@ -131,7 +132,8 @@ def plot_indv_acf_workflow(
 					acf_curve=indv_acfs[channel, bin], 
 					Ch_name=f'Ch{channel + 1}', 
 					period=indv_periods[channel, bin],
-					num_frames=num_frames
+					num_frames=num_frames,
+					frame_interval=frame_interval
 					)
 	return indv_acf_plots
 
@@ -140,14 +142,17 @@ def return_indv_acf_figure(
 	acf_curve: np.ndarray, 
 	Ch_name: str, 
 	period: int,
-	num_frames: int) -> plt.Figure:
+	num_frames: int,
+	frame_interval: float
+) -> plt.Figure:
 
 	# Create subplots for raw signal and autocorrelation curve
 	fig, (ax1, ax2) = plt.subplots(2, 1)
-	ax1.plot(raw_signal)
+	x_axis = np.arange(0, num_frames) * frame_interval
+	ax1.plot(x_axis, raw_signal)
 	ax1.set_xlabel(f'{Ch_name} Raw Signal')
 	ax1.set_ylabel('Mean bin px value')
-	ax2.plot(np.arange(-num_frames + 1, num_frames), acf_curve)
+	ax2.plot(np.arange(-num_frames + 1, num_frames) * frame_interval, acf_curve)
 	ax2.set_ylabel('Autocorrelation')
 
 	# Annotate the first peak identified as the period if available
@@ -155,11 +160,11 @@ def return_indv_acf_figure(
 			color = 'red'
 			ax2.axvline(x = period, alpha = 0.5, c = color, linestyle = '--')
 			ax2.axvline(x = -period, alpha = 0.5, c = color, linestyle = '--')
-			ax2.set_xlabel(f'Period is {period} frames')
+			ax2.set_xlabel(f'Period is {period} seconds')
 	else:
 			ax2.set_xlabel(f'No period identified')
 
-			fig.subplots_adjust(hspace=0.5)
+			fig.subplots_adjust(hspace=0.75)
 			plt.close(fig)
 
 	return(fig)
@@ -175,6 +180,7 @@ def plot_indv_ccf_workflow(
 	num_frames = img_props['num_frames']
 	indv_shifts = img_parameters_dict['Shift']
 	analysis_type = img_props['analysis_type']
+	frame_interval = img_props['frame_interval']
 	
 	indv_ccf_plots = {}
 	its = len(channel_combos)*num_bins
@@ -196,7 +202,8 @@ def plot_indv_ccf_workflow(
 					ch1_name = f'Ch{combo[0] + 1}',
 					ch2_name = f'Ch{combo[1] + 1}',
 					shift = indv_shifts[combo_number, bin],
-					num_frames = num_frames)
+					num_frames = num_frames,
+					frame_interval = frame_interval)
 				
 	return indv_ccf_plots
 
@@ -207,15 +214,17 @@ def return_indv_ccf_figure(
 	ch1_name: str, 
 	ch2_name: str, 
 	shift: int,
-	num_frames: int
+	num_frames: int,
+	frame_interval: float
 ) -> plt.Figure:
 	fig, (ax1, ax2) = plt.subplots(2, 1)
-	ax1.plot(ch1, color = 'tab:blue', label = ch1_name)
-	ax1.plot(ch2, color = 'tab:orange', label = ch2_name)
-	ax1.set_xlabel('time (frames)')
+	x_axis = np.arange(0, num_frames) * frame_interval 
+	ax1.plot(x_axis, ch1, color = 'tab:blue', label = ch1_name)
+	ax1.plot(x_axis, ch2, color = 'tab:orange', label = ch2_name)
+	ax1.set_xlabel('time (seconds)')
 	ax1.set_ylabel('Mean bin px value')
 	ax1.legend(loc='upper right', fontsize = 'small', ncol = 1)
-	ax2.plot(np.arange(-num_frames + 1, num_frames), ccf_curve)
+	ax2.plot(np.arange(-num_frames + 1, num_frames) * frame_interval, ccf_curve)
 	ax2.set_ylabel('Crosscorrelation')
 	
 	# Annotate the first peak identified as the shift if available
@@ -223,9 +232,9 @@ def return_indv_ccf_figure(
 		color = 'red'
 		ax2.axvline(x = shift, alpha = 0.5, c = color, linestyle = '--')
 		if shift < 1:
-			ax2.set_xlabel(f'{ch1_name} leads by {int(abs(shift))} frames')
+			ax2.set_xlabel(f'{ch1_name} leads by {int(abs(shift))} seconds')
 		elif shift > 1:
-			ax2.set_xlabel(f'{ch2_name} leads by {int(abs(shift))} frames')
+			ax2.set_xlabel(f'{ch2_name} leads by {int(abs(shift))} seconds')
 		else:
 			ax2.set_xlabel('no shift detected')
 	else:
