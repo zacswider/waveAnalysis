@@ -1,5 +1,5 @@
-import numpy as np
 import tifffile
+import numpy as np
 
 def get_multi_frame_properties(image_path: str) -> dict:
     """

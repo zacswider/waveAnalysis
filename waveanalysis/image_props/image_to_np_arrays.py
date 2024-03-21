@@ -1,5 +1,5 @@
-import tifffile
 import pathlib
+import tifffile
 import numpy as np
 
 def tiff_to_np_array_single_frame(folder_path: str) -> dict:

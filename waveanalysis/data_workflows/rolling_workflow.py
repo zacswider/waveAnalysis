@@ -36,8 +36,7 @@ def rolling_workflow(
             c. Calculate the ACF, period, peak properties, and CCFs/shifts (if specified)
             d. Save the summary data and figures to a new folder in the same directory as the image files
         3. Log the parameters and errors
-            
-
+        
     Parameters:
     - folder_path (str): The path to the folder containing the image files.
     - log_params (dict[str, Any]): The dictionary to store the log parameters.

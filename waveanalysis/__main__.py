@@ -1,14 +1,15 @@
+from data_workflows import rolling_workflow
 import housekeeping.housekeeping_functions as hf
 from custom_gui import BaseGUI, RollingGUI, KymographGUI
-
-from data_workflows import rolling_workflow
 from data_workflows.combined_workflow import combined_workflow
 
 ####################################################################################################################################
 ####################################################################################################################################
 
 def main():
-    '''** GUI Window and sanity checks'''
+    '''
+    Main function to run the wave analysis GUI and analysis workflows.
+    '''
     # make GUI object and display the window
     gui = BaseGUI()
     gui.mainloop()
