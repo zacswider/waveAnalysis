@@ -3,9 +3,6 @@ import housekeeping.housekeeping_functions as hf
 from custom_gui import BaseGUI, RollingGUI, KymographGUI
 from data_workflows.combined_workflow import combined_workflow
 
-####################################################################################################################################
-####################################################################################################################################
-
 def main():
     '''
     Main function to run the wave analysis GUI and analysis workflows.
