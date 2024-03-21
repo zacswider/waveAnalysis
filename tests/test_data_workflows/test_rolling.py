@@ -10,7 +10,6 @@ def default_log_params():
         'Box Shift(px)': 20,
         'Base Directory': 'tests/assets/rolling',
         'ACF Peak Prominence': 0.1,
-        'Group Matching Errors': [],
         'Files Processed': [],
         'Files Not Processed': [],
         'Plotting errors': [],
