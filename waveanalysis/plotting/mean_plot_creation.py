@@ -16,7 +16,8 @@ def plot_mean_ACF_workflow(
             signal=indv_acfs[channel], 
             periods=indv_periods[channel], 
             channel=f'Ch{channel + 1}',
-            num_frames= num_frames)    
+            num_frames= num_frames,
+            frame_interval=img_props['frame_interval'])    
 
     return mean_acf_figs 
 
@@ -24,13 +25,14 @@ def return_mean_ACF_figure(
     signal: np.ndarray, 
     periods: np.ndarray, 
     channel: str,
-    num_frames: int
+    num_frames: int,
+    frame_interval: float
 ) -> plt.Figure:
 
     # Plot mean autocorrelation curve with shaded area representing standard deviation
     signal_mean = np.nanmean(signal, axis = 0)
     signal_std = np.nanstd(signal, axis = 0)
-    x_axis = np.arange(-num_frames + 1, num_frames)
+    x_axis = np.arange(-num_frames + 1, num_frames) * frame_interval
 
     # Create the figure with subplots
     fig, ax = plt.subplot_mosaic(mosaic = '''
@@ -158,7 +160,8 @@ def plot_mean_CCF_workflow(
         signal=indv_ccfs[combo_number], 
         shifts=indv_shifts[combo_number], 
         channel_combo=f'Ch{combo[0] + 1}-Ch{combo[1] + 1}',
-        num_frames= num_frames)
+        num_frames= num_frames,
+        frame_interval=img_props['frame_interval'])
 
     return mean_ccf_figs
 
@@ -166,12 +169,14 @@ def return_mean_CCF_figure(
     signal: np.ndarray, 
     shifts: np.ndarray, 
     channel_combo: str, 
-    num_frames: int):
+    num_frames: int,
+    frame_interval: float
+) -> plt.Figure:
 
     # Plot mean cross-correlation curve with shaded area representing standard deviation
     arr_mean = np.nanmean(signal, axis = 0)
     arr_std = np.nanstd(signal, axis = 0)
-    x_axis = np.arange(-num_frames + 1, num_frames)
+    x_axis = np.arange(-num_frames + 1, num_frames) * frame_interval
 
     # Calculate mean and standard deviation of cross-correlation curves
     fig, ax = plt.subplot_mosaic(mosaic = '''

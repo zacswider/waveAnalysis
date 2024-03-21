@@ -12,9 +12,9 @@ def default_log_params():
         'Base Directory': 'tests/assets/kymo',
         'ACF Peak Prominence': 0.1,
         'Group Names': ['Group1, Group2'],
-        'Plot Summary ACFs': False,
-        'Plot Summary CCFs': False,
-        'Plot Summary Peaks': False,
+        'Plot Summary ACFs': True,
+        'Plot Summary CCFs': True,
+        'Plot Summary Peaks': True,
         'Plot Individual ACFs': False,
         'Plot Individual CCFs': False,
         'Plot Individual Peaks': False,
@@ -23,7 +23,8 @@ def default_log_params():
         'Files Processed': [],
         'Files Not Processed': [],
         'Errors': [],
-        
+        'Frame Interval': [],
+        'Pixel Size': []
     }
 
 def test_kymo(default_log_params):
@@ -46,7 +47,7 @@ def test_kymo(default_log_params):
         plot_indv_CCFs=default_log_params['Plot Individual CCFs'],
         plot_indv_peaks=default_log_params['Plot Individual Peaks'],
         calc_wave_speeds=default_log_params['Calc Wave Speeds'],
-        plot_wave_speeds=default_log_params['Plot Wave Speeds']
+        plot_wave_speeds=default_log_params['Plot Wave Speeds'],
     )
     assert pd.testing.assert_frame_equal(known_results, exp_results) is None
 

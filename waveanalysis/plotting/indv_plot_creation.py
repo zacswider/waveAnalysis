@@ -6,12 +6,14 @@ from waveanalysis.signal_processing import normalize_signal
 def plot_indv_peak_workflow(
 	bin_values: np.ndarray,
 	img_prop_dict: dict,
-	indv_peak_props: dict
+	indv_peak_props: dict,
+	num_frames: int
 ) -> dict:
 	
 	num_channels = img_prop_dict['num_channels']
 	num_bins = img_prop_dict['num_bins']
 	analysis_type = img_prop_dict['analysis_type']
+	frame_interval = img_prop_dict['frame_interval']
 
 	indv_peak_figs = {}
 	
@@ -26,7 +28,9 @@ def plot_indv_peak_workflow(
 				indv_peak_figs[f'Ch{channel + 1} Bin {bin + 1} Peak Props'] = return_indv_peak_prop_figure(
 					bin_signal=to_plot,
 					prop_dict=indv_peak_props[f'Ch {channel} Bin {bin}'],
-					Ch_name=f'Ch{channel + 1} Bin {bin + 1}'
+					Ch_name=f'Ch{channel + 1} Bin {bin + 1}',
+					frame_interval=frame_interval,
+					num_frames=num_frames
 					)
 	
 	return indv_peak_figs
@@ -35,6 +39,8 @@ def return_indv_peak_prop_figure(
 	bin_signal: np.ndarray, 
 	prop_dict: dict, 
 	Ch_name: str,
+	frame_interval: float,
+	num_frames: int
 ) -> plt.Figure:
 
 # Extract peak properties from the dictionary
@@ -48,8 +54,9 @@ def return_indv_peak_prop_figure(
 
 	# Create the figure and plot raw and smoothed signals
 	fig, ax = plt.subplots()
-	ax.plot(bin_signal, color = 'tab:gray', label = 'raw signal')
-	ax.plot(smoothed_signal, color = 'tab:cyan', label = 'smoothed signal')
+	x_axis = np.arange(0, num_frames) * frame_interval
+	ax.plot(x_axis, bin_signal, color = 'tab:gray', label = 'raw signal')
+	ax.plot(x_axis, smoothed_signal, color = 'tab:cyan', label = 'smoothed signal')
 
 	# Plot each peak width and amplitude
 	if not np.isnan(peaks).any():

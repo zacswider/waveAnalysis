@@ -121,6 +121,8 @@ def check_frame_interval(
 ) -> dict:
     if frame_interval == None or frame_interval == 0 or frame_interval == 1:
         print(f"****** WARNING ******",
-            f"\n{file_name} frame interval is not provided or is 0 or 1. Ensure this is the correct value",
+            f"\n{file_name} frame interval is not provided or 0 or 1. Ensure this is the correct value. All calculations will be done assuming a frame interval of 1.",
             "\n****** WARNING ******")
-        log_params['Errors'].append(f'{file_name} frame interval is not provided or is 0 or 1. Ensure this is the correct value')
+        log_params['Errors'].append(f'{file_name} frame interval is not provided is 0 or 1. Ensure this is the correct value. All calculations will be done assuming a frame interval of 1.')
+
+        frame_interval = 1

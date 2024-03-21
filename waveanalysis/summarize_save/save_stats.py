@@ -47,15 +47,17 @@ def save_parameter_means_to_csv(
 def get_mean_CCF_values(
     channel_combos: list, 
     indv_ccfs: np.ndarray, 
+    frame_interval: float
 ) -> dict:
 
     mean_ccf_values = {}
 
     for combo_number, combo in enumerate(channel_combos):
-        arr_mean = np.nanmean(indv_ccfs[combo_number], axis = 0)
-        arr_std = np.nanstd(indv_ccfs[combo_number], axis = 0)
+        arr_mean = np.nanmean(indv_ccfs[combo_number], axis=0)
+        arr_std = np.nanstd(indv_ccfs[combo_number], axis=0)
+        arr_list = [i * frame_interval for i in range(len(arr_mean))]
         # Combine mean and standard deviation into a list of tuples
-        mean_ccf_values[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF values'] = list(zip_longest(range(1, len(arr_mean) + 1), arr_mean, arr_std, fillvalue=None))
+        mean_ccf_values[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF values'] = list(zip_longest(arr_list, arr_mean, arr_std, fillvalue=None))
 
     return mean_ccf_values
 
@@ -64,7 +66,8 @@ def get_indv_CCF_values(
     channel_combos:np.ndarray,
     bin_values:np.ndarray,
     analysis_type:str,
-    num_bins:int
+    num_bins:int,
+    frame_interval: float
 ) -> dict:
     
     indv_ccf_values = {}
@@ -75,7 +78,8 @@ def get_indv_CCF_values(
             to_plot1 = bin_values[:, combo[0], bin] if analysis_type == "standard" else bin_values[combo[0], bin]
             to_plot2 = bin_values[:, combo[1], bin] if analysis_type == "standard" else bin_values[combo[1], bin]
             ccf_curve = indv_ccfs[combo_number, bin]
-            measurements = list(zip_longest(range(1, len(ccf_curve) + 1),  normalize_signal(to_plot1), normalize_signal(to_plot2), ccf_curve, fillvalue=None))
+            arr_list = [i * frame_interval for i in range(len(ccf_curve))]
+            measurements = list(zip_longest(arr_list,  normalize_signal(to_plot1), normalize_signal(to_plot2), ccf_curve, fillvalue=None))
 
             indv_ccf_values[f'Ch{combo[0]}-Ch{combo[1]} Bin {bin + 1} CCF'] = measurements
             

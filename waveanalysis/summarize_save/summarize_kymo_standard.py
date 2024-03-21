@@ -113,6 +113,8 @@ def combine_stats_for_image_kymo_standard(
                 pcnt_no_parameter = np.count_nonzero(np.isnan(img_parameters_dict[key][channel])) / img_parameters_dict[key][channel].shape[0] * 100
                 param = 'Peaks' if key == 'Peak Amp' else 'Periods'
                 file_data_summary[f'Ch {channel + 1} Pcnt No {param}'] = pcnt_no_parameter
+                for ind, stat in enumerate(stats_location):
+                    file_data_summary[f'Ch {channel + 1} {stat} {key}'] = parameters_with_stats_dict[key][channel][ind + 1]
         elif key != 'Wave Speed':
             for channel in range(num_channels):        
                 for ind, stat in enumerate(stats_location):

@@ -11,9 +11,9 @@ def default_log_params():
         'Base Directory': 'tests/assets/standard',
         'ACF Peak Prominence': 0.1,
         'Group Names': ['Group1, Group2'],
-        'Plot Summary ACFs': False,
-        'Plot Summary CCFs': False,
-        'Plot Summary Peaks': False,
+        'Plot Summary ACFs': True,
+        'Plot Summary CCFs': True,
+        'Plot Summary Peaks': True,
         'Plot Individual ACFs': False,
         'Plot Individual CCFs': False,
         'Plot Individual Peaks': False,
@@ -22,7 +22,8 @@ def default_log_params():
         'Files Processed': [],
         'Files Not Processed': [],
         'Errors': [],
-        
+        'Frame Interval': [],
+        'Pixel Size': []
     }
 
 def test_standard(default_log_params):

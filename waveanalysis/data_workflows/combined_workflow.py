@@ -31,7 +31,7 @@ def combined_workflow(
     plot_wave_speeds: bool = False,
     box_size: int = None,
     box_shift: int = None, # TODO: rename to be more inclusive to line shift
-    line_width: int = None,
+    line_width: int = None
     ) -> pd.DataFrame:                
 
     # list of file names in specified directory
@@ -70,6 +70,9 @@ def combined_workflow(
             else: 
                 img_props_dict = get_single_frame_properties(image_path=image_path, image=all_images[file_name])
 
+            # check if frame interval is not 1 or None and log it
+            hf.check_frame_interval(frame_interval=img_props_dict['frame_interval'], log_params=log_params, file_name=file_name)
+
             # add other image properties to the dictionary for later use
             img_props_dict['step'] = box_shift
             img_props_dict['box_size'] = box_size if analysis_type == 'standard' else None
@@ -78,8 +81,8 @@ def combined_workflow(
             img_props_dict['peak_thresh'] = acf_peak_thresh
 
             # log image properties
-            log_params['Pixel Size'] = f"{file_name}: {img_props_dict['pixel_size']} {img_props_dict['pixel_unit']}s"
-            log_params['Frame Interval'] = f"{file_name}: {img_props_dict['frame_interval']} seconds"
+            log_params['Pixel Size'].append(f"{file_name}: {img_props_dict['pixel_size']} {img_props_dict['pixel_unit']}s")
+            log_params['Frame Interval'].append(f"{file_name}: {img_props_dict['frame_interval']} seconds")
 
             # log error and skip image if frames < 2; otherwise, log image as processed
             if img_props_dict['num_frames'] < 2:
@@ -88,9 +91,6 @@ def combined_workflow(
                     "\n****** ERROR ******")
                 log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
                 continue
-
-            # check if frame interval is not 1 or None and log it
-            hf.check_frame_interval(frame_interval=img_props_dict['frame_interval'], log_params=log_params, file_name=file_name)
 
             # Create the array of bin values for which all the stats will be calculated
             if analysis_type == 'standard':
@@ -109,6 +109,7 @@ def combined_workflow(
                     hf.check_if_wave_tracks_created(wave_tracks=wave_tracks, 
                                                     log_params=log_params, 
                                                     file_name=file_name)
+                    
                     hf.check_wave_track_coords(wave_tracks=wave_tracks, 
                                                log_params=log_params, 
                                                file_name=file_name, 
@@ -119,23 +120,22 @@ def combined_workflow(
                     wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, 
                                                       pixel_size=img_props_dict['pixel_size'], 
                                                       frame_interval=img_props_dict['frame_interval'])
-
+                    
+            # get the channel combinations
+            channel_combos = hf.get_channel_combos(num_channels=img_props_dict['num_channels'])
+            num_combos = len(channel_combos)
+            img_props_dict['channel_combos'] = channel_combos
+            img_props_dict['num_combos'] = num_combos
             # store the number of bins and the bin values in the image properties dictionary
             img_props_dict['num_bins'] = num_bins
             img_props_dict['bin_values'] = bin_values
-            
+
             # log that the file was processed
             log_params['Files Processed'].append(f'{file_name}')
 
             # if user entered group name(s) into GUI, match the group for this file. If no match, keep set to None
             name_wo_ext = file_name.rsplit(".",1)[0]
             group_name = hf.match_group_to_file(name_wo_ext=name_wo_ext, group_names=group_names)
-
-            # get the channel combinations
-            channel_combos = hf.get_channel_combos(num_channels=img_props_dict['num_channels'])
-            num_combos = len(channel_combos)
-            img_props_dict['channel_combos'] = channel_combos
-            img_props_dict['num_combos'] = num_combos
 
             # Calculate the ACF
             indv_acfs = sp.calc_indv_ACF_workflow(bin_values=bin_values, img_props=img_props_dict)
@@ -150,6 +150,11 @@ def combined_workflow(
                 indv_ccfs = sp.calc_indv_CCF_workflow(bin_values=bin_values, img_props=img_props_dict)
                 indv_shifts = sp.calc_indv_shift_workflow(indv_ccfs=indv_ccfs, indv_periods=indv_periods, img_props=img_props_dict)
 
+            # adjust the different waves properties to be the use the frame interval rather than the number of frames
+            indv_periods = indv_periods * img_props_dict['frame_interval']
+            indv_peak_offsets = indv_peak_offsets * img_props_dict['frame_interval']
+            indv_peak_widths = indv_peak_widths * img_props_dict['frame_interval']
+
             # create dictionary of image parameters and their values for later use
             img_parameters_dict = {
                             'Period': indv_periods,
@@ -160,8 +165,11 @@ def combined_workflow(
                             'Peak Min': indv_peak_mins,
                             'Peak Offset': indv_peak_offsets,
                             }    
+            
+
             # add shifts to the dictionary if there are multiple channels
             if img_props_dict['num_channels'] > 1:
+                indv_shifts = indv_shifts * img_props_dict['frame_interval']
                 img_parameters_dict['Shift'] = indv_shifts
             # add wave speeds to the dictionary if they were calculated
             if calc_wave_speeds:
@@ -197,7 +205,7 @@ def combined_workflow(
                 )
                 hf.save_plots(mean_ccf_figs, im_save_path)
                 # save the mean CCF values for the file
-                mean_ccf_values = get_mean_CCF_values(channel_combos=channel_combos,indv_ccfs=indv_ccfs)
+                mean_ccf_values = get_mean_CCF_values(channel_combos=channel_combos,indv_ccfs=indv_ccfs, frame_interval=img_props_dict['frame_interval'])
                 save_ccf_values_to_csv(mean_ccf_values, im_save_path)
 
             # Error check for plotting individual CCFs
@@ -227,7 +235,8 @@ def combined_workflow(
                 indv_peak_figs = pt.plot_indv_peak_workflow(
                     bin_values=bin_values,
                     img_prop_dict=img_props_dict,
-                    indv_peak_props=indv_peak_props
+                    indv_peak_props=indv_peak_props,
+                    num_frames=img_props_dict['num_frames']
                 )
                 indv_peak_path = os.path.join(im_save_path, 'Individual_peak_plots')
                 os.makedirs(indv_peak_path, exist_ok=True)
@@ -252,7 +261,8 @@ def combined_workflow(
                     channel_combos=channel_combos,
                     bin_values=bin_values,
                     analysis_type=analysis_type,
-                    num_bins=num_bins
+                    num_bins=num_bins,
+                    frame_interval=img_props_dict['frame_interval']
                 )
                 indv_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')
                 os.makedirs(indv_ccf_val_path, exist_ok=True)
