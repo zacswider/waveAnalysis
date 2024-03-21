@@ -61,6 +61,10 @@ def rolling_workflow(
             num_frames = img_props_dict['num_frames']
             num_channels = img_props_dict['num_channels']
 
+            # log image properties
+            log_params['Pixel Size'].append(f"{file_name}: {img_props_dict['pixel_size']} {img_props_dict['pixel_unit']}s")
+            log_params['Frame Interval'].append(f"{file_name}: {img_props_dict['frame_interval']} seconds")
+
             assert isinstance(roll_size, int) and isinstance(roll_by, int), 'Roll size and roll by must be integers'
             num_submovies = (num_frames - roll_size) // roll_by
             img_props_dict['num_submovies'] = num_submovies
@@ -157,6 +161,11 @@ def rolling_workflow(
             im_save_path = os.path.join(main_save_path, name_wo_ext)
             os.makedirs(im_save_path, exist_ok=True)
 
+            # adjust the different waves properties to be the use the frame interval rather than the number of frames
+            indv_periods = indv_periods * img_props_dict['frame_interval']
+            indv_peak_offsets = indv_peak_offsets * img_props_dict['frame_interval']
+            indv_peak_widths = indv_peak_widths * img_props_dict['frame_interval']
+
             img_parameters_dict = {
                             'Period': indv_periods,
                             'Peak Amp': indv_peak_amps,
@@ -169,6 +178,7 @@ def rolling_workflow(
 
             # add shifts to the dictionary if there are multiple channels
             if img_props_dict['num_channels'] > 1:
+                indv_shifts = indv_shifts * img_props_dict['frame_interval']
                 img_parameters_dict['Shift'] = indv_shifts
 
             # calculate the number of subframes used

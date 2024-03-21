@@ -14,7 +14,7 @@ def plot_rolling_summary(
             independent_variable='Submovie',
             dependent_variable=f'Ch {channel + 1} Mean Period',
             dependent_error=f'Ch {channel + 1} StdDev Period',
-            y_label=f'Ch {channel + 1} Mean ± StdDev Period (frames)',
+            y_label=f'Ch {channel + 1} Mean ± StdDev Period (seconds)',
             fullmovie_summary=fullmovie_summary
             )
             
@@ -28,7 +28,7 @@ def plot_rolling_summary(
                 independent_variable='Submovie',
                 dependent_variable=f'Ch{combo[0]+1}-Ch{combo[1]+1} Mean Shift',
                 dependent_error=f'Ch{combo[0]+1}-Ch{combo[1]+1} StdDev Shift',
-                y_label=f'Ch{combo[0]+1}-Ch{combo[1]+1} Mean ± StdDev Shift (frames)',
+                y_label=f'Ch{combo[0]+1}-Ch{combo[1]+1} Mean ± StdDev Shift (seconds)',
                 fullmovie_summary=fullmovie_summary
                 )
             
@@ -42,7 +42,7 @@ def plot_rolling_summary(
                 independent_variable='Submovie',
                 dependent_variable=f'Ch {channel+1} Mean Peak {prop_name}',
                 dependent_error=f'Ch {channel+1} StdDev Peak {prop_name}',
-                y_label=f'Ch {channel+1} Mean ± StdDev Peak {prop_name} (frames)',
+                y_label=f'Ch {channel+1} Mean ± StdDev Peak {prop_name} (seconds)',
                 fullmovie_summary=fullmovie_summary
                 )
                     

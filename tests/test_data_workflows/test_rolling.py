@@ -15,7 +15,9 @@ def default_log_params():
         'Files Not Processed': [],
         'Plotting errors': [],
         'Submovies Used' : [],
-        'Errors': []
+        'Errors': [],
+        'Frame Interval': [],
+        'Pixel Size': []
         }
 
 
