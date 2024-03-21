@@ -2,10 +2,16 @@ import tifffile
 import pathlib
 import numpy as np
 
-def tiff_to_np_array_single_frame(
-    folder_path: str, 
-) -> dict:
-    
+def tiff_to_np_array_single_frame(folder_path: str) -> dict:
+    """
+    Convert TIFF files in a folder to a dictionary of numpy arrays.
+
+    Args:
+        folder_path (str): The path to the folder containing the TIFF files.
+
+    Returns:
+        dict: A dictionary where the keys are the file names and the values are the corresponding numpy arrays.
+    """
     input_path = pathlib.Path(folder_path)
     images = {}
 
@@ -28,10 +34,16 @@ def tiff_to_np_array_single_frame(
 
     return images
 
-def tiff_to_np_array_multi_frame(
-    folder_path: str, 
-) -> dict:
+def tiff_to_np_array_multi_frame(folder_path: str) -> dict:
+    '''
+    Convert TIFF files in a folder to a dictionary of numpy arrays.
     
+    Args:
+        folder_path (str): The path to the folder containing the TIFF files.
+        
+    Returns:
+        dict: A dictionary where the keys are the file names and the values are the corresponding numpy arrays.
+    '''
     input_path = pathlib.Path(folder_path)
     images = {}
 

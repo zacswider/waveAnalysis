@@ -6,12 +6,28 @@ def plot_mean_ACF_workflow(
     img_props: dict,
     indv_acfs: np.ndarray,
 ) -> dict:
+    '''
+    Plot the mean autocorrelation function (ACF) for each channel.
+
+    Args:
+        img_parameters_dict (dict): A dictionary containing image parameters.
+        img_props (dict): A dictionary containing image properties.
+        indv_acfs (np.ndarray): An array of individual autocorrelation functions.
+
+    Returns:
+        dict: A dictionary containing the mean ACF figures for each channel.
+    '''
+    # Extract image properties from the dictionary
     num_channels = img_props['num_channels']
     num_frames = img_props['num_frames']
     indv_periods = img_parameters_dict['Period']
 
+    # Initialize dictionary to store the mean ACF figures
     mean_acf_figs = {}
+
+    # Loop through each channel and generate the mean ACF figure
     for channel in range(num_channels):
+        # Generate and store the figure for the current channel
         mean_acf_figs[f'Ch{channel + 1} Mean ACF'] = return_mean_ACF_figure(
             signal=indv_acfs[channel], 
             periods=indv_periods[channel], 
@@ -19,7 +35,7 @@ def plot_mean_ACF_workflow(
             num_frames= num_frames,
             frame_interval=img_props['frame_interval'])    
 
-    return mean_acf_figs 
+    return mean_acf_figs
 
 def return_mean_ACF_figure(
     signal: np.ndarray, 
@@ -28,7 +44,9 @@ def return_mean_ACF_figure(
     num_frames: int,
     frame_interval: float
 ) -> plt.Figure:
-
+    '''
+    Space saving function to return mean ACF figures
+    '''
     # Plot mean autocorrelation curve with shaded area representing standard deviation
     signal_mean = np.nanmean(signal, axis = 0)
     signal_std = np.nanstd(signal, axis = 0)
@@ -69,6 +87,20 @@ def plot_mean_peak_props_workflow(
     img_parameters_dict: dict,
     img_props: dict
 ) -> dict:
+    '''
+    Plot Mean Peak Properties Workflow.
+
+    This function takes in the image parameters dictionary and image properties dictionary
+    and returns a dictionary of mean peak property figures for each channel.
+
+    Parameters:
+    - img_parameters_dict (dict): A dictionary containing the image parameters for each channel.
+    - img_props (dict): A dictionary containing the image properties.
+
+    Returns:
+    - mean_peak_figs (dict): A dictionary of mean peak property figures for each channel.
+    '''
+    # Extract peak properties from the image parameters dictionary
     indv_peak_mins = img_parameters_dict['Peak Min']
     indv_peak_maxs = img_parameters_dict['Peak Max']
     indv_peak_amps = img_parameters_dict['Peak Amp']
@@ -76,8 +108,12 @@ def plot_mean_peak_props_workflow(
     indv_peak_offsets = img_parameters_dict['Peak Offset']
     num_channels = img_props['num_channels']
 
+    # Initialize dictionary to store the mean peak property figures
     mean_peak_figs = {}
+
+    # Loop through each channel and generate the mean peak property figure
     for channel in range(num_channels):
+        # Generate and store the figure for the current channel
         mean_peak_figs[f'Ch{channel + 1} Peak Props'] = return_mean_prop_peaks_figure(
             min_array=indv_peak_mins[channel], 
             max_array=indv_peak_maxs[channel], 
@@ -96,6 +132,9 @@ def return_mean_prop_peaks_figure(
     offsets_array: np.ndarray,
     Ch_name: str
 ) -> plt.Figure:
+    '''
+    Space saving function to return mean peak property figures
+    '''
     # Create subplots for histograms and boxplots
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
 
@@ -150,12 +189,28 @@ def plot_mean_CCF_workflow(
     img_props: dict,
     indv_ccfs: np.ndarray
 ) -> dict:
+    '''
+    Plot the mean cross-correlation function (CCF) for each channel combination.
+
+    Args:
+        img_parameters_dict (dict): A dictionary containing image parameters.
+        img_props (dict): A dictionary containing image properties.
+        indv_ccfs (np.ndarray): An array of individual cross-correlation functions.
+
+    Returns:
+        dict: A dictionary containing the mean CCF figures for each channel combination.
+    '''
+    # Extract cross-correlation functions and shifts from the image parameters dictionary
     indv_shifts = img_parameters_dict['Shift']
     channel_combos = img_props['channel_combos']
     num_frames = img_props['num_frames']
 
+    # Initialize dictionary to store the mean CCF figures
     mean_ccf_figs = {}
+
+    # Loop through each channel combination and generate the mean CCF figure
     for combo_number, combo in enumerate(channel_combos):
+        # Generate and store the figure for the current channel combination
         mean_ccf_figs[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Mean CCF'] = return_mean_CCF_figure(
         signal=indv_ccfs[combo_number], 
         shifts=indv_shifts[combo_number], 
@@ -172,7 +227,9 @@ def return_mean_CCF_figure(
     num_frames: int,
     frame_interval: float
 ) -> plt.Figure:
-
+    '''
+    Space saving function to return mean CCF figures
+    '''
     # Plot mean cross-correlation curve with shaded area representing standard deviation
     arr_mean = np.nanmean(signal, axis = 0)
     arr_std = np.nanstd(signal, axis = 0)
@@ -206,13 +263,25 @@ def return_mean_CCF_figure(
 
     fig.subplots_adjust(hspace=0.25, wspace=0.5)   
     plt.close(fig)
+    
     return fig
 
 def return_mean_wave_speeds_figure(
     wave_speeds: list[float]
 ) -> plt.Figure:
+    '''
+    Returns a matplotlib Figure object that contains a histogram and boxplot of wave speeds.
+
+    Parameters:
+        wave_speeds (list[float]): A list of wave speeds in µm/s.
+
+    Returns:
+        plt.Figure: A matplotlib Figure object containing the histogram and boxplot.
+
+    '''
     fig, (ax1, ax2) = plt.subplots(1, 2)
 
+    # Plot histogram of wave speeds
     ax1.hist(wave_speeds, bins = 10, color = 'tab:blue', alpha = 0.75)
     ax1.set_xlabel('Histogram of wave speeds (µm/s)')
     ax1.set_ylabel('Occurrences')
@@ -221,6 +290,6 @@ def return_mean_wave_speeds_figure(
     # Plot boxplots for peak properties
     boxes = ax2.boxplot(wave_speeds)
     ax2.set_xlabel('Boxplot of wave speeds (µm/s)')
-    
     plt.close(fig)
+
     return fig

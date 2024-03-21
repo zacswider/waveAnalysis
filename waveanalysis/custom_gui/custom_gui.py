@@ -12,12 +12,11 @@ class BaseGUI(tk.Tk):
         self.main_frame = ttk.Frame(self, padding="20")
         self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
-
         # define variable types for the different widget field
         self.box_size = tk.IntVar()
         self.box_size.set(20)
-        self.box_shift = tk.IntVar()
-        self.box_shift.set(20)
+        self.bin_shift = tk.IntVar()
+        self.bin_shift.set(20)
         self.plot_summary_ACFs = tk.BooleanVar()
         self.plot_summary_ACFs.set(True)
         self.plot_summary_CCFs = tk.BooleanVar()
@@ -55,11 +54,11 @@ class BaseGUI(tk.Tk):
         self.box_size_label = ttk.Label(self, text = 'Box size (pixels)')
         self.box_size_label.grid(row = 1, column = 1, padx = 10, sticky = 'W')
 
-        self.box_shift_entry = ttk.Entry(self, width = 3, textvariable = self.box_shift)
-        self.box_shift_entry.grid(row = 2, column = 0, padx = 10, sticky = 'E')
+        self.bin_shift_entry = ttk.Entry(self, width = 3, textvariable = self.bin_shift)
+        self.bin_shift_entry.grid(row = 2, column = 0, padx = 10, sticky = 'E')
         # create box size label text
-        self.box_shift_label = ttk.Label(self, text = 'Box shift (pixels)')
-        self.box_shift_label.grid(row = 2, column = 1, padx = 10, sticky = 'W')
+        self.bin_shift_label = ttk.Label(self, text = 'Box shift (pixels)')
+        self.bin_shift_label.grid(row = 2, column = 1, padx = 10, sticky = 'W')
 
         # create ACF peak threshold entry widget
         self.acf_peak_thresh_entry = ttk.Entry(self, width = 3, textvariable = self.acf_peak_thresh)
@@ -150,7 +149,7 @@ class BaseGUI(tk.Tk):
     def start_analysis(self):
         # get the values stored in the widget
         self.box_size = self.box_size.get()
-        self.box_shift = self.box_shift.get()
+        self.bin_shift = self.bin_shift.get()
         self.acf_peak_thresh = self.acf_peak_thresh.get()
         self.group_names = self.group_names.get()
         self.plot_summary_ACFs = self.plot_summary_ACFs.get()
@@ -312,8 +311,8 @@ class KymographGUI(tk.Tk):
         # define variable types for the different widget field
         self.line_width = tk.IntVar()
         self.line_width.set(5)
-        self.box_shift = tk.IntVar()
-        self.box_shift.set(5)
+        self.bin_shift = tk.IntVar()
+        self.bin_shift.set(5)
         self.plot_summary_ACFs = tk.BooleanVar()
         self.plot_summary_ACFs.set(True)
         self.plot_summary_CCFs = tk.BooleanVar()
@@ -353,11 +352,11 @@ class KymographGUI(tk.Tk):
         self.line_width_label.grid(row = 1, column = 1, padx = 10, sticky = 'W')
 
         # box line selection widget
-        self.box_shift_entry = ttk.Entry(self, width = 3, textvariable = self.box_shift)
-        self.box_shift_entry.grid(row = 2, column = 0, padx = 10, sticky = 'E')
+        self.bin_shift_entry = ttk.Entry(self, width = 3, textvariable = self.bin_shift)
+        self.bin_shift_entry.grid(row = 2, column = 0, padx = 10, sticky = 'E')
         # create line shift label text
-        self.box_shift_label = ttk.Label(self, text = 'Line shift (pixels)')
-        self.box_shift_label.grid(row = 2, column = 1, padx = 10, sticky = 'W')
+        self.bin_shift_label = ttk.Label(self, text = 'Line shift (pixels)')
+        self.bin_shift_label.grid(row = 2, column = 1, padx = 10, sticky = 'W')
 
         # create group names entry widget
         self.group_names_entry = ttk.Entry(self, textvariable = self.group_names)
@@ -408,11 +407,12 @@ class KymographGUI(tk.Tk):
         self.plot_indv_peaks_label = ttk.Label(self, text = 'Plot individual peaks')
         self.plot_indv_peaks_label.grid(row = 9, column = 3, padx = 10, sticky = 'W')
 
+        ''' # Removing this for the moment as it is not fully implemented
         # create checkbox for calculating wave speeds
         self.calc_wave_speeds_checkbox = ttk.Checkbutton(self, variable = self.calc_wave_speeds)
         self.calc_wave_speeds_checkbox.grid(row = 10, column = 0, padx = 10, sticky = 'E')
         self.calc_wave_speeds_label = ttk.Label(self, text = 'Calculate wave speeds')
-        self.calc_wave_speeds_label.grid(row = 10, column = 1, padx = 10, sticky = 'W')
+        self.calc_wave_speeds_label.grid(row = 10, column = 1, padx = 10, sticky = 'W')'''
         
         # create start button
         self.start_button = ttk.Button(self, text = 'Start analysis')
@@ -442,7 +442,7 @@ class KymographGUI(tk.Tk):
         self.plot_indv_peaks = self.plot_indv_peaks.get()
         self.folder_path = self.folder_path.get()
         self.acf_peak_thresh = self.acf_peak_thresh.get()
-        self.box_shift = self.box_shift.get()
+        self.bin_shift = self.bin_shift.get()
         self.calc_wave_speeds = self.calc_wave_speeds.get()
 
         self.rolling = False

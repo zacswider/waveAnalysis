@@ -36,7 +36,7 @@ def test_standard(default_log_params):
         log_params=default_log_params,
         analysis_type='standard',
         box_size=default_log_params['Box Size(px)'],
-        box_shift=default_log_params['Box Shift(px)'],
+        bin_shift=default_log_params['Box Shift(px)'],
         line_width=None, #type: ignore
         acf_peak_thresh=default_log_params['ACF Peak Prominence'],
         plot_summary_ACFs=default_log_params['Plot Summary ACFs'],

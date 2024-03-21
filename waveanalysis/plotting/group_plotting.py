@@ -5,15 +5,27 @@ import matplotlib.pyplot as plt
 def generate_group_comparison(
     summary_df: pd.DataFrame,
     log_params: dict
-):
+) -> dict:
+    """
+    Generate group comparison plots for each parameter in the summary dataframe.
+
+    Parameters:
+        summary_df (pd.DataFrame): The summary dataframe containing the data for comparison.
+        log_params (dict): A dictionary to log any errors encountered during plotting.
+
+    Returns:
+        dict: A dictionary containing the generated group comparison plots for each parameter.
+    """
     print('Generating group comparisons...')
-    
     group_mean_parameter_figs = {}
+
+    # get the parameters to compare
     parameters_to_compare = [column for column in summary_df.columns if 'Mean' in column]
 
     # generate and save figures for each parameter
     for param in parameters_to_compare:
         try:
+            # Create a boxplot and swarmplot
             ax = sns.boxplot(x='Group Name', 
                             y=param, 
                             hue='Group Name',  # Assign 'Group Name' to 'hue'

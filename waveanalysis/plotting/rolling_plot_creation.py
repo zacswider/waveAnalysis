@@ -6,9 +6,24 @@ def plot_rolling_summary(
     fullmovie_summary: pd.DataFrame,
     channel_combos: list[tuple[int, int]]
 ):
+    '''
+    Generate rolling summary plots for wave analysis.
+
+    Parameters:
+    - num_channels (int): The number of channels.
+    - fullmovie_summary (pd.DataFrame): The summary data for the full movie.
+    - channel_combos (list[tuple[int, int]]): The combinations of channels.
+
+    Returns:
+    - rolling_mean_plots_dict (dict): A dictionary containing the rolling mean plots.
+    '''
+    # Initialize the dictionary to store the rolling mean plots
     rolling_mean_plots_dict = {}
     rolling_mean_periods = {}
+    rolling_mean_shifts = {}
+    rolling_mean_peak_props = {}
 
+    # Generate the rolling mean plots for the mean period
     for channel in range(num_channels):
         rolling_mean_periods[f'Ch {channel + 1} Period'] = return_mean_periods_shifts_props_plots(
             independent_variable='Submovie',
@@ -18,10 +33,10 @@ def plot_rolling_summary(
             fullmovie_summary=fullmovie_summary
             )
             
+    # Update the dictionary with the rolling mean plots for the mean period
     rolling_mean_plots_dict.update(rolling_mean_periods)
 
-    rolling_mean_shifts = {}
-    
+    # Generate the rolling mean plots for the mean shifts
     if num_channels > 1:
         for combo_number, combo in enumerate(channel_combos):
             rolling_mean_shifts[f'Ch{combo[0]+1}-Ch{combo[1]+1} Shift'] = return_mean_periods_shifts_props_plots(
@@ -32,10 +47,10 @@ def plot_rolling_summary(
                 fullmovie_summary=fullmovie_summary
                 )
             
+    # Update the dictionary with the rolling mean plots for the mean shifts
     rolling_mean_plots_dict.update(rolling_mean_shifts)
 
-    rolling_mean_peak_props = {}
-
+    # Generate the rolling mean plots for the peak properties
     for channel in range(num_channels):
         for prop_name in ['Width', 'Max', 'Min', 'Amp']:
             rolling_mean_peak_props[f'Ch{channel+1} {prop_name}'] = return_mean_periods_shifts_props_plots(
@@ -46,6 +61,7 @@ def plot_rolling_summary(
                 fullmovie_summary=fullmovie_summary
                 )
                     
+    # Update the dictionary with the rolling mean plots for the peak properties
     rolling_mean_plots_dict.update(rolling_mean_peak_props)
 
     return rolling_mean_plots_dict
@@ -58,7 +74,8 @@ def return_mean_periods_shifts_props_plots(
     fullmovie_summary: pd.DataFrame
 ) -> plt.Figure:    
     '''
-    Space saving function to generate the rolling summary plots'''      
+    Space saving function to generate the rolling summary plots
+    '''      
     fig, ax = plt.subplots()
 
     # plot the dataframe
@@ -76,6 +93,6 @@ def return_mean_periods_shifts_props_plots(
     ax.set_xlabel('Frame Number')
     ax.set_ylabel(y_label)
     ax.set_title(f'{y_label} over time')
-    
     plt.close(fig)
+
     return fig

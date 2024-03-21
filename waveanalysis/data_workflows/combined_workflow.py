@@ -30,10 +30,50 @@ def combined_workflow(
     calc_wave_speeds: bool = False,
     plot_wave_speeds: bool = False,
     box_size: int = None,
-    box_shift: int = None, # TODO: rename to be more inclusive to line shift
+    bin_shift: int = None, 
     line_width: int = None
-    ) -> pd.DataFrame:                
+) -> pd.DataFrame:
+    '''
+    This is the combined workflow for kymographs and standard analysis. It processes the image files in the 
+    specified folder and saves the summary data and figures to a new folder in the same directory as the 
+    image files.
 
+    It functions generally in this order (with some analysis specific steps):
+        1. Convert a folder of tiff images to numpy arrays
+        2. Iterate over every images in the folder
+            a. Get the image properties
+            b. Calculate the bin values based on the user provided box/line size and bin shift
+            c. Calculate the ACF, period, peak properties, and CCFs/shifts (if specified)
+                i. For kymographs, the user will be prompted to define the wave tracks (if specified)
+            d. Plot the mean ACF, peak properties, wave speed, and CCF figures (if specified)
+            e. Plot the individual ACF, peak properties, and CCF figures (if specified)
+            f. Save the summary data and figures to a new folder in the same directory as the image files
+        3. Generate the summary data for the entire folder and save it to a csv file
+        4. Generate the group comparison figures and save them to a new folder in the same directory as the image files (if group names are specified)
+        5. Generate the mean parameter measurements for each group and save them to a new folder in the same directory as the image files (if group names are specified)
+        6. Log the parameters and errors to a log file in the new folder
+
+    Parameters:
+    - folder_path (str): The path to the folder containing the image files.
+    - group_names (list[str]): The list of group names to match with the image files.
+    - log_params (dict[str, Any]): The dictionary to store the log parameters.
+    - analysis_type (str): The type of analysis to perform ('standard' or 'kymograph').
+    - acf_peak_thresh (float): The threshold for detecting peaks in the ACF curve.
+    - plot_summary_ACFs (bool): Whether to plot the mean ACF figures for the file.
+    - plot_summary_CCFs (bool): Whether to plot the mean CCF figures for the file.
+    - plot_summary_peaks (bool): Whether to plot the mean peak properties figures for the file.
+    - plot_indv_ACFs (bool): Whether to plot the individual ACF figures for each file.
+    - plot_indv_CCFs (bool): Whether to plot the individual CCF figures for each file.
+    - plot_indv_peaks (bool): Whether to plot the individual peak properties figures for each file.
+    - calc_wave_speeds (bool, optional): Whether to calculate wave speeds. Defaults to False.
+    - plot_wave_speeds (bool, optional): Whether to plot the wave speeds. Defaults to False.
+    - box_size (int, optional): The size of the box for standard analysis. Defaults to None.
+    - bin_shift (int, optional): The shift value for binning. Defaults to None.
+    - line_width (int, optional): The width of the line for kymograph analysis. Defaults to None.
+
+    Returns:
+    - pd.DataFrame: The summary data for each file.
+    '''
     # list of file names in specified directory
     file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
 
@@ -68,13 +108,13 @@ def combined_workflow(
             if analysis_type == 'standard':
                 img_props_dict = get_multi_frame_properties(image_path=image_path)
             else: 
-                img_props_dict = get_single_frame_properties(image_path=image_path, image=all_images[file_name])
+                img_props_dict = get_single_frame_properties(image_path=image_path)
 
             # check if frame interval is not 1 or None and log it
             hf.check_frame_interval(frame_interval=img_props_dict['frame_interval'], log_params=log_params, file_name=file_name)
 
             # add other image properties to the dictionary for later use
-            img_props_dict['step'] = box_shift
+            img_props_dict['step'] = bin_shift
             img_props_dict['box_size'] = box_size if analysis_type == 'standard' else None
             img_props_dict['line_width'] = line_width if analysis_type == 'kymograph' else None
             img_props_dict['analysis_type'] = analysis_type
@@ -91,6 +131,8 @@ def combined_workflow(
                     "\n****** ERROR ******")
                 log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
                 continue
+            # log that the file was processed
+            log_params['Files Processed'].append(f'{file_name}')
 
             # Create the array of bin values for which all the stats will be calculated
             if analysis_type == 'standard':
@@ -101,15 +143,14 @@ def combined_workflow(
                                                              img_props = img_props_dict)
                 
                 if calc_wave_speeds:
-                    # user defined wave tracks. will open a window to draw the tracks
-                    # wave_tracks = sp.define_wave_tracks(file_path=image_path)
-                    wave_tracks = [np.array([[40, 1], [7,  30]]), np.array([[26, 2], [3,  30]]), np.array([[9, 22], [12, 30]])] # for testing
+                    # Have the user define the wave tracks for each kymograph
+                    wave_tracks = sp.define_wave_tracks(file_path=image_path)
+                    # wave_tracks = [np.array([[40, 1], [7,  30]]), np.array([[26, 2], [3,  30]]), np.array([[9, 22], [12, 30]])] # for testing
 
                     # check if wave tracks were created and if they are within the image
                     hf.check_if_wave_tracks_created(wave_tracks=wave_tracks, 
                                                     log_params=log_params, 
                                                     file_name=file_name)
-                    
                     hf.check_wave_track_coords(wave_tracks=wave_tracks, 
                                                log_params=log_params, 
                                                file_name=file_name, 
@@ -126,12 +167,10 @@ def combined_workflow(
             num_combos = len(channel_combos)
             img_props_dict['channel_combos'] = channel_combos
             img_props_dict['num_combos'] = num_combos
+
             # store the number of bins and the bin values in the image properties dictionary
             img_props_dict['num_bins'] = num_bins
             img_props_dict['bin_values'] = bin_values
-
-            # log that the file was processed
-            log_params['Files Processed'].append(f'{file_name}')
 
             # if user entered group name(s) into GUI, match the group for this file. If no match, keep set to None
             name_wo_ext = file_name.rsplit(".",1)[0]
@@ -139,12 +178,15 @@ def combined_workflow(
 
             # Calculate the ACF
             indv_acfs = sp.calc_indv_ACF_workflow(bin_values=bin_values, img_props=img_props_dict)
+
             # Calculate the period
             indv_periods = sp.calc_indv_period_workflow(acf_curve=indv_acfs, img_props=img_props_dict)
+
             # Calculate the peak properties
             indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_offsets, indv_peak_props = sp.calc_indv_peak_props_workflow(bin_values=bin_values, img_props=img_props_dict)
             indv_peak_amps = indv_peak_maxs - indv_peak_mins
             indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
+            
             # Calculate the individual CCFs and shifts
             if img_props_dict['num_channels'] > 1:
                 indv_ccfs = sp.calc_indv_CCF_workflow(bin_values=bin_values, img_props=img_props_dict)
@@ -166,7 +208,6 @@ def combined_workflow(
                             'Peak Offset': indv_peak_offsets,
                             }    
             
-
             # add shifts to the dictionary if there are multiple channels
             if img_props_dict['num_channels'] > 1:
                 indv_shifts = indv_shifts * img_props_dict['frame_interval']
@@ -205,7 +246,7 @@ def combined_workflow(
                 )
                 hf.save_plots(mean_ccf_figs, im_save_path)
                 # save the mean CCF values for the file
-                mean_ccf_values = get_mean_CCF_values(channel_combos=channel_combos,indv_ccfs=indv_ccfs, frame_interval=img_props_dict['frame_interval'])
+                mean_ccf_values = get_mean_CCF_values(channel_combos=channel_combos, indv_ccfs=indv_ccfs, frame_interval=img_props_dict['frame_interval'])
                 save_ccf_values_to_csv(mean_ccf_values, im_save_path)
 
             # Error check for plotting individual CCFs
@@ -258,11 +299,8 @@ def combined_workflow(
                 # save the individual CCF values for the file
                 indv_ccf_values = get_indv_CCF_values(
                     indv_ccfs=indv_ccfs,
-                    channel_combos=channel_combos,
                     bin_values=bin_values,
-                    analysis_type=analysis_type,
-                    num_bins=num_bins,
-                    frame_interval=img_props_dict['frame_interval']
+                    img_props_dict=img_props_dict
                 )
                 indv_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')
                 os.makedirs(indv_ccf_val_path, exist_ok=True)
@@ -327,4 +365,4 @@ def combined_workflow(
         log_params["Time Elapsed"] = f"{end - start:.2f} seconds"
         hf.make_log(main_save_path, log_params)
 
-        return summary_df # only here for testing for now
+        return summary_df # only here for testing

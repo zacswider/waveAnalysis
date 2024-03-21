@@ -18,7 +18,7 @@ def default_log_params():
         'Plot Individual ACFs': False,
         'Plot Individual CCFs': False,
         'Plot Individual Peaks': False,
-        'Calc Wave Speeds': True,
+        'Calc Wave Speeds': False,
         'Plot Wave Speeds': False, 
         'Files Processed': [],
         'Files Not Processed': [],
@@ -37,7 +37,7 @@ def test_kymo(default_log_params):
         log_params=default_log_params,
         analysis_type='kymograph',
         box_size=None, #type: ignore
-        box_shift=default_log_params['Line Shift(px)'],
+        bin_shift=default_log_params['Line Shift(px)'],
         line_width=default_log_params['Line Size(px)'],         
         acf_peak_thresh=default_log_params['ACF Peak Prominence'],
         plot_summary_ACFs=default_log_params['Plot Summary ACFs'],

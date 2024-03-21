@@ -63,12 +63,14 @@ def get_mean_CCF_values(
 
 def get_indv_CCF_values(
     indv_ccfs:np.ndarray,
-    channel_combos:np.ndarray,
     bin_values:np.ndarray,
-    analysis_type:str,
-    num_bins:int,
-    frame_interval: float
+    img_props_dict: dict
 ) -> dict:
+    
+    frame_interval = img_props_dict['frame_interval']
+    num_bins = img_props_dict['num_bins']
+    analysis_type = img_props_dict['analysis_type']
+    channel_combos = img_props_dict['channel_combos']
     
     indv_ccf_values = {}
 

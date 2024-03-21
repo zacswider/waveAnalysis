@@ -23,8 +23,33 @@ def rolling_workflow(
     roll_size: int,
     roll_by: int,
     acf_peak_thresh: float
-) -> pd.DataFrame:             
+) -> pd.DataFrame:      
+    '''
+    This is the workflow for rolling analysis. It processes the image files in the specified folder 
+    and saves the summary data and figures to a new folder in the same directory as the image files.
 
+    It functions generally in this order (with some analysis specific steps):
+        1. Convert a folder of tiff images to numpy arrays
+        2. Iterate over every images in the folder
+            a. Get the image properties
+            b. Calculate the bin values based on the user provided box/line size and bin shift
+            c. Calculate the ACF, period, peak properties, and CCFs/shifts (if specified)
+            d. Save the summary data and figures to a new folder in the same directory as the image files
+        3. Log the parameters and errors
+            
+
+    Parameters:
+    - folder_path (str): The path to the folder containing the image files.
+    - log_params (dict[str, Any]): The dictionary to store the log parameters.
+    - acf_peak_thresh (float): The threshold for detecting peaks in the ACF curve.
+    - box_size (int, optional): The size of the box for standard analysis. Defaults to None.
+    - bin_shift (int, optional): The shift value for binning. Defaults to None.
+    - roll_size (int, optional): The size of the submovies.
+    - roll_by (int, optional): The amount to roll the submovies by.
+
+    Returns:
+    - pd.DataFrame: The summary data for each file.
+    '''       
     # list of file names in specified directory
     file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
 
@@ -194,7 +219,6 @@ def rolling_workflow(
             for measurement_index, submovie_meas_df in enumerate(submovie_meas_list):  # type: ignore
                 submovie_meas_df.to_csv(f'{csv_save_path}/{name_wo_ext}_subframe{measurement_index}_measurements.csv', index = False)
             
-            # TODO: add peak offsets to this function as well
             # summarize the data for each subframe as a single dataframe, and save as .csv
             summary_df = combine_stats_rolling(
                 img_props_dict=img_props_dict,

@@ -2,11 +2,14 @@ import numpy as np
 import pandas as pd
 
 def summarize_image_standard_kymo(
-    num_bins: int,
-    num_channels: int,
-    channel_combos: list,
     img_parameters: dict,
+    img_props_dict: dict
 ) -> pd.DataFrame:
+    
+    num_bins = img_props_dict['num_bins']
+    num_channels = img_props_dict['num_channels']
+    channel_combos = img_props_dict['channel_combos']
+
     # column names for the dataframe summarizing the bin results
     col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]
     col_names.extend([f'Bin {i}' for i in range(num_bins)])

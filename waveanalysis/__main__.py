@@ -15,7 +15,7 @@ def main():
 
     # get standard GUI parameters
     box_size = gui.box_size
-    box_shift = gui.box_shift
+    bin_shift = gui.bin_shift
     folder_path = gui.folder_path
     group_names = gui.group_names
     acf_peak_thresh = gui.acf_peak_thresh
@@ -36,7 +36,7 @@ def main():
 
         # get GUI parameters
         box_size = gui.box_size
-        box_shift = gui.box_shift
+        bin_shift = gui.box_shift
         folder_path = gui.folder_path
         acf_peak_thresh = gui.acf_peak_thresh
         plot_sf_ACFs = gui.plot_sf_ACFs
@@ -61,7 +61,7 @@ def main():
         plot_indv_peaks = gui.plot_indv_peaks
         plot_indv_ACFs = gui.plot_indv_ACFs
         line_width = gui.line_width
-        box_shift = gui.box_shift
+        bin_shift = gui.bin_shift
         group_names = gui.group_names
         acf_peak_thresh = gui.acf_peak_thresh
         calc_wave_speeds = gui.calc_wave_speeds
@@ -70,7 +70,7 @@ def main():
 
     #make dictionary of parameters for log file use
     log_params = {  "Box Size(px)" : box_size,
-                    "Box Shift(px)" : box_shift,
+                    "Box Shift(px)" : bin_shift,
                     "Base Directory" : folder_path,
                     "ACF Peak Prominence" : acf_peak_thresh,
                     "Group Names" : group_names,
@@ -91,7 +91,7 @@ def main():
     
     if analysis_type == 'rolling':
         log_params = {  "Box Size(px)" : box_size,
-                        "Box Shift(px)" : box_shift,
+                        "Box Shift(px)" : bin_shift,
                         "Base Directory" : folder_path,
                         "ACF Peak Prominence" : acf_peak_thresh,
                         "Plot sub-movie ACFs" : plot_sf_ACFs,
@@ -107,7 +107,7 @@ def main():
                 } 
     if analysis_type == 'kymograph':
         log_params = {  "Line width": line_width,
-                        "Line Shift(px)": box_shift,
+                        "Line Shift(px)": bin_shift,
                         "Base Directory": folder_path,
                         "ACF Peak Prominence" : acf_peak_thresh,
                         "Group Names" : group_names,
@@ -148,7 +148,7 @@ def main():
             plot_wave_speeds=False,
             plot_indv_peaks=plot_indv_peaks,
             box_size=box_size,
-            box_shift=box_shift,
+            bin_shift=bin_shift,
             line_width=None
         )
     
@@ -157,7 +157,7 @@ def main():
             folder_path=folder_path,
             log_params=log_params,
             box_size=box_size,
-            box_shift=box_shift,
+            bin_shift=bin_shift,
             roll_size=subframe_size,    
             roll_by=subframe_roll,
             acf_peak_thresh=acf_peak_thresh,
@@ -179,7 +179,7 @@ def main():
             calc_wave_speeds=calc_wave_speeds,
             plot_wave_speeds=True, # always plot wave speeds for now
             box_size=None,
-            box_shift=box_shift,
+            bin_shift=bin_shift,
             line_width=line_width,
         )
     
