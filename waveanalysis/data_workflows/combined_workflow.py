@@ -308,10 +308,8 @@ def combined_workflow(
 
             # Summarize the data for current image as dataframe, and save as .csv
             im_measurements_df, parameters_with_stats_dict = summarize_image_standard_kymo(
-                num_bins=num_bins,
-                num_channels=img_props_dict['num_channels'],
-                channel_combos=channel_combos,
-                img_parameters=img_parameters_dict
+                img_parameters=img_parameters_dict,
+                img_props_dict=img_props_dict
             )
             im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)  # type: ignore
             

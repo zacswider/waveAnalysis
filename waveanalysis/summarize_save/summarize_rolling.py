@@ -41,7 +41,6 @@ def summarize_submovie_measurements(
                 parameter_with_stats = add_stats_for_parameter(img_parameters_dict[key][submovie], key, num_channels, channel_combos)
                 for channel in range(num_channels):
                     statified_measurements.append(parameter_with_stats[channel])
-                    # TODO: need to do separate for wave speed
         
         # Add stats for Shift
         if num_channels > 1:
@@ -125,7 +124,6 @@ def combine_stats_rolling(
                     # Add stats for each channel
                     for stat_name, func in stat_name_and_func.items():
                         submovie_summary[f'Ch {channel + 1} {stat_name} {name}'] = func(measurements[submovie, channel])
-                         # TODO: need to do separate for wave speed
 
         all_submovie_summary.append(submovie_summary)
     
