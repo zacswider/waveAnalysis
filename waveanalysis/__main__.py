@@ -129,9 +129,11 @@ def main():
     # identify and report errors in GUI input
     hf.threshold_check(acf_peak_thresh, log_params)
     
+    # check if a directory was entered
     if len(gui.folder_path) < 1 :        
         log_params["Errors"].append("You didn't enter a directory to analyze")        
         
+    # Run the analysis based on the GUI input
     if analysis_type == "standard":                         
         combined_workflow(
             folder_path=folder_path,

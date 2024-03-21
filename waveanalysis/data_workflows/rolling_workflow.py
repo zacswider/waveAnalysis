@@ -74,9 +74,12 @@ def rolling_workflow(
             print('******'*10)
             print(f'Processing {file_name}...')
 
+            ############################################
+            ####### Image Convert and Properties #######
+            ############################################
+
             # Get image properties
             image_path = f'{folder_path}/{file_name}'
-            # TODO: add the ability to save the values in terms of seconds if frame_interval is provided
             img_props_dict = get_multi_frame_properties(image_path=image_path)
 
             # add other image properties to the dictionary for later use
@@ -115,6 +118,10 @@ def rolling_workflow(
 
             # name without the extension
             name_wo_ext = file_name.rsplit(".",1)[0]
+
+            ############################################
+            ############## Signal Processing ###########
+            ############################################
 
             # Calculate the individual periods for each channel
             indv_periods = np.zeros(shape=(num_submovies, num_channels, num_bins))
@@ -208,6 +215,10 @@ def rolling_workflow(
 
             # calculate the number of subframes used
             log_params['Submovies Used'].append(num_submovies)
+
+            ############################################
+            ############## Saving and Summary ##########
+            ############################################
 
             # summarize the data for each subframe as individual dataframes, and save as .csv
             submovie_meas_list = summarize_submovie_measurements(

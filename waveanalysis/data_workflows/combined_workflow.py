@@ -101,9 +101,13 @@ def combined_workflow(
         for file_name in file_names: 
             print('******'*10)
             print(f'Processing {file_name}...')
+
+            ############################################
+            ####### Image Convert and Properties #######
+            ############################################
+
             image_path = f'{folder_path}/{file_name}'  
             
-            # TODO: add the ability to save the values in terms of seconds if frame_interval is provided
             # Get image properties
             if analysis_type == 'standard':
                 img_props_dict = get_multi_frame_properties(image_path=image_path)
@@ -176,6 +180,10 @@ def combined_workflow(
             name_wo_ext = file_name.rsplit(".",1)[0]
             group_name = hf.match_group_to_file(name_wo_ext=name_wo_ext, group_names=group_names)
 
+            ############################################
+            ############## Signal Processing ###########
+            ############################################
+
             # Calculate the ACF
             indv_acfs = sp.calc_indv_ACF_workflow(bin_values=bin_values, img_props=img_props_dict)
 
@@ -219,6 +227,10 @@ def combined_workflow(
             # create the directory to save the figures and data for the image
             im_save_path = os.path.join(main_save_path, name_wo_ext)
             os.makedirs(im_save_path, exist_ok=True)
+
+            ############################################
+            ############## Plotting ####################
+            ############################################
 
             # plot the mean ACF figures for the file
             if plot_summary_ACFs:
@@ -306,6 +318,10 @@ def combined_workflow(
                 os.makedirs(indv_ccf_val_path, exist_ok=True)
                 save_ccf_values_to_csv(indv_ccf_values, indv_ccf_val_path)                    
 
+            ############################################
+            ############## Saving ######################
+            ############################################
+
             # Summarize the data for current image as dataframe, and save as .csv
             im_measurements_df, parameters_with_stats_dict = summarize_image_standard_kymo(
                 img_parameters=img_parameters_dict,
@@ -336,6 +352,10 @@ def combined_workflow(
                 for i in range(10):
                     dummy_pbar.update(1)
             pbar.update(1)
+
+        ############################################
+        ############## Summary #####################
+        ############################################
 
         # create dataframe from summary list, then sort and save the summary to a csv file
         summary_df = pd.DataFrame(summary_list, columns=col_headers)
