@@ -192,9 +192,6 @@ def combined_workflow(
 
             # Calculate the peak properties
             indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_offsets, indv_peak_props = sp.calc_indv_peak_props_workflow(bin_values=bin_values, img_props=img_props_dict)
-            print(indv_peak_maxs)
-            print(indv_peak_mins)
-            
             indv_peak_amps = indv_peak_maxs - indv_peak_mins
             indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
             
