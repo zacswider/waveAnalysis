@@ -46,8 +46,8 @@ The standard analysis method excels when capturing the wave dynamics of a cell f
 
 In response, we introduced a method to conduct the same analysis using kymographs. Instead of dividing the image into boxes for temporal wave property measurements, we opt to segment entire columns of a kymograph. By assessing the fluorescence intensity along these columns, we can analyze the same parameters as with the standard method.
 
-<img src="assets/images/lines_dark.png#gh-dark-mode-only" alt="GitHub-Mark-Light" width="800">
-<img src="assets/images/lines_light.png#gh-light-mode-only" alt="GitHub-Mark-Dark" width="800">
+<img src="assets/images/lines_dark.png#gh-dark-mode-only" alt="GitHub-Mark-Light" width="400">
+<img src="assets/images/lines_light.png#gh-light-mode-only" alt="GitHub-Mark-Dark" width="400">
 
 ## Preparing data for analysis
 Before running any analysis on your data, be sure to complete all necessary pre-processing steps. Some thing to consider:
