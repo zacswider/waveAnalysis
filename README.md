@@ -46,6 +46,8 @@ The standard analysis method excels when capturing the wave dynamics of a cell f
 
 In response, we introduced a method to conduct the same analysis using kymographs. Instead of dividing the image into boxes for temporal wave property measurements, we opt to segment entire columns of a kymograph. By assessing the fluorescence intensity along these columns, we can analyze the same parameters as with the standard method.
 
+![GitHub-Mark-Light](assets/images/lines_light.png#gh-dark-mode-only)![GitHub-Mark-Dark](assets/images/lines_dark.png#gh-light-mode-only)
+
 ## Preparing data for analysis
 Before running any analysis on your data, be sure to complete all necessary pre-processing steps. Some thing to consider:
 - Any significant two-dimensional drift in your data will alter the detected wave dynamics. If drift is detectable, register your data ahead of time.
@@ -105,6 +107,8 @@ If you clicked button 14 in the previous GUI, the following window will appear:
 ### Kymograph analysis
 
 If you clicked button 15 in the previous GUI, the following window will appear:
+
+<img src="assets/images/gui3.png" width="800">
 
 1) This is the source directory for your analysis. Navigate to it using the "Select source directory button". This directory should have one or more time lapse datasets saved in standard standard `tzcyx` order. If the data are not max projected along the z-axis prior to analysis, they will be max projected by the processing script.
 2) This is the line width used for analysis. Lines should be large enough to filter out noise, but small enough that they don't over-fill the structures being analyzed.

@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from waveanalysis.signal_processing import normalize_signal
+from signal_processing import normalize_signal
 
 def plot_indv_peak_workflow(
 	bin_values: np.ndarray,
@@ -281,6 +281,7 @@ def return_indv_ccf_figure(
 	'''
 	Space saving function to return individual CCF figures
 	'''
+	plt.style.use('dark_background')	
 	fig, (ax1, ax2) = plt.subplots(2, 1)
 	x_axis = np.arange(0, num_frames) * frame_interval 
 	# Plot the raw signal

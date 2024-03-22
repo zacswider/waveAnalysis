@@ -323,7 +323,7 @@ class KymographGUI(tk.Tk):
         self.acf_peak_thresh.set(0.1)
 
         self.plot_indv_ACFs = tk.BooleanVar()
-        self.plot_indv_ACFs.set(True)
+        self.plot_indv_ACFs.set(False)
         self.plot_indv_CCFs = tk.BooleanVar()
         self.plot_indv_CCFs.set(False)
         self.plot_indv_peaks = tk.BooleanVar()
@@ -340,7 +340,7 @@ class KymographGUI(tk.Tk):
         self.file_path_button = ttk.Button(self, text = 'Select folder')
 
         # make a default path
-        self.folder_path.set('/Users/domchom/Desktop/wave_analysis_testing/kymo')
+        # self.folder_path.set('/Users/domchom/Desktop/wave_analysis_testing/kymo')
         self.file_path_button['command'] = self.get_folder_path
         self.file_path_button.grid(row = 0, column = 1, padx = 10, sticky = 'W')        
 
@@ -360,16 +360,16 @@ class KymographGUI(tk.Tk):
 
         # create group names entry widget
         self.group_names_entry = ttk.Entry(self, textvariable = self.group_names)
-        self.group_names_entry.grid(row = 5, column = 0, padx = 10, sticky = 'E')
+        self.group_names_entry.grid(row = 6, column = 0, padx = 10, sticky = 'E')
         # create group names label text
         self.group_names_label = ttk.Label(self, text = 'Group names')
-        self.group_names_label.grid(row = 5, column = 1, padx = 10, sticky = 'W')
+        self.group_names_label.grid(row = 6, column = 1, padx = 10, sticky = 'W')
 
         # create ACF peak threshold entry widget
         self.acf_peak_thresh_entry = ttk.Entry(self, width = 3, textvariable = self.acf_peak_thresh)
-        self.acf_peak_thresh_entry.grid(row = 6, column = 0, padx = 10, sticky = 'E')
+        self.acf_peak_thresh_entry.grid(row = 5, column = 0, padx = 10, sticky = 'E')
         self.acf_peak_thresh_label = ttk.Label(self, text = 'ACF peak threshold')
-        self.acf_peak_thresh_label.grid(row = 6, column = 1, padx = 10, sticky = 'W')
+        self.acf_peak_thresh_label.grid(row = 5, column = 1, padx = 10, sticky = 'W')
 
         # create checkbox for plotting summary ACFs
         self.plot_summary_ACFs_checkbox = ttk.Checkbutton(self, variable = self.plot_summary_ACFs)
