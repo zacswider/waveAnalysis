@@ -114,7 +114,8 @@ def combined_workflow(
                 img_props_dict = get_single_frame_properties(image_path=image_path)
 
             # check if frame interval is not 1 or None and log it
-            hf.check_frame_interval(frame_interval=img_props_dict['frame_interval'], log_params=log_params, file_name=file_name)
+            frame_interval = hf.check_frame_interval(frame_interval=img_props_dict['frame_interval'], log_params=log_params, file_name=file_name)
+            img_props_dict['frame_interval'] = frame_interval
 
             # add other image properties to the dictionary for later use
             img_props_dict['step'] = bin_shift
@@ -191,6 +192,9 @@ def combined_workflow(
 
             # Calculate the peak properties
             indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_offsets, indv_peak_props = sp.calc_indv_peak_props_workflow(bin_values=bin_values, img_props=img_props_dict)
+            print(indv_peak_maxs)
+            print(indv_peak_mins)
+            
             indv_peak_amps = indv_peak_maxs - indv_peak_mins
             indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
             

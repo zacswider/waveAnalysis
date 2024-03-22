@@ -81,6 +81,10 @@ def rolling_workflow(
             image_path = f'{folder_path}/{file_name}'
             img_props_dict = get_multi_frame_properties(image_path=image_path)
 
+            # check if frame interval is not 1 or None and log it
+            frame_interval = hf.check_frame_interval(frame_interval=img_props_dict['frame_interval'], log_params=log_params, file_name=file_name)
+            img_props_dict['frame_interval'] = frame_interval
+
             # add other image properties to the dictionary for later use
             img_props_dict['step'] = box_shift
             img_props_dict['box_size'] = box_size

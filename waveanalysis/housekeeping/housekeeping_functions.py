@@ -172,7 +172,7 @@ def check_frame_interval(
     Returns:
         float: The validated frame interval.
     """
-    if frame_interval == None or frame_interval == 0 or frame_interval == 1:
+    if frame_interval == None or frame_interval == 0 or frame_interval == 1 or np.isnan(frame_interval):
         print(f"****** WARNING ******",
             f"\n{file_name} frame interval is not provided or 0 or 1. Ensure this is the correct value. All calculations will be done assuming a frame interval of 1.",
             "\n****** WARNING ******")
