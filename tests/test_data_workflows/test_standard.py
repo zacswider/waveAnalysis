@@ -28,7 +28,7 @@ def default_log_params():
 
 def test_standard(default_log_params):
     # load csv
-    known_results = pd.read_csv('tests/assets/standard/standard_known_results.csv')
+    known_results = pd.read_csv('tests/assets/standard/standard.csv')
     assert isinstance(known_results, pd.DataFrame)
     exp_results = combined_workflow(
         folder_path=str(Path('tests/assets/standard/')),
