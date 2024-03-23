@@ -63,8 +63,6 @@ def rolling_workflow(
     # list of file names in specified directory
     file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
 
-    all_images = tiff_to_np_array_multi_frame(folder_path=folder_path)
-
     print('Processing files...')
 
     with tqdm(total = len(file_names)) as pbar:
@@ -110,8 +108,9 @@ def rolling_workflow(
             log_params['Files Processed'].append(f'{file_name}')
             
             # Create the array for which all future processing will be based on
+            image_array = tiff_to_np_array_multi_frame(image_path)
             bin_values, num_bins, num_x_bins, num_y_bins = create_multi_frame_bin_array(
-                                                                image = all_images[file_name],
+                                                                image = image_array,
                                                                 img_props = img_props_dict
                                                             )
             

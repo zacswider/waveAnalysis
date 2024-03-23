@@ -14,6 +14,8 @@ from waveanalysis.image_props.image_properties import get_multi_frame_properties
 from waveanalysis.summarize_save.save_stats import save_parameter_means_to_csv, get_mean_CCF_values, get_indv_CCF_values, save_ccf_values_to_csv
 from waveanalysis.summarize_save.summarize_kymo_standard import summarize_image_standard_kymo, combine_stats_for_image_kymo_standard
 
+import numpy as np
+
 def combined_workflow(
     folder_path: str,
     group_names: list[str],
@@ -90,9 +92,6 @@ def combined_workflow(
     # empty list to fill with summary data for each file, and column headers list
     summary_list, col_headers = [], []
 
-    # convert images to numpy arrays
-    all_images = tiff_to_np_array_multi_frame(folder_path=folder_path) if analysis_type == 'standard' else tiff_to_np_array_single_frame(folder_path=folder_path)
-
     print('Processing files...')
 
     with tqdm(total = len(file_names)) as pbar:
@@ -140,10 +139,12 @@ def combined_workflow(
 
             # Create the array of bin values for which all the stats will be calculated
             if analysis_type == 'standard':
-                bin_values, num_bins, _, _ = create_multi_frame_bin_array(image = all_images[file_name], 
+                image_array = tiff_to_np_array_multi_frame(image_path)
+                bin_values, num_bins, _, _ = create_multi_frame_bin_array(image = image_array, 
                                                                           img_props = img_props_dict)
             else: # analysis_type == 'kymograph'
-                bin_values, num_bins = create_kymo_bin_array(image = all_images[file_name],
+                image_array = tiff_to_np_array_single_frame(image_path)
+                bin_values, num_bins = create_kymo_bin_array(image = image_array,
                                                              img_props = img_props_dict)
                 
                 if calc_wave_speeds:
