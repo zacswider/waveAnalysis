@@ -1,7 +1,6 @@
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from signal_processing import normalize_signal
 
 def plot_indv_peak_workflow(
 	bin_values: np.ndarray,
@@ -310,3 +309,9 @@ def return_indv_ccf_figure(
 	plt.close(fig)
 
 	return(fig)
+
+def normalize_signal(signal: np.ndarray) -> np.ndarray:
+    '''
+    Normalize a signal between 0 and 1.
+    '''
+    return (signal - np.min(signal)) / (np.max(signal) - np.min(signal))

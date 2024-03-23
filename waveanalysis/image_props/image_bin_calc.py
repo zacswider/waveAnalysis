@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.ndimage as nd
-from scipy import signal as sig
 
 def create_kymo_bin_array(
     image: np.ndarray,
