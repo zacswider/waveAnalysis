@@ -57,7 +57,7 @@ def plot_rolling_summary(
                 independent_variable='Submovie',
                 dependent_variable=f'Ch {channel+1} Mean Peak {prop_name}',
                 dependent_error=f'Ch {channel+1} StdDev Peak {prop_name}',
-                y_label=f'Ch {channel+1} Mean ± StdDev Peak {prop_name} (seconds)',
+                y_label=f'Ch {channel+1} Mean ± StdDev Peak {prop_name}',
                 fullmovie_summary=fullmovie_summary
                 )
                     

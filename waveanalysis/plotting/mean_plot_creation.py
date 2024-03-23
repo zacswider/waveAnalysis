@@ -68,8 +68,8 @@ def return_mean_ACF_figure(
     ax['A'].set_title(f'{channel} Mean Autocorrelation Curve ± Standard Deviation') 
 
     # Plot histogram of period values
+    periods = periods[~np.isnan(periods)]
     ax['B'].hist(periods)
-    periods = [val for val in periods if not np.isnan(val)]
     ax['B'].set_xlabel(f'Histogram of period values (frames)')
     ax['B'].set_ylabel('Occurrences')
 

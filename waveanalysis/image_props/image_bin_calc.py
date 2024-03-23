@@ -49,8 +49,6 @@ def create_kymo_bin_array(
                 if signal_slice.shape == (num_frames, line_width):
                     # Calculate the mean signal over the slice
                     signal = np.mean(signal_slice, axis=1)
-                    # Apply Savitzky-Golay filter to smooth the signal
-                    signal = sig.savgol_filter(signal, window_length=1, polyorder=0)
                     # Calculate the index for the current bin
                     idx = col_num // step
                     # Store the signal in the line values array

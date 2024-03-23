@@ -34,7 +34,7 @@ def main():
 
         # get GUI parameters
         box_size = gui.box_size
-        bin_shift = gui.box_shift
+        box_shift = gui.box_shift
         folder_path = gui.folder_path
         acf_peak_thresh = gui.acf_peak_thresh
         plot_sf_ACFs = gui.plot_sf_ACFs
@@ -157,7 +157,7 @@ def main():
             folder_path=folder_path,
             log_params=log_params,
             box_size=box_size,
-            bin_shift=bin_shift,
+            box_shift=box_shift,
             roll_size=subframe_size,    
             roll_by=subframe_roll,
             acf_peak_thresh=acf_peak_thresh,

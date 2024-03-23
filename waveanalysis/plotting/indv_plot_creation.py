@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from waveanalysis.signal_processing import normalize_signal
+from signal_processing import normalize_signal
 
 def plot_indv_peak_workflow(
 	bin_values: np.ndarray,
@@ -203,12 +203,12 @@ def return_indv_acf_figure(
 			color = 'red'
 			ax2.axvline(x = period, alpha = 0.5, c = color, linestyle = '--')
 			ax2.axvline(x = -period, alpha = 0.5, c = color, linestyle = '--')
-			ax2.set_xlabel(f'Period is {period} seconds')
+			ax2.set_xlabel(f'Period is {abs(round(period, 2))} seconds')
 	else:
 			ax2.set_xlabel(f'No period identified')
 
-			fig.subplots_adjust(hspace=0.75)
-			plt.close(fig)
+	fig.subplots_adjust(hspace=0.75)
+	plt.close(fig)
 
 	return(fig)
 
@@ -298,9 +298,9 @@ def return_indv_ccf_figure(
 		color = 'red'
 		ax2.axvline(x = shift, alpha = 0.5, c = color, linestyle = '--')
 		if shift < 1:
-			ax2.set_xlabel(f'{ch1_name} leads by {int(abs(shift))} seconds')
+			ax2.set_xlabel(f'{ch1_name} leads by {abs(round(shift, 2))} seconds')
 		elif shift > 1:
-			ax2.set_xlabel(f'{ch2_name} leads by {int(abs(shift))} seconds')
+			ax2.set_xlabel(f'{ch2_name} leads by {abs(round(shift, 2))} seconds')
 		else:
 			ax2.set_xlabel('no shift detected')
 	else:

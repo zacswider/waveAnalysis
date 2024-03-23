@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from itertools import zip_longest
 from typing import Union, List, Tuple
-from waveanalysis.signal_processing import normalize_signal
+from signal_processing import normalize_signal
 
 def save_parameter_means_to_csv(
     summary_df: pd.DataFrame,
