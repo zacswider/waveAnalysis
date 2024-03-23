@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from itertools import zip_longest
 from typing import Union, List, Tuple
-from waveanalysis.signal_processing import normalize_signal
 
 def save_parameter_means_to_csv(
     summary_df: pd.DataFrame,
@@ -166,3 +165,9 @@ def write_to_csv(file_path: str, headers: List[str], data: List[Tuple]) -> None:
         writer = csv.writer(csvfile)
         writer.writerow(headers)
         writer.writerows(data)
+
+def normalize_signal(signal: np.ndarray) -> np.ndarray:
+    '''
+    Normalize a signal between 0 and 1.
+    '''
+    return (signal - np.min(signal)) / (np.max(signal) - np.min(signal))
