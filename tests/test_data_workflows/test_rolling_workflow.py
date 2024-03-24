@@ -20,7 +20,7 @@ def default_log_params():
         }
 
 
-def test_rolling(default_log_params):
+def test_rolling_workflow(default_log_params):
     # load csv
     known_results = pd.read_csv('tests/assets/rolling/1_Group2_summary.csv')
     assert isinstance(known_results, pd.DataFrame)
