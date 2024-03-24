@@ -15,6 +15,7 @@ from waveanalysis.summarize_save.save_stats import save_parameter_means_to_csv, 
 from waveanalysis.summarize_save.summarize_kymo_standard import summarize_image_standard_kymo, combine_stats_for_image_kymo_standard
 
 import numpy as np
+import json
 
 def combined_workflow(
     folder_path: str,
@@ -142,6 +143,7 @@ def combined_workflow(
                 image_array = tiff_to_np_array_multi_frame(image_path)
                 bin_values, num_bins, _, _ = create_multi_frame_bin_array(image = image_array, 
                                                                           img_props = img_props_dict)
+                                
             else: # analysis_type == 'kymograph'
                 image_array = tiff_to_np_array_single_frame(image_path)
                 bin_values, num_bins = create_kymo_bin_array(image = image_array,
