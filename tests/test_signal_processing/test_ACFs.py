@@ -23,12 +23,12 @@ def test_ACF_calc(default_ACFs):
         '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/standard_image_properties_1_Group2_final.json'
     ]
 
-    for array, acf_file, img_props_file in zip(default_bin_values, default_ACFs, default_dicts):
+    for bin_values, acf_file, img_props_file in zip(default_bin_values, default_ACFs, default_dicts):
         # Load the pickle file
         with open(acf_file, 'rb') as f:
             known_results = pickle.load(f)
         with open(img_props_file, 'r') as file:
             img_props_dict = json.load(file)
-        exp_results = calc_indv_ACF_workflow(array, img_props_dict)
+        exp_results = calc_indv_ACF_workflow(bin_values, img_props_dict)
 
         assert np.array_equal(known_results, exp_results)

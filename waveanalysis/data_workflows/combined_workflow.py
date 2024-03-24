@@ -189,9 +189,6 @@ def combined_workflow(
             # Calculate the ACF
             indv_acfs = sp.calc_indv_ACF_workflow(bin_values=bin_values, img_props=img_props_dict)
 
-            with open(f'/Users/domchom/Desktop/ACF_{file_name}.pkl', 'wb') as f:
-                pickle.dump(indv_acfs, f)
-
             # Calculate the period
             indv_periods = sp.calc_indv_period_workflow(acf_curve=indv_acfs, img_props=img_props_dict)
 
@@ -204,6 +201,9 @@ def combined_workflow(
             if img_props_dict['num_channels'] > 1:
                 indv_ccfs = sp.calc_indv_CCF_workflow(bin_values=bin_values, img_props=img_props_dict)
                 indv_shifts = sp.calc_indv_shift_workflow(indv_ccfs=indv_ccfs, indv_periods=indv_periods, img_props=img_props_dict)
+
+                with open(f'/Users/domchom/Desktop/shifts_{file_name}.pkl', 'wb') as f:
+                    pickle.dump(indv_shifts, f)
 
             # adjust the different waves properties to be the use the frame interval rather than the number of frames
             indv_periods = indv_periods * img_props_dict['frame_interval']
