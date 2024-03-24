@@ -196,14 +196,14 @@ def combined_workflow(
             indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_offsets, indv_peak_props = sp.calc_indv_peak_props_workflow(bin_values=bin_values, img_props=img_props_dict)
             indv_peak_amps = indv_peak_maxs - indv_peak_mins
             indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
+
+            with open(f'/Users/domchom/Desktop/peak_props_{file_name}.pkl', 'wb') as f:
+                pickle.dump(indv_peak_props, f)
             
             # Calculate the individual CCFs and shifts
             if img_props_dict['num_channels'] > 1:
                 indv_ccfs = sp.calc_indv_CCF_workflow(bin_values=bin_values, img_props=img_props_dict)
                 indv_shifts = sp.calc_indv_shift_workflow(indv_ccfs=indv_ccfs, indv_periods=indv_periods, img_props=img_props_dict)
-
-                with open(f'/Users/domchom/Desktop/shifts_{file_name}.pkl', 'wb') as f:
-                    pickle.dump(indv_shifts, f)
 
             # adjust the different waves properties to be the use the frame interval rather than the number of frames
             indv_periods = indv_periods * img_props_dict['frame_interval']
