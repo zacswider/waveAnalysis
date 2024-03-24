@@ -1,7 +1,7 @@
-from data_workflows import rolling_workflow
 import housekeeping.housekeeping_functions as hf
 from custom_gui import BaseGUI, RollingGUI, KymographGUI
 from data_workflows.combined_workflow import combined_workflow
+from data_workflows.rolling_workflow import rolling_workflow
 
 def main():
     '''

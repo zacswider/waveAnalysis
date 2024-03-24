@@ -14,8 +14,6 @@ from waveanalysis.image_props.image_properties import get_multi_frame_properties
 from waveanalysis.summarize_save.save_stats import save_parameter_means_to_csv, get_mean_CCF_values, get_indv_CCF_values, save_ccf_values_to_csv
 from waveanalysis.summarize_save.summarize_kymo_standard import summarize_image_standard_kymo, combine_stats_for_image_kymo_standard
 
-import pickle
-
 def combined_workflow(
     folder_path: str,
     group_names: list[str],
@@ -196,9 +194,6 @@ def combined_workflow(
             indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_offsets, indv_peak_props = sp.calc_indv_peak_props_workflow(bin_values=bin_values, img_props=img_props_dict)
             indv_peak_amps = indv_peak_maxs - indv_peak_mins
             indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
-
-            with open(f'/Users/domchom/Desktop/peak_props_{file_name}.pkl', 'wb') as f:
-                pickle.dump(indv_peak_props, f)
             
             # Calculate the individual CCFs and shifts
             if img_props_dict['num_channels'] > 1:
