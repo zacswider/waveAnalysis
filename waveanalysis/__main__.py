@@ -133,7 +133,7 @@ def main():
         
     # Run the analysis based on the GUI input
     if analysis_type == "standard":              
-        combined_workflow(
+        summary_df, log_parameters = combined_workflow(
             main_directory=folder_path,
             group_names=group_names,
             log_params=log_params,
@@ -164,7 +164,7 @@ def main():
         )
 
     if analysis_type == "kymograph":                         
-        combined_workflow(
+        summary_df, log_parameters = combined_workflow(
             main_directory=folder_path,
             group_names=group_names,
             log_params=log_params,
@@ -182,6 +182,7 @@ def main():
             bin_shift=bin_shift,
             line_width=line_width,
         )
+
     
 if __name__ == '__main__':
     main()

@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.signal as sig
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
@@ -254,6 +255,8 @@ def plot_indv_ccf_workflow(
 				else:
 					to_plot1 = bin_values[combo[0], bin]
 					to_plot2 = bin_values[combo[1], bin]
+					to_plot1 = sig.savgol_filter(to_plot1, 25, 2)
+					to_plot2 = sig.savgol_filter(to_plot2, 25, 2)
 				# Generate and store the figure for the current channel and bin
 				indv_ccf_plots[f'Ch{combo[0]}-Ch{combo[1]} Bin {bin + 1} CCF'] = return_indv_ccf_figure(
 					ch1 = normalize_signal(to_plot1),
