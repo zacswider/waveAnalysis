@@ -14,8 +14,29 @@ from waveanalysis.image_props.image_properties import get_multi_frame_properties
 from waveanalysis.summarize_save.save_stats import save_parameter_means_to_csv, get_mean_CCF_values, get_indv_CCF_values, save_ccf_values_to_csv
 from waveanalysis.summarize_save.summarize_kymo_standard import summarize_image_standard_kymo, combine_stats_for_image_kymo_standard
 
+import functools
+
+def log_parameters_errors(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        log_params = kwargs.get('log_params', {})
+        try:
+            result = func(*args, **kwargs)
+            # Log success
+            log_params['Success'] = f"{func.__name__} completed successfully."
+            return result
+        except Exception as e:
+            # Log error
+            log_params['Error'] = f"Error in {func.__name__}: {str(e)}"
+            raise
+        finally:
+            # Log parameters
+            hf.make_log(kwargs['main_save_path'], log_params)
+    return wrapper
+
+# @log_parameters_errors
 def combined_workflow(
-    folder_path: str,
+    main_directory: str,
     group_names: list[str],
     log_params: dict[str, Any],
     analysis_type: str,
@@ -53,7 +74,7 @@ def combined_workflow(
         6. Log the parameters and errors to a log file in the new folder
 
     Parameters:
-    - folder_path (str): The path to the folder containing the image files.
+    - main_directory (str): The path to the folder containing the image files.
     - group_names (list[str]): The list of group names to match with the image files.
     - log_params (dict[str, Any]): The dictionary to store the log parameters.
     - analysis_type (str): The type of analysis to perform ('standard' or 'kymograph').
@@ -74,7 +95,7 @@ def combined_workflow(
     - pd.DataFrame: The summary data for each file.
     '''
     # list of file names in specified directory
-    file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
+    file_names = [fname for fname in os.listdir(main_directory) if fname.endswith('.tif') and not fname.startswith('.')]
 
     # check for group name errors          
     hf.group_name_error_check(file_names=file_names, group_names=group_names, log_params=log_params)
@@ -84,7 +105,7 @@ def combined_workflow(
 
     # create main save path
     now = datetime.datetime.now()
-    main_save_path = os.path.join(folder_path, f"0_signalProcessing-{now.strftime('%Y%m%d%H%M')}")
+    main_save_path = os.path.join(main_directory, f"0_signalProcessing-{now.strftime('%Y%m%d%H%M')}")
     os.makedirs(main_save_path, exist_ok=True)
 
     # empty list to fill with summary data for each file, and column headers list
@@ -102,8 +123,7 @@ def combined_workflow(
             ####### Image Convert and Properties #######
             ############################################
 
-            image_path = f'{folder_path}/{file_name}'  
-            
+            image_path = f'{main_directory}/{file_name}'  
             # Get image properties
             if analysis_type == 'standard':
                 img_props_dict = get_multi_frame_properties(image_path=image_path)
