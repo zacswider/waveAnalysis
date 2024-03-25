@@ -48,5 +48,4 @@ def test_standard_workflow(default_log_params):
         calc_wave_speeds=None, #type: ignore
         plot_wave_speeds=None, #type: ignore
     )
-
     assert pd.testing.assert_frame_equal(known_results, exp_results) is None

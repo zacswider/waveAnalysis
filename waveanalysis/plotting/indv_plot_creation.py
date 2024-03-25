@@ -290,7 +290,8 @@ def return_indv_ccf_figure(
 	ax1.plot(x_axis, ch2, color = 'tab:orange', label = ch2_name)
 	ax1.set_xlabel('time (seconds)')
 	ax1.set_ylabel('Mean bin px value')
-	# Plot the autocorrelation curve
+
+	# Plot the cross-correlation curve
 	ax1.legend(loc='upper right', fontsize = 'small', ncol = 1)
 	ax2.plot(np.arange(-num_frames + 1, num_frames) * frame_interval, ccf_curve)
 	ax2.set_ylabel('Crosscorrelation')
