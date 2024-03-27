@@ -66,7 +66,7 @@ def main():
         # set the analysis type
         analysis_type = "kymograph"
 
-    #make dictionary of parameters for log file use
+    # make dictionary of parameters for log file use
     log_params = {  "Box Size(px)" : box_size,
                     "Box Shift(px)" : bin_shift,
                     "Base Directory" : folder_path,
