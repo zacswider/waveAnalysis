@@ -32,7 +32,11 @@ def test_standard_workflow(default_log_params):
     assert isinstance(known_results, pd.DataFrame)
     exp_results = combined_workflow(
         main_directory=str(Path('tests/assets/standard/')),
+<<<<<<< HEAD
         group_names=['Group1', 'Group2'],
+=======
+        group_names=['Group1','Group2'],
+>>>>>>> parent of 1cf2075 (Update test_standard_workflow.py)
         log_params=default_log_params,
         analysis_type='standard',
         box_size=default_log_params['Box Size(px)'],
