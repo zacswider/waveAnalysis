@@ -1,9 +1,7 @@
 import os
 import sys
 import datetime
-import functools
 import numpy as np
-
 
 def make_log(
     directory: str, 
