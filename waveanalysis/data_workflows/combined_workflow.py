@@ -82,6 +82,38 @@ def combined_workflow(
     main_save_path = os.path.join(main_directory, f"0_signalProcessing-{now.strftime('%Y%m%d%H%M')}")
     os.makedirs(main_save_path, exist_ok=True)
 
+    # Save the parameters for the log file
+    log_filename = f"{main_save_path}/!log-{now.strftime('%Y%m%d%H%M')}.txt"
+
+    # Create a logger
+    logger = logging.getLogger(__name__)
+
+    # Set the logging level
+    logger.setLevel(logging.DEBUG)
+
+    # Create a file handler for the logger
+    file_handler = logging.FileHandler(log_filename)
+
+    # Set the formatter for the file handler
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+
+    # Add the file handler to the logger
+    logger.addHandler(file_handler)
+
+    # Test the logger
+    logger.debug('This is a debug message')
+    logger.info('This is an info message')
+    logger.warning('This is a warning message')
+    logger.error('This is an error message')
+    logger.critical('This is a critical message')
+
+    log_filename = f"{main_save_path}/!log-{now.strftime('%Y%m%d%H%M')}.log"
+    logging.basicConfig(filename=log_filename, 
+                        filemode='w',
+                        level=logging.INFO)  # Set the logging level to INFO
+    logging.info("Running waveanalysis combined_workflow on %s", main_directory)
+
     # list of file names in specified directory
     file_names = [fname for fname in os.listdir(main_directory) if fname.endswith('.tif') and not fname.startswith('.')]
 
