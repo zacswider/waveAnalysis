@@ -65,27 +65,6 @@ def main():
         calc_wave_speeds = gui.calc_wave_speeds
         # set the analysis type
         analysis_type = "kymograph"
-
-    # make dictionary of parameters for log file use
-    log_params = {  "Box Size(px)" : box_size,
-                    "Box Shift(px)" : bin_shift,
-                    "Base Directory" : folder_path,
-                    "ACF Peak Prominence" : acf_peak_thresh,
-                    "Group Names" : group_names,
-                    "Plot Summary ACFs" : plot_summary_ACFs,
-                    "Plot Summary CCFs" : plot_summary_CCFs,
-                    "Plot Summary Peaks" : plot_summary_peaks,
-                    "Plot Individual ACFs" : plot_indv_ACFs,
-                    "Plot Individual CCFs" : plot_indv_CCFs,
-                    "Plot Individual Peaks" : plot_indv_peaks,
-                    'Calc Wave Speeds': False,
-                    'Plot Wave Speeds': False,
-                    "Files Processed" : [],
-                    "Files Not Processed" : [],
-                    "Errors" : [],
-                    'Frame Interval': [],
-                    'Pixel Size': [],
-                } 
     
     if analysis_type == 'rolling':
         log_params = {  "Box Size(px)" : box_size,
@@ -103,30 +82,7 @@ def main():
                         'Frame Interval': [],
                         'Pixel Size': []
                 } 
-    if analysis_type == 'kymograph':
-        log_params = {  "Line width": line_width,
-                        "Line Shift(px)": bin_shift,
-                        "Base Directory": folder_path,
-                        "ACF Peak Prominence" : acf_peak_thresh,
-                        "Group Names" : group_names,
-                        "Plot Summary ACFs": plot_summary_ACFs,
-                        "Plot Summary CCFs": plot_summary_CCFs,
-                        "Plot Summary Peaks": plot_summary_peaks,
-                        "Plot Individual ACFs": plot_indv_ACFs,
-                        "Plot Individual CCFs": plot_indv_CCFs,
-                        "Plot Individual Peaks": plot_indv_peaks,  
-                        'Calc Wave Speeds': calc_wave_speeds,
-                        'Plot Wave Speeds': True,
-                        "Files Processed": [],
-                        "Files Not Processed": [],
-                        "Errors" : [],
-                        'Frame Interval': [],
-                        'Pixel Size': [],
-                }
-        
-    # identify and report errors in GUI input
-    hf.threshold_check(acf_peak_thresh, log_params)
-    
+ 
     # check if a directory was entered
     if len(gui.folder_path) < 1 :        
         log_params["Errors"].append("You didn't enter a directory to analyze")        
@@ -136,7 +92,6 @@ def main():
         summary_df = combined_workflow(
             main_directory=folder_path,
             group_names=group_names,
-            log_params=log_params,
             analysis_type=analysis_type,
             acf_peak_thresh=acf_peak_thresh,
             plot_summary_ACFs=plot_summary_ACFs,
@@ -167,7 +122,6 @@ def main():
         summary_df = combined_workflow(
             main_directory=folder_path,
             group_names=group_names,
-            log_params=log_params,
             analysis_type=analysis_type,
             acf_peak_thresh=acf_peak_thresh,
             plot_summary_ACFs=plot_summary_ACFs,

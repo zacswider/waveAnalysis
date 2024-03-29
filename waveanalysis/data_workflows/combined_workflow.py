@@ -1,5 +1,6 @@
 import os
 import timeit
+import logging
 import datetime
 import pandas as pd
 from tqdm import tqdm
@@ -17,7 +18,6 @@ from waveanalysis.summarize_save.summarize_kymo_standard import summarize_image_
 def combined_workflow(
     main_directory: str,
     group_names: list[str],
-    log_params: dict[str, Any],
     analysis_type: str,
     acf_peak_thresh: float,
     plot_summary_ACFs: bool,
@@ -73,11 +73,6 @@ def combined_workflow(
     Returns:
     - pd.DataFrame: The summary data for each file.
     '''
-    # list of file names in specified directory
-    file_names = [fname for fname in os.listdir(main_directory) if fname.endswith('.tif') and not fname.startswith('.')]
-
-    # check for group name errors          
-    hf.group_name_error_check(file_names=file_names, group_names=group_names, log_params=log_params)
 
     # performance tracker
     start = timeit.default_timer()
@@ -87,16 +82,27 @@ def combined_workflow(
     main_save_path = os.path.join(main_directory, f"0_signalProcessing-{now.strftime('%Y%m%d%H%M')}")
     os.makedirs(main_save_path, exist_ok=True)
 
-    # empty list to fill with summary data for each file, and column headers list
-    summary_list, col_headers = [], []
+    # Save the parameters for the log file
+    logging.basicConfig(filename=f"main_save_path/!log-{now.strftime('%Y%m%d%H%M')}.log", level=logging.INFO)  # Set the logging level to INFO
+    logging.info("Running waveanalysis combined_workflow on %s", main_directory)
 
-    print('Processing files...')
+    # list of file names in specified directory
+    file_names = [fname for fname in os.listdir(main_directory) if fname.endswith('.tif') and not fname.startswith('.')]
+
+    # identify and report errors in GUI input
+    hf.threshold_check(acf_peak_thresh=acf_peak_thresh)
+
+    # check for group name errors          
+    hf.group_name_error_check(file_names=file_names, group_names=group_names)
+
+    # empty list to fill with summary data for each file, and column headers list
+    summary_list, col_headers, files_processed = [], [], []
 
     with tqdm(total = len(file_names)) as pbar:
         pbar.set_description('Files processed:')
         for file_name in file_names: 
             print('******'*10)
-            print(f'Processing {file_name}...')
+            logging.info("Processing %s", file_name)
 
             ############################################
             ####### Image Convert and Properties #######
@@ -110,7 +116,7 @@ def combined_workflow(
                 img_props_dict = get_single_frame_properties(image_path=image_path)
 
             # check if frame interval is not 1 or None and log it
-            frame_interval = hf.check_frame_interval(frame_interval=img_props_dict['frame_interval'], log_params=log_params, file_name=file_name)
+            frame_interval = hf.check_frame_interval(frame_interval=img_props_dict['frame_interval'], file_name=file_name)
             img_props_dict['frame_interval'] = frame_interval
 
             # add other image properties to the dictionary for later use
@@ -121,18 +127,14 @@ def combined_workflow(
             img_props_dict['peak_thresh'] = acf_peak_thresh
 
             # log image properties
-            log_params['Pixel Size'].append(f"{file_name}: {img_props_dict['pixel_size']} {img_props_dict['pixel_unit']}s")
-            log_params['Frame Interval'].append(f"{file_name}: {img_props_dict['frame_interval']} seconds")
+            logging.info("%s pixel size: %s", file_name, img_props_dict['pixel_size'])
+            logging.info("%s frame interval: %s seconds", file_name, img_props_dict['frame_interval'])
 
             # log error and skip image if frames < 2; otherwise, log image as processed
             if img_props_dict['num_frames'] < 2:
-                print(f"****** ERROR ******",
-                    f"\n{file_name} has less than 2 frames",
-                    "\n****** ERROR ******")
-                log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
-                continue
+                logging.error("%s has less than 2 frames", file_name)
             # log that the file was processed
-            log_params['Files Processed'].append(f'{file_name}')
+            files_processed.append(f'{file_name}')
 
             # Create the array of bin values for which all the stats will be calculated
             if analysis_type == 'standard':
@@ -152,10 +154,8 @@ def combined_workflow(
 
                     # check if wave tracks were created and if they are within the image
                     hf.check_if_wave_tracks_created(wave_tracks=wave_tracks, 
-                                                    log_params=log_params, 
                                                     file_name=file_name)
                     hf.check_wave_track_coords(wave_tracks=wave_tracks, 
-                                               log_params=log_params, 
                                                file_name=file_name, 
                                                num_columns=img_props_dict['num_columns'], 
                                                num_frames=img_props_dict['num_frames'])
@@ -262,7 +262,7 @@ def combined_workflow(
 
             # Error check for plotting individual CCFs
             elif plot_summary_CCFs and img_props_dict['num_channels'] == 1:
-                log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
+                logging.warning('CCF plots were not generated for %s because the image only has one channel', file_name)
 
             # plot the wave speeds for the file
             if calc_wave_speeds and plot_wave_speeds:
@@ -297,7 +297,7 @@ def combined_workflow(
             # plot the individual CCF figures for the file
             if plot_indv_CCFs and img_props_dict['num_channels'] > 1:
                 if img_props_dict['num_channels'] == 1:
-                    log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
+                    logging.warning('CCF plots were not generated for %s because the image only has one channel', file_name)
                 indv_ccf_plots = pt.plot_indv_ccf_workflow(
                     bin_values=bin_values,
                     indv_ccfs=indv_ccfs,
@@ -363,7 +363,7 @@ def combined_workflow(
 
         if group_names != ['']:
             # generate comparisons between each group
-            mean_parameter_figs = pt.generate_group_comparison(summary_df = summary_df, log_params = log_params)
+            mean_parameter_figs = pt.generate_group_comparison(summary_df=summary_df)
             group_plots_save_path = os.path.join(main_save_path, "!group_comparison_graphs")
             os.makedirs(group_plots_save_path, exist_ok=True)
             hf.save_plots(mean_parameter_figs, group_plots_save_path)
@@ -379,7 +379,7 @@ def combined_workflow(
         end = timeit.default_timer()
 
         # log parameters and errors
-        log_params["Time Elapsed"] = f"{end - start:.2f} seconds"
-        hf.make_log(main_save_path, log_params)
+        logging.info("Files processed: %s", files_processed)
+        logging.info("Time Elapsed: %s seconds", end - start)
 
         return summary_df # only here for testing

@@ -33,7 +33,6 @@ def test_standard_workflow(default_log_params):
     exp_results = combined_workflow(
         main_directory=str(Path('tests/assets/standard/')),
         group_names=['Group1','Group2'],
-        log_params=default_log_params,
         analysis_type='standard',
         box_size=default_log_params['Box Size(px)'],
         bin_shift=default_log_params['Box Shift(px)'],
