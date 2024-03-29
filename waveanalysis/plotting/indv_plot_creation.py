@@ -1,5 +1,6 @@
 import numpy as np
 from tqdm import tqdm
+import scipy.signal as sig
 import matplotlib.pyplot as plt
 
 def plot_indv_peak_workflow(
