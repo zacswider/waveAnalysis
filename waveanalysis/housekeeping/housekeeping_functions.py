@@ -99,12 +99,12 @@ def get_channel_combos(num_channels: int) -> list[list[int]]:
     return channel_combos
 
 def threshold_check(
-    threshold: float,
+    acf_peak_thresh: float,
 ) -> None:
     '''
     Check if the ACF peak prominence threshold is greater than 1
     '''
-    if threshold > 1:
+    if acf_peak_thresh > 1:
         logging.error('The ACF peak prominence can not be greater than 1')
         logging.error('Set "ACF peak prominence threshold" to a value between 0 and 1')
         logging.error('More realistically, a value between 0 and 0.5')
