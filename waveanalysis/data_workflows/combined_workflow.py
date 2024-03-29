@@ -83,7 +83,9 @@ def combined_workflow(
     os.makedirs(main_save_path, exist_ok=True)
 
     # Save the parameters for the log file
-    logging.basicConfig(filename=f"main_save_path/!log-{now.strftime('%Y%m%d%H%M')}.log", level=logging.INFO)  # Set the logging level to INFO
+    logging.basicConfig(filename=f"main_save_path/!log-{now.strftime('%Y%m%d%H%M')}.log", 
+                        filemode='a',
+                        level=logging.INFO)  # Set the logging level to INFO
     logging.info("Running waveanalysis combined_workflow on %s", main_directory)
 
     # list of file names in specified directory
@@ -381,5 +383,6 @@ def combined_workflow(
         # log parameters and errors
         logging.info("Files processed: %s", files_processed)
         logging.info("Time Elapsed: %s seconds", end - start)
+        logger = logging.getLogger('urbanGUI')
 
         return summary_df # only here for testing
