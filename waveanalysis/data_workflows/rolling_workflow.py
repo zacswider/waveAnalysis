@@ -16,7 +16,7 @@ from waveanalysis.image_props.image_properties import get_multi_frame_properties
 from waveanalysis.summarize_save.summarize_rolling import combine_stats_rolling, summarize_submovie_measurements
 
 def rolling_workflow(
-    main_directory: str,
+    folder_path: str,
     log_params: dict[str, Any],
     box_size: int,
     box_shift: int,
@@ -38,7 +38,7 @@ def rolling_workflow(
         3. Log the parameters and errors
         
     Parameters:
-    - main_directory (str): The path to the folder containing the image files.
+    - folder_path (str): The path to the folder containing the image files.
     - log_params (dict[str, Any]): The dictionary to store the log parameters.
     - acf_peak_thresh (float): The threshold for detecting peaks in the ACF curve.
     - box_size (int, optional): The size of the box for standard analysis. Defaults to None.
@@ -50,18 +50,18 @@ def rolling_workflow(
     - pd.DataFrame: The summary data for each file.
     '''       
     # list of file names in specified directory
-    file_names = [fname for fname in os.listdir(main_directory) if fname.endswith('.tif') and not fname.startswith('.')]
+    file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
 
     # performance tracker
     start = timeit.default_timer()
 
     # create main save path
     now = datetime.datetime.now()
-    main_save_path = os.path.join(main_directory, f"0_signalProcessing-{now.strftime('%Y%m%d%H%M')}")
+    main_save_path = os.path.join(folder_path, f"0_signalProcessing-{now.strftime('%Y%m%d%H%M')}")
     os.makedirs(main_save_path, exist_ok=True)
 
     # list of file names in specified directory
-    file_names = [fname for fname in os.listdir(main_directory) if fname.endswith('.tif') and not fname.startswith('.')]
+    file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
 
     print('Processing files...')
 
@@ -76,7 +76,7 @@ def rolling_workflow(
             ############################################
 
             # Get image properties
-            image_path = f'{main_directory}/{file_name}'
+            image_path = f'{folder_path}/{file_name}'
             img_props_dict = get_multi_frame_properties(image_path=image_path)
 
             # check if frame interval is not 1 or None and log it

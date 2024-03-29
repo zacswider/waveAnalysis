@@ -32,7 +32,7 @@ def test_kymo_workflow(default_log_params):
     known_results = pd.read_csv('tests/assets/kymo/kymo.csv')
     assert isinstance(known_results, pd.DataFrame)
     exp_results = combined_workflow(
-        main_directory=str(Path('tests/assets/kymo/')),
+        folder_path=str(Path('tests/assets/kymo/')),
         group_names=['Group1','Group2'],
         log_params=default_log_params,
         analysis_type='kymograph',

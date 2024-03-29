@@ -132,9 +132,9 @@ def main():
         log_params["Errors"].append("You didn't enter a directory to analyze")        
         
     # Run the analysis based on the GUI input
-    if analysis_type == "standard":              
+    if analysis_type == "standard":                         
         combined_workflow(
-            main_directory=folder_path,
+            folder_path=folder_path,
             group_names=group_names,
             log_params=log_params,
             analysis_type=analysis_type,
@@ -154,7 +154,7 @@ def main():
     
     if analysis_type == "rolling":
         rolling_workflow(
-            main_directory=folder_path,
+            folder_path=folder_path,
             log_params=log_params,
             box_size=box_size,
             box_shift=box_shift,
@@ -165,7 +165,7 @@ def main():
 
     if analysis_type == "kymograph":                         
         combined_workflow(
-            main_directory=folder_path,
+            folder_path=folder_path,
             group_names=group_names,
             log_params=log_params,
             analysis_type=analysis_type,

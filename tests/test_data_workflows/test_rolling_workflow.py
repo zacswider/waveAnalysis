@@ -25,7 +25,7 @@ def test_rolling_workflow(default_log_params):
     known_results = pd.read_csv('tests/assets/rolling/1_Group2_summary.csv')
     assert isinstance(known_results, pd.DataFrame)
     exp_results = rolling_workflow(
-        main_directory=str(Path('tests/assets/rolling/')),
+        folder_path=str(Path('tests/assets/rolling/')),
         log_params=default_log_params,
         box_size=default_log_params['Box Size(px)'],
         box_shift=default_log_params['Box Shift(px)'],
