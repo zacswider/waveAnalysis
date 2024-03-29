@@ -1,8 +1,9 @@
 import os
 import sys
-import logging
 import datetime
+import functools
 import numpy as np
+
 
 def make_log(
     directory: str, 
@@ -25,7 +26,8 @@ def make_log(
 
 def group_name_error_check(
     file_names: list[str],
-    group_names: list[str]
+    group_names: list[str],
+    log_params: dict
 ) -> None:
     """
     Check for errors in matching file names to group names.
@@ -48,16 +50,23 @@ def group_name_error_check(
     for file_name, matching_groups in uniqueDic.items():
         # if a file doesn't have a group name, log it but still run the script
         if len(matching_groups) == 0:
-            logging.error('%s was not matched to a group', file_name)
+            log_params["Group Matching Errors"].append(f'{file_name} was not matched to a group')
 
         # if a file has multiple groups names, raise error and exit the script
         elif len(matching_groups) > 1:
-            logging.error('%s matched to multiple groups: %s', file_name, matching_groups)
+            print('****** ERROR ******',
+                f'\n{file_name} matched to multiple groups: {matching_groups}',
+                '\nPlease fix errors and try again.',
+                '\n****** ERROR ******')
             sys.exit()
 
     # if a group was specified but not matched to a file name, raise error and exit the script
     if len(groups_found) != len(group_names):
-        logging.error('One or more groups were not matched to file names.Groups specified: %s. Groups found: %s', group_names, groups_found)
+        print("****** ERROR ******",
+            "\nOne or more groups were not matched to file names",
+            f"\nGroups specified: {group_names}",
+            f"\nGroups found: {groups_found}",
+            "\n****** ERROR ******")
         sys.exit()
 
 def save_plots(
@@ -100,27 +109,30 @@ def get_channel_combos(num_channels: int) -> list[list[int]]:
 
 def threshold_check(
     threshold: float,
+    log_params: dict
 ) -> None:
     '''
     Check if the ACF peak prominence threshold is greater than 1
     '''
     if threshold > 1:
-        logging.error('The ACF peak prominence can not be greater than 1')
-        logging.error('Set "ACF peak prominence threshold" to a value between 0 and 1')
-        logging.error('More realistically, a value between 0 and 0.5')
-        
+        log_params["Errors"].append("The ACF peak prominence can not be greater than 1")
+        log_params["Errors"].append("Set 'ACF peak prominence threshold' to a value between 0 and 1")
+        log_params["Errors"].append("More realistically, a value between 0 and 0.5")
+    
 def check_if_wave_tracks_created(
     wave_tracks,
+    log_params: dict,
     file_name: str
 ) -> None:
     '''
     Check if wave tracks were created
     '''
     if len(wave_tracks) == 0:
-        logging.error('No wave tracks were created for %s', file_name)
+        log_params["Errors"].append(f'No wave tracks were found for {file_name}')
 
 def check_wave_track_coords(
     wave_tracks,
+    log_params: dict,
     file_name: str,
     num_columns: int,
     num_frames: int
@@ -141,10 +153,14 @@ def check_wave_track_coords(
         y1, y2 = track[0][0], track[1][0]
         # check if the coordinates are within the image boundaries
         if x1 < 0 or x1 >= num_columns or x2 < 0 or x2 >= num_columns or y1 < 0 or y1 >= num_frames or y2 < 0 or y2 >= num_frames:
-            logging.error('Wave track coordinates are not within the image boundaries for %s', file_name)
-            
+            print(f"****** WARNING ******",
+                f"\nAll lines are not drawn within the image for {file_name}",
+                "\n****** WARNING ******")
+            log_params['Errors'].append(f'All lines are not drawn within the image for {file_name}')
+
 def check_frame_interval(
     frame_interval: float,
+    log_params: dict,
     file_name: str
 ) -> float:
     """
@@ -159,51 +175,12 @@ def check_frame_interval(
         float: The validated frame interval.
     """
     if frame_interval == None or frame_interval == 0 or frame_interval == 1 or np.isnan(frame_interval):
-        logging.warning('%s frame interval is not provided or 0 or 1. Ensure this is the correct value. All calculations will be done assuming a frame interval of 1.', file_name)
+        print(f"****** WARNING ******",
+            f"\n{file_name} frame interval is not provided or 0 or 1. Ensure this is the correct value. All calculations will be done assuming a frame interval of 1.",
+            "\n****** WARNING ******")
+        log_params['Errors'].append(f'{file_name} frame interval is not provided is 0 or 1. Ensure this is the correct value. All calculations will be done assuming a frame interval of 1.')
 
         # set frame interval to 1 if it is not provided or 0
         frame_interval = 1
     
     return frame_interval
-
-# make dictionary of parameters for log file use
-    log_params = {  "Box Size(px)" : box_size,
-                    "Box Shift(px)" : bin_shift,
-                    "Base Directory" : folder_path,
-                    "ACF Peak Prominence" : acf_peak_thresh,
-                    "Group Names" : group_names,
-                    "Plot Summary ACFs" : plot_summary_ACFs,
-                    "Plot Summary CCFs" : plot_summary_CCFs,
-                    "Plot Summary Peaks" : plot_summary_peaks,
-                    "Plot Individual ACFs" : plot_indv_ACFs,
-                    "Plot Individual CCFs" : plot_indv_CCFs,
-                    "Plot Individual Peaks" : plot_indv_peaks,
-                    'Calc Wave Speeds': False,
-                    'Plot Wave Speeds': False,
-                    "Files Processed" : [],
-                    "Files Not Processed" : [],
-                    "Errors" : [],
-                    'Frame Interval': [],
-                    'Pixel Size': [],
-                } 
-    
-    if analysis_type == 'kymograph':
-        log_params = {  "Line width": line_width,
-                        "Line Shift(px)": bin_shift,
-                        "Base Directory": folder_path,
-                        "ACF Peak Prominence" : acf_peak_thresh,
-                        "Group Names" : group_names,
-                        "Plot Summary ACFs": plot_summary_ACFs,
-                        "Plot Summary CCFs": plot_summary_CCFs,
-                        "Plot Summary Peaks": plot_summary_peaks,
-                        "Plot Individual ACFs": plot_indv_ACFs,
-                        "Plot Individual CCFs": plot_indv_CCFs,
-                        "Plot Individual Peaks": plot_indv_peaks,  
-                        'Calc Wave Speeds': calc_wave_speeds,
-                        'Plot Wave Speeds': True,
-                        "Files Processed": [],
-                        "Files Not Processed": [],
-                        "Errors" : [],
-                        'Frame Interval': [],
-                        'Pixel Size': [],
-                }

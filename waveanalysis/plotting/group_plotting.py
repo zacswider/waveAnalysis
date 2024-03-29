@@ -1,10 +1,10 @@
-import logging
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
 def generate_group_comparison(
     summary_df: pd.DataFrame,
+    log_params: dict
 ) -> dict:
     """
     Generate group comparison plots for each parameter in the summary dataframe.
@@ -45,6 +45,6 @@ def generate_group_comparison(
             plt.close(fig)
 
         except ValueError:
-            logging.error(f'No data to compare for {param}')
+            log_params['Plotting errors'].append(f'No data to compare for {param}')
 
     return group_mean_parameter_figs

@@ -34,6 +34,7 @@ def test_kymo_workflow(default_log_params):
     exp_results = combined_workflow(
         main_directory=str(Path('tests/assets/kymo/')),
         group_names=['Group1','Group2'],
+        log_params=default_log_params,
         analysis_type='kymograph',
         box_size=None, #type: ignore
         bin_shift=default_log_params['Line Shift(px)'],
