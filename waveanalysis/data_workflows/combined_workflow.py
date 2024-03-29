@@ -14,6 +14,27 @@ from waveanalysis.image_props.image_properties import get_multi_frame_properties
 from waveanalysis.summarize_save.save_stats import save_parameter_means_to_csv, get_mean_CCF_values, get_indv_CCF_values, save_ccf_values_to_csv
 from waveanalysis.summarize_save.summarize_kymo_standard import summarize_image_standard_kymo, combine_stats_for_image_kymo_standard
 
+import functools
+
+def log_parameters_errors(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        log_params = kwargs.get('log_params', {})
+        try:
+            result = func(*args, **kwargs)
+            # Log success
+            log_params['Success'] = f"{func.__name__} completed successfully."
+            return result
+        except Exception as e:
+            # Log error
+            log_params['Error'] = f"Error in {func.__name__}: {str(e)}"
+            raise
+        finally:
+            # Log parameters
+            hf.make_log(kwargs['main_save_path'], log_params)
+    return wrapper
+
+# @log_parameters_errors
 def combined_workflow(
     main_directory: str,
     group_names: list[str],
