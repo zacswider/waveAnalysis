@@ -1,4 +1,3 @@
-import pathlib
 import tifffile
 import numpy as np
 
