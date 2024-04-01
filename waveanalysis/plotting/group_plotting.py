@@ -25,21 +25,21 @@ def generate_group_comparison(
     # generate and save figures for each parameter
     for param in parameters_to_compare:
         try:
-            # Create a boxplot and swarmplot
-            ax = sns.boxplot(x='Group Name', 
-                            y=param, 
-                            hue='Group Name',  # Assign 'Group Name' to 'hue'
-                            data=summary_df, 
-                            palette="Set2", 
-                            showfliers=False,
-                            )  
-            ax = sns.swarmplot(x='Group Name', 
-                            y=param, 
-                            data=summary_df, 
-                            color=".25")	
-            ax.set_xticks(ax.get_xticks())  # Set the tick positions explicitly
+            fig, ax = plt.subplots()
+            # Create a boxplot
+            sns.boxplot(x='Group Name', 
+                        y=param, 
+                        data=summary_df, 
+                        showfliers=False,
+                        ax=ax)  
+
+            # Create a swarmplot on the same axis
+            sns.swarmplot(x='Group Name', 
+                          y=param, 
+                          data=summary_df, 
+                          color=".25",
+                          ax=ax)	
             ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
-            fig = ax.get_figure()
             
             group_mean_parameter_figs[param] = fig
             plt.close(fig)

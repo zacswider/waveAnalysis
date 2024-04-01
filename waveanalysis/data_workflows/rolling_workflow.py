@@ -6,14 +6,14 @@ import pandas as pd
 from tqdm import tqdm
 from typing import Any
 import scipy.signal as sig
-import waveanalysis.plotting as pt
-import waveanalysis.signal_processing as sp
-import waveanalysis.housekeeping.housekeeping_functions as hf
+import plotting as pt
+import signal_processing as sp
+import housekeeping.housekeeping_functions as hf
 
-from waveanalysis.image_props.image_bin_calc import create_multi_frame_bin_array
-from waveanalysis.image_props.image_to_np_arrays import tiff_to_np_array_multi_frame
-from waveanalysis.image_props.image_properties import get_multi_frame_properties
-from waveanalysis.summarize_save.summarize_rolling import combine_stats_rolling, summarize_submovie_measurements
+from image_props.image_bin_calc import create_multi_frame_bin_array
+from image_props.image_to_np_arrays import tiff_to_np_array_multi_frame
+from image_props.image_properties import get_multi_frame_properties
+from summarize_save.summarize_rolling import combine_stats_rolling, summarize_submovie_measurements
 
 def rolling_workflow(
     folder_path: str,
