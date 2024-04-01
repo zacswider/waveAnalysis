@@ -174,9 +174,9 @@ def check_frame_interval(
     """
     if frame_interval == None or frame_interval == 0 or frame_interval == 1 or np.isnan(frame_interval):
         print(f"****** WARNING ******",
-            f"\n{file_name} frame interval is not provided or 0 or 1. Ensure this is the correct value. All calculations will be done assuming a frame interval of 1.",
+            f"\n{file_name} frame interval is not provided or 1. Ensure this is the correct value. All calculations will be done assuming a frame interval of 1.",
             "\n****** WARNING ******")
-        log_params['Errors'].append(f'{file_name} frame interval is not provided is 0 or 1. Ensure this is the correct value. All calculations will be done assuming a frame interval of 1.')
+        log_params['Errors'].append(f'{file_name} frame interval is not provided or 1. Ensure this is the correct value. All calculations will be done assuming a frame interval of 1.')
 
         # set frame interval to 1 if it is not provided or 0
         frame_interval = 1
