@@ -121,8 +121,8 @@ def calc_indv_peak_props_rolling(signal: np.ndarray) -> tuple:
         tuple: A tuple containing the mean width, mean maximum, mean minimum, and mean offset of the peaks. If no peaks are detected, NaN values are returned.
     '''
     # Calculate the peak properties
-    smoothed_signal = sig.savgol_filter(signal, window_length = 11, polyorder = 2)                 
-    peaks, _ = sig.find_peaks(smoothed_signal, prominence=(np.max(signal)-np.min(signal))*0.1)
+    signal = sig.savgol_filter(signal, window_length = 11, polyorder = 2)                 
+    peaks, _ = sig.find_peaks(signal, prominence=(np.max(signal)-np.min(signal))*0.1)
 
     # If peaks detected, calculate properties, otherwise return NaNs
     if len(peaks) > 0:
