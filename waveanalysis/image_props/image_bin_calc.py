@@ -79,7 +79,7 @@ def create_multi_frame_bin_array(
     ind = box_size // 2
     
     # Apply uniform filter to calculate mean signal over specified box size
-    box_values = nd.uniform_filter(image[:, 0, :, :, :], size=(1, 1, box_size, box_size))[:, :, ind::step, ind::step]
+    box_values = nd.uniform_filter(image[:, 0, :, :, :], size=(1, 1, box_size, box_size))[:, :, ind:-ind:step, ind:-ind:step]
 
     # Get the dimensions of the resulting mean image
     num_x_bins, num_y_bins = box_values.shape[-2:]
