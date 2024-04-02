@@ -136,7 +136,7 @@ def return_mean_prop_peaks_figure(
     Space saving function to return mean peak property figures
     '''
     # Create subplots for histograms and boxplots
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
+    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2)
 
     # Filter out NaN values from arrays
     min_array = [val for val in min_array if not np.isnan(val)]
@@ -148,8 +148,8 @@ def return_mean_prop_peaks_figure(
     # Define plot parameters for histograms and boxplots
     plot_params = { 'amp' : (amp_array, 'tab:blue'),
                     'min' : (min_array, 'tab:purple'),
-                    'max' : (max_array, 'tab:orange'),
-                    'offsets' : (offsets_array, 'tab:red')}
+                    'max' : (max_array, 'tab:orange')
+                }
     
     # Plot histograms for peak properties
     for labels, (arr, arr_color) in plot_params.items():
@@ -177,7 +177,18 @@ def return_mean_prop_peaks_figure(
     bp = ax4.boxplot(width_array, vert=True, patch_artist=True)
     bp['boxes'][0].set_facecolor('dimgray')
     ax4.set_xlabel(f'{Ch_name} boxplot of peak widths')
-    ax4.set_ylabel('Peak width (frames)')
+    ax4.set_ylabel('Peak width (seconds)')
+
+    # Plot histogram for peak widths
+    ax5.hist(offsets_array, color = 'dimgray', alpha = 0.75)
+    ax5.set_xlabel(f'{Ch_name} histogram of peak offsets')
+    ax5.set_ylabel('Occurrences')
+
+    # Plot boxplot for peak widths
+    bp1 = ax6.boxplot(offsets_array, vert=True, patch_artist=True)
+    bp1['boxes'][0].set_facecolor('dimgray')
+    ax6.set_xlabel(f'{Ch_name} boxplot of peak offsets')
+    ax6.set_ylabel('Peak offset (seconds)')
 
     fig.subplots_adjust(hspace=0.6, wspace=0.6)
     plt.close(fig)

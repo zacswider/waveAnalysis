@@ -40,6 +40,8 @@ def generate_group_comparison(
                           color=".25",
                           ax=ax)	
             ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+            # Adjust layout to prevent cutting off x-axis label
+            plt.subplots_adjust(bottom=0.15)
             
             group_mean_parameter_figs[param] = fig
             plt.close(fig)
