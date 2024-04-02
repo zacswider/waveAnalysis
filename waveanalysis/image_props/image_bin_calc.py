@@ -50,8 +50,9 @@ def create_kymo_bin_array(
                     signal = np.mean(signal_slice, axis=1)
                     # Calculate the index for the current bin
                     idx = col_num // step
-                    # Store the signal in the line values array
-                    line_values[channel, idx] = signal
+                    if idx < num_bins:
+                        # Store the signal in the line values array
+                        line_values[channel, idx] = signal
 
     return line_values, num_bins
 
