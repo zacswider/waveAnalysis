@@ -4,15 +4,16 @@ import datetime
 import pandas as pd
 from tqdm import tqdm
 from typing import Any
-import plotting as pt
-import signal_processing as sp
-import housekeeping.housekeeping_functions as hf 
+import waveanalysis.plotting as pt
+import waveanalysis.signal_processing as sp
+import waveanalysis.housekeeping.housekeeping_functions as hf 
 
-from image_props.image_bin_calc import create_multi_frame_bin_array, create_kymo_bin_array
-from image_props.image_to_np_arrays import tiff_to_np_array_multi_frame, tiff_to_np_array_single_frame
-from image_props.image_properties import get_multi_frame_properties, get_single_frame_properties
-from summarize_save.save_stats import save_parameter_means_to_csv, get_mean_CCF_values, get_indv_CCF_values, save_ccf_values_to_csv
-from summarize_save.summarize_kymo_standard import summarize_image_standard_kymo, combine_stats_for_image_kymo_standard
+from waveanalysis.image_props.image_bin_calc import create_multi_frame_bin_array, create_kymo_bin_array
+from waveanalysis.image_props.image_to_np_arrays import tiff_to_np_array_multi_frame, tiff_to_np_array_single_frame
+from waveanalysis.image_props.image_properties import get_multi_frame_properties, get_single_frame_properties
+from waveanalysis.summarize_save.save_stats import save_parameter_means_to_csv, get_mean_CCF_values, get_indv_CCF_values, save_ccf_values_to_csv
+from waveanalysis.summarize_save.summarize_kymo_standard import summarize_image_standard_kymo, combine_stats_for_image_kymo_standard
+
 
 def combined_workflow(
     folder_path: str,
@@ -140,6 +141,8 @@ def combined_workflow(
                 image_array = tiff_to_np_array_multi_frame(image_path)
                 bin_values, num_bins, _, _ = create_multi_frame_bin_array(image = image_array, 
                                                                           img_props = img_props_dict)
+                
+                # np.save(f'/Users/domchom/Desktop/{file_name}_bin_values.npy', bin_values)
                                 
             else: # analysis_type == 'kymograph'
                 image_array = tiff_to_np_array_single_frame(image_path)

@@ -21,48 +21,31 @@ def summarize_image_standard_kymo(
     num_channels = img_props_dict['num_channels']
     channel_combos = img_props_dict['channel_combos']
 
-    # column names for the dataframe summarizing the bin results
-    col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]
-    col_names.extend([f'Bin {i}' for i in range(num_bins)])
-
     # combine all the statified measurements into a single list
     statified_measurements = []
     parameter_with_stats_dict = {}
 
     # insert Mean, Median, StdDev, and SEM into the beginning of each list
-    for key, value in img_parameters.items():
-        # Skip the Shift key since it is handled separately
-        if key == 'Shift':
-            continue
-        # Wave Speed is a single value, so it doesn't need to be separated by channel
-        elif key == 'Wave Speed':
-            parameter_with_stats = add_stats_for_parameter(img_parameters[key], key, num_channels, channel_combos)
-            parameter_with_stats = sum(parameter_with_stats, []) # flatten the list
-            parameter_with_stats_dict[key] = parameter_with_stats
-            statified_measurements.append(parameter_with_stats)
-        else:
-            # Add stats for each channel
-            parameter_with_stats = add_stats_for_parameter(img_parameters[key], key, num_channels, channel_combos)
-            parameter_with_stats_dict[key] = parameter_with_stats
-            for channel in range(num_channels):
-                statified_measurements.append(parameter_with_stats[channel])
+    for parameter, parameter_measurements in img_parameters.items():
+        parameter_with_stats = add_stats_for_parameter(parameter_measurements, parameter, num_channels, channel_combos)
+        parameter_with_stats_dict[parameter] = parameter_with_stats
+        for channel_combo_stat in parameter_with_stats:
+            statified_measurements.append(channel_combo_stat)
             
-    # Add stats for Shift
-    if num_channels > 1:
-        shifts_with_stats = add_stats_for_parameter(img_parameters['Shift'], 'Shift', num_channels, channel_combos)
-        parameter_with_stats_dict['Shift'] = shifts_with_stats
-        for combo_number, combo in enumerate(channel_combos):
-            statified_measurements.append(shifts_with_stats[combo_number])
+    # column names for the dataframe summarizing the bin results
+    col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]
+    col_names.extend([f'Bin {i}' for i in range(num_bins)])
 
+    # create a dataframe from the statified measurements
     im_measurements = pd.DataFrame(statified_measurements, columns = col_names)
 
     return im_measurements, parameter_with_stats_dict
 
 def add_stats_for_parameter(
-        measurements: np.ndarray, 
-        measurement_name: str, 
-        num_channels: int, 
-        channel_combos: list = None
+    measurements: np.ndarray,
+    measurement_name: str,
+    num_channels: int,
+    channel_combos: list = None
 ) -> list:
     '''
     Calculate statistics for a given measurement parameter.
@@ -76,12 +59,16 @@ def add_stats_for_parameter(
     Returns:
         list: List of statistics for the measurement parameter.
     '''
-    # Initialize list to store the statified measurements
     statified = []
 
-    # Calculate the mean, median, standard deviation, and standard error of the mean
+    def calculate_statistics(measurements_subset, channel_label):
+        meas_mean = np.nanmean(measurements_subset)
+        meas_median = np.nanmedian(measurements_subset)
+        meas_std = np.nanstd(measurements_subset)
+        meas_sem = meas_std / np.sqrt(len(measurements_subset))
+        return [channel_label, meas_mean, meas_median, meas_std, meas_sem] + measurements_subset.tolist()
+
     if measurement_name != 'Wave Speed':
-        # If there are multiple channels, calculate the statistics for each channel combination
         for index, item in enumerate(channel_combos if measurement_name == 'Shift' else range(num_channels)):
             if measurement_name == 'Shift':
                 measurements_subset = measurements[index]
@@ -90,23 +77,13 @@ def add_stats_for_parameter(
                 measurements_subset = measurements[item]
                 channel_label = f'Ch {item + 1} {measurement_name}'
             
-            meas_mean = np.nanmean(measurements_subset)
-            meas_median = np.nanmedian(measurements_subset)
-            meas_std = np.nanstd(measurements_subset)
-            meas_sem = meas_std / np.sqrt(len(measurements_subset))
-            meas_list = [channel_label, meas_mean, meas_median, meas_std, meas_sem]
-            meas_list.extend(measurements_subset.tolist())
-            statified.append(meas_list)
+            statified.append(calculate_statistics(measurements_subset, channel_label))
 
-    # Calculate the statistics for the wave speed
     else:
-        meas_mean = np.nanmean(measurements)
-        meas_median = np.nanmedian(measurements)
-        meas_std = np.nanstd(measurements)
-        meas_sem = meas_std / np.sqrt(len(measurements))
-        meas_list = [measurement_name, meas_mean, meas_median, meas_std, meas_sem]
-        meas_list.extend(measurements)
-        statified.append(meas_list)
+        measurements_flat = measurements.flatten()
+        measurement_name = 'Wave Speed'
+        channel_label = measurement_name
+        statified.append(calculate_statistics(measurements_flat, channel_label))
         
     return statified
 

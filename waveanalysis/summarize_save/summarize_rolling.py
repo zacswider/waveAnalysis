@@ -21,10 +21,6 @@ def summarize_submovie_measurements(
     num_bins = img_props_dict['num_bins']
     num_submovies = img_props_dict['num_submovies']
     channel_combos = img_props_dict['channel_combos']
-
-    # column names for the dataframe summarizing the box results
-    col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]
-    col_names.extend([f'Box{i}' for i in range(num_bins)])
     
     # combine all the statified measurements into a single list
     submovie_measurements = []
@@ -32,22 +28,16 @@ def summarize_submovie_measurements(
     # insert Mean, Median, StdDev, and SEM into the beginning of each list
     for submovie in range(num_submovies):
         statified_measurements = []
-        for key, value in img_parameters_dict.items():
-            # Skip the Shift key since it is handled separately
-            if key == 'Shift':
-                continue
-            else:
-                # Add stats for each channel
-                parameter_with_stats = add_stats_for_parameter(img_parameters_dict[key][submovie], key, num_channels, channel_combos)
-                for channel in range(num_channels):
-                    statified_measurements.append(parameter_with_stats[channel])
-        
-        # Add stats for Shift
-        if num_channels > 1:
-            shifts_with_stats = add_stats_for_parameter(img_parameters_dict['Shift'][submovie], 'Shift', num_channels, channel_combos)
-            for combo_number, combo in enumerate(channel_combos):
-                statified_measurements.append(shifts_with_stats[combo_number])
+        for parameter, parameter_measurements in img_parameters_dict.items():
+            parameter_with_stats = add_stats_for_parameter(img_parameters_dict[parameter][submovie], parameter, num_channels, channel_combos)
+            for channel_combo_stat in parameter_with_stats:
+                statified_measurements.append(channel_combo_stat)
 
+        # column names for the dataframe summarizing the box results
+        col_names = ["Parameter", "Mean", "Median", "StdDev", "SEM"]
+        col_names.extend([f'Box{i}' for i in range(num_bins)])
+
+        # create a dataframe from the statified measurements
         submovie_meas_df = pd.DataFrame(statified_measurements, columns = col_names)
         submovie_measurements.append(submovie_meas_df)
 
