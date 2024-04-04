@@ -11,7 +11,7 @@ def default_log_params():
         'Line Shift(px)': 5,
         'Base Directory': 'tests/assets/kymo',
         'ACF Peak Prominence': 0.1,
-        'Group Names': ['Group1, Group2'],
+        'Group Names': ['Group1', 'Group2'],
         'Plot Summary ACFs': False,
         'Plot Summary CCFs': False,
         'Plot Summary Peaks': False,
@@ -32,8 +32,8 @@ def test_kymo_workflow(default_log_params):
     known_results = pd.read_csv('tests/assets/kymo/kymo.csv')
     assert isinstance(known_results, pd.DataFrame)
     exp_results = combined_workflow(
-        folder_path=str(Path('tests/assets/kymo/')),
-        group_names=['Group1','Group2'],
+        folder_path=str(Path('tests/assets/kymo')),
+        group_names= default_log_params['Group Names'],
         log_params=default_log_params,
         analysis_type='kymograph',
         box_size=None, #type: ignore

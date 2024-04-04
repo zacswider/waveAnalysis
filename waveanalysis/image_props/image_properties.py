@@ -1,5 +1,4 @@
 import tifffile
-import numpy as np
 
 def get_multi_frame_properties(image_path: str) -> dict:
     """
@@ -27,10 +26,10 @@ def get_multi_frame_properties(image_path: str) -> dict:
         pixel_size = [x, y, z]
 
         # Get the number of channels, frames, pixel unit, and the frame interval
-        num_channels = metadata.get('channels')
-        frame_interval = metadata.get('finterval', np.nan)
-        pixel_unit = metadata.get('unit')
-        num_frames = metadata.get('frames')
+        num_channels = metadata.get('channels', 1)
+        frame_interval = metadata.get('finterval', 1)
+        pixel_unit = metadata.get('unit', 'px')
+        num_frames = metadata.get('frames', 1)
     
     img_props_dict = {
         'num_channels': num_channels,
@@ -58,9 +57,9 @@ def get_single_frame_properties(image_path: str) -> dict:
         pixel_size = [x, y, z]
         
         # Get the number of channels, frame interval, and pixel unit
-        num_channels = metadata.get('channels')
-        frame_interval = metadata.get('finterval')
-        pixel_unit = metadata.get('unit')
+        num_channels = metadata.get('channels', 1)
+        frame_interval = metadata.get('finterval', 1)
+        pixel_unit = metadata.get('unit', 'px')
 
     # Get the dimensions of the image
     num_frames = image.shape[-2]

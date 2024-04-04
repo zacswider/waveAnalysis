@@ -124,7 +124,7 @@ def get_indv_CCF_values(
             arr_list = [i * frame_interval for i in range(len(ccf_curve))]
             measurements = list(zip_longest(arr_list,  normalize_signal(to_plot1), normalize_signal(to_plot2), ccf_curve, fillvalue=None))
 
-            indv_ccf_values[f'Ch{combo[0]}-Ch{combo[1]} Bin {bin + 1} CCF'] = measurements
+            indv_ccf_values[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Bin {bin + 1} CCF'] = measurements
             
     return indv_ccf_values
 

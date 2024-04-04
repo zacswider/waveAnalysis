@@ -10,7 +10,7 @@ def default_log_params():
         'Box Shift(px)': 20,
         'Base Directory': 'tests/assets/standard',
         'ACF Peak Prominence': 0.1,
-        'Group Names': ['Group1, Group2'],
+        'Group Names': ['Group1', 'Group2'],
         'Plot Summary ACFs': False,
         'Plot Summary CCFs': False,
         'Plot Summary Peaks': False,
@@ -32,7 +32,7 @@ def test_standard_workflow(default_log_params):
     assert isinstance(known_results, pd.DataFrame)
     exp_results = combined_workflow(
         folder_path=str(Path('tests/assets/standard/')),
-        group_names=['Group1','Group2'],
+        group_names= default_log_params['Group Names'],
         log_params=default_log_params,
         analysis_type='standard',
         box_size=default_log_params['Box Size(px)'],

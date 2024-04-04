@@ -258,7 +258,7 @@ def plot_indv_ccf_workflow(
 					to_plot1 = sig.savgol_filter(to_plot1, 25, 2)
 					to_plot2 = sig.savgol_filter(to_plot2, 25, 2)
 				# Generate and store the figure for the current channel and bin
-				indv_ccf_plots[f'Ch{combo[0]}-Ch{combo[1]} Bin {bin + 1} CCF'] = return_indv_ccf_figure(
+				indv_ccf_plots[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Bin {bin + 1} CCF'] = return_indv_ccf_figure(
 					ch1 = normalize_signal(to_plot1),
 					ch2 = normalize_signal(to_plot2),
 					ccf_curve = indv_ccfs[combo_number, bin],
