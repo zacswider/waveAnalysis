@@ -225,8 +225,8 @@ def combined_workflow(
                 img_parameters_dict['Shift'] = indv_shifts
             # add wave speeds to the dictionary if they were calculated
             if calc_wave_speeds:
-                img_parameters_dict['Wave Speed'] = wave_speeds    
-
+                img_parameters_dict['Wave Speed'] = wave_speeds   
+                
             # create the directory to save the figures and data for the image
             im_save_path = os.path.join(main_save_path, name_wo_ext)
             os.makedirs(im_save_path, exist_ok=True)

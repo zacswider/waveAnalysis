@@ -81,7 +81,9 @@ def add_stats_for_parameter(
         meas_median = np.nanmedian(measurements_subset)
         meas_std = np.nanstd(measurements_subset)
         meas_sem = meas_std / np.sqrt(len(measurements_subset))
-        return [channel_label, meas_mean, meas_median, meas_std, meas_sem] + measurements_subset.tolist()
+        if isinstance(measurements_subset, np.ndarray):
+            measurements_subset = measurements_subset.tolist()
+        return [channel_label, meas_mean, meas_median, meas_std, meas_sem] + measurements_subset
 
     if measurement_name != 'Wave Speed':
         for index, item in enumerate(channel_combos if measurement_name == 'Shift' else range(num_channels)):
@@ -95,10 +97,8 @@ def add_stats_for_parameter(
             statified.append(calculate_statistics(measurements_subset, channel_label))
 
     else:
-        measurements_flat = measurements.flatten()
-        measurement_name = 'Wave Speed'
-        channel_label = measurement_name
-        statified.append(calculate_statistics(measurements_flat, channel_label))
+        measurements = calculate_statistics(measurements, measurement_name)
+        statified.append(measurements)
         
     return statified
 
@@ -166,7 +166,8 @@ def combine_stats_for_image_kymo_standard(
         # Wave Speed is a single value, so it doesn't need to be separated by channel
         elif name == 'Wave Speed':
             for ind, stat in enumerate(stats_location):
-                file_data_summary[f'{stat} {name}'] = parameters_with_stats_dict[name][ind + 1]
+                print(parameters_with_stats_dict[name])
+                file_data_summary[f'{stat} {name}'] = parameters_with_stats_dict[name][0][ind + 1]
 
     return file_data_summary
 

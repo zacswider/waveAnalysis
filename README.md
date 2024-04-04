@@ -63,7 +63,7 @@ Before running any analysis on your data, be sure to complete all necessary pre-
 
 In this section I will assume that you have no idea what Python is, or how to use it. If you already know how to use Python and Conda, you can skip ahead. 
 
-1) Go to the mambaforge webside and download/install the appropriate distribution of [mambaforge](https://mamba.readthedocs.io/en/latest/installation.html) for your operating system. 
+1) Go to the mambaforge website and download/install the appropriate distribution of [mambaforge](https://mamba.readthedocs.io/en/latest/installation.html) for your operating system. 
 2) Open the miniforge prompt.
 3) Make a new virtual environment with `mamba create -n myenv python=3.9 -y`
 4) Activate your new environment with `conda activate myenv`
