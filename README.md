@@ -15,7 +15,7 @@ The mean pixel intensity in each box, when viewed over time, is a readout for th
 
 ![GitHub-Mark-Light](assets/images/autocorrelation_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](assets/images/autocorrelation_light.jpg#gh-light-mode-only)
 
-For 2-channel datasets, the temporal shift (if any) between the two signals is estimated by calculating the crosscorrelation of the two channels. 
+For multi-channel datasets, the temporal shift between the two signals is estimated by computing the cross-correlation of the channels. Additionally, it quantifies the shift as a percentage of the period (Phase Shift), offering a valuable means of normalizing data, particularly when dealing with varying periods.
 
 ![GitHub-Mark-Light](assets/images/crosscorrelation_dark.jpg#gh-dark-mode-only)![GitHub-Mark-Dark](assets/images/crosscorrelation_light.jpg#gh-light-mode-only)
 
