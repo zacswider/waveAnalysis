@@ -85,9 +85,9 @@ def add_stats_for_parameter(
             measurements_subset = measurements_subset.tolist()
         return [channel_label, meas_mean, meas_median, meas_std, meas_sem] + measurements_subset
 
-    if measurement_name != 'Wave Speed':
-        for index, item in enumerate(channel_combos if measurement_name == 'Shift' else range(num_channels)):
-            if measurement_name == 'Shift':
+    if measurement_name not in ['Wave Speed']:
+        for index, item in enumerate(channel_combos if measurement_name in ['Shift', 'Phase Shift'] else range(num_channels)):
+            if measurement_name in ['Shift', 'Phase Shift']:
                 measurements_subset = measurements[index]
                 channel_label = f'Ch{channel_combos[index][0]+1}-Ch{channel_combos[index][1]+1} {measurement_name}'
             else:
@@ -144,11 +144,12 @@ def combine_stats_for_image_kymo_standard(
             file_data_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Pcnt No Shifts'] = pcnt_no_shift
             for ind, stat in enumerate(stats_location):
                 file_data_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} {stat} Shift'] = parameters_with_stats_dict['Shift'][combo_number][ind + 1]
+                file_data_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} {stat} Phase Shift'] = parameters_with_stats_dict['Phase Shift'][combo_number][ind + 1]
 
     # Add stats for each parameter
     for name, measurement in img_parameters_dict.items():
         # Skip the Shift name since it is handled separately
-        if name == 'Shift':
+        if name in ['Shift', 'Phase Shift']:
             continue
         # We calculate the number of bins without Period and Peak Amp 
         elif name == 'Period' or name == 'Peak Amp':
@@ -159,12 +160,12 @@ def combine_stats_for_image_kymo_standard(
                 for ind, stat in enumerate(stats_location):
                     file_data_summary[f'Ch {channel + 1} {stat} {name}'] = parameters_with_stats_dict[name][channel][ind + 1]
         # All parameters that are not wave speed
-        elif name != 'Wave Speed':
+        elif name not in ['Wave Speed']:
             for channel in range(num_channels):        
                 for ind, stat in enumerate(stats_location):
                     file_data_summary[f'Ch {channel + 1} {stat} {name}'] = parameters_with_stats_dict[name][channel][ind + 1]
         # Wave Speed is a single value, so it doesn't need to be separated by channel
-        elif name == 'Wave Speed':
+        elif name in ['Wave Speed']:
             for ind, stat in enumerate(stats_location):
                 print(parameters_with_stats_dict[name])
                 file_data_summary[f'{stat} {name}'] = parameters_with_stats_dict[name][0][ind + 1]
