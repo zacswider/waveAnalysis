@@ -224,7 +224,6 @@ def combined_workflow(
             if img_props_dict['num_channels'] > 1:
                 indv_shifts = indv_shifts * img_props_dict['frame_interval']
                 img_parameters_dict['Shift'] = indv_shifts
-                print(indv_periods.shape)
                 indv_phase_shifts = indv_shifts / np.mean(indv_periods, axis=0)
                 img_parameters_dict['Phase Shift'] = indv_phase_shifts
             # add wave speeds to the dictionary if they were calculated
