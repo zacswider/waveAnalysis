@@ -86,8 +86,8 @@ def add_stats_for_parameter(
         return [channel_label, meas_mean, meas_median, meas_std, meas_sem] + measurements_subset
 
     if measurement_name not in ['Wave Speed']:
-        for index, item in enumerate(channel_combos if measurement_name in ['Shift', 'Phase Shift'] else range(num_channels)):
-            if measurement_name in ['Shift', 'Phase Shift']:
+        for index, item in enumerate(channel_combos if measurement_name in ['Shift', '% Phase Shift'] else range(num_channels)):
+            if measurement_name in ['Shift', '% Phase Shift']:
                 measurements_subset = measurements[index]
                 channel_label = f'Ch{channel_combos[index][0]+1}-Ch{channel_combos[index][1]+1} {measurement_name}'
             else:
@@ -144,15 +144,17 @@ def combine_stats_for_image_kymo_standard(
             file_data_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Pcnt No Shifts'] = pcnt_no_shift
             for ind, stat in enumerate(stats_location):
                 file_data_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} {stat} Shift'] = parameters_with_stats_dict['Shift'][combo_number][ind + 1]
-                file_data_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} {stat} Phase Shift'] = parameters_with_stats_dict['Phase Shift'][combo_number][ind + 1]
-
+            # Unnecessary for loop to add stats for % Phase Shift after the Shifts
+            for ind, stat in enumerate(stats_location):
+                file_data_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} {stat} % Phase Shift'] = parameters_with_stats_dict['% Phase Shift'][combo_number][ind + 1]
+           
     # Add stats for each parameter
     for name, measurement in img_parameters_dict.items():
         # Skip the Shift name since it is handled separately
-        if name in ['Shift', 'Phase Shift']:
+        if name in ['Shift', '% Phase Shift']:
             continue
         # We calculate the number of bins without Period and Peak Amp 
-        elif name == 'Period' or name == 'Peak Amp':
+        elif name in ['Period', 'Peak Amp']:
             for channel in range(num_channels):
                 pcnt_no_parameter = np.count_nonzero(np.isnan(measurement[channel])) / measurement[channel].shape[0] * 100
                 param = 'Peaks' if name == 'Peak Amp' else 'Periods'

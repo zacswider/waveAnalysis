@@ -10,7 +10,7 @@ def default_log_params():
         'Box Shift(px)': 20,
         'Base Directory': 'tests/assets/standard',
         'ACF Peak Prominence': 0.1,
-        'Group Names': ['DC191', 'DC192', 'DC193', 'DC206'], #['Group1', 'Group2'], #['WT','Y653A','F649A','FYAA','FY-AA_P731D','FY-AA_PC-DK'], # # #
+        'Group Names': ['Group1', 'Group2'], #['DC191', 'DC192', 'DC193', 'DC206'], # #['WT','Y653A','F649A','FYAA','FY-AA_P731D','FY-AA_PC-DK'], # # #
         'Plot Summary ACFs': True,
         'Plot Summary CCFs': True,
         'Plot Summary Peaks': True,
@@ -31,7 +31,7 @@ def test_standard_workflow(default_log_params):
     known_results = pd.read_csv('tests/assets/standard/standard.csv')
     assert isinstance(known_results, pd.DataFrame)
     exp_results = combined_workflow(
-        folder_path=str(Path('/Volumes/T7/!Ect2-tail_waves/209DCE_240412_3xGFP-Ect2-tail_mCh-rGBD_SFC/!processed_images/raw_crop/')),
+        folder_path=str(Path('/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/')),
         group_names= default_log_params['Group Names'],
         log_params=default_log_params,
         analysis_type='standard',

@@ -204,10 +204,7 @@ def combined_workflow(
                 indv_shifts = indv_shifts * img_props_dict['frame_interval']
                 img_parameters_dict['Shift'] = indv_shifts
                 indv_phase_shifts = indv_shifts / np.mean(indv_periods, axis=0)
-                img_parameters_dict['Phase Shift'] = indv_phase_shifts
-            # add wave speeds to the dictionary if they were calculated
-            if calc_wave_speeds:
-                img_parameters_dict['Wave Speed'] = wave_speeds   
+                img_parameters_dict['% Phase Shift'] = indv_phase_shifts 
                 
             # create the directory to save the figures and data for the image
             im_save_path = os.path.join(main_save_path, name_wo_ext)
@@ -250,12 +247,6 @@ def combined_workflow(
             elif plot_summary_CCFs and img_props_dict['num_channels'] == 1:
                 log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
 
-            # plot the wave speeds for the file
-            if calc_wave_speeds and plot_wave_speeds:
-                wave_speed_figs = {}
-                wave_speed_figs[f'{name_wo_ext} wave speeds'] = pt.return_mean_wave_speeds_figure(wave_speeds=wave_speeds)
-                hf.save_plots(wave_speed_figs, im_save_path)
-            
             # plot the individual ACF figures for the file
             if plot_indv_ACFs:
                 indv_acf_plots = pt.plot_indv_acf_workflow(
