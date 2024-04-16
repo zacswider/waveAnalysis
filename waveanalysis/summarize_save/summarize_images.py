@@ -201,6 +201,7 @@ def combine_stats_rolling(
     indv_periods = img_parameters_dict['Period']
     indv_shifts = img_parameters_dict['Shift']
     indv_peak_widths = img_parameters_dict['Peak Width']
+    indv_phase_shifts = img_parameters_dict['% Phase Shift']
 
     # Define the statistics to calculate
     stat_name_and_func = {'Mean' : np.nanmean,
@@ -223,6 +224,9 @@ def combine_stats_rolling(
                 submovie_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Pcnt No Shifts'] = pcnt_no_shift
                 for stat_name, func in stat_name_and_func.items():
                     submovie_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} {stat_name} Shift'] = func(indv_shifts[submovie, combo_number])
+                # Unnecessary for loop to add stats for % Phase Shift after the Shifts
+                for stat_name, func in stat_name_and_func.items():
+                    submovie_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} {stat_name} % Phase Shift'] = func(indv_phase_shifts[submovie, combo_number])
 
         # Calculate statistics for each channel
         for channel in range(num_channels):

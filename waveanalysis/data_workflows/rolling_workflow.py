@@ -214,6 +214,7 @@ def rolling_workflow(
             if img_props_dict['num_channels'] > 1:
                 indv_shifts = indv_shifts * img_props_dict['frame_interval']
                 img_parameters_dict['Shift'] = indv_shifts
+                img_parameters_dict['% Phase Shift'] = indv_shifts / indv_periods
 
             # calculate the number of subframes used
             log_params['Submovies Used'].append(num_submovies)
