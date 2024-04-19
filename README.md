@@ -42,9 +42,9 @@ The above workflow describes the analysis of datasets over the totality of their
 ![GitHub-Mark-Light](assets/images/rollingOutput_light.jpg#gh-light-mode-only)![GitHub-Mark-Dark](assets/images/rollingOutput_dark.jpg#gh-dark-mode-only)
 
 ### Kymograph analysis
-The standard analysis method excels when capturing the wave dynamics of a cell from either a "top-down" or "en-face" perspective. However, a drawback of en-face image capture is its reliance on multiple z-stacks to accommodate non-flat surfaces, resulting in extended time intervals between frames and potentially overlooking subtle temporal shifts among different factors. To address this, one strategy is to focus on a single medial slice of the waves. However, this approach is incompatible with the aforementioned standard analysis.
+The standard analysis method excels when capturing the wave dynamics of a cell from either a "top-down" or "en-face" perspective. However, a  drawback of en-face image capture is its reliance on multiple z-stacks to accommodate non-flat surfaces, resulting in longer time intervals between frames and potentially missing subtle temporal shifts among different signals. One strategy to alleviate this issue is to focus on a single medial slice of the edge of the cell, leading a single line of waves. Therefore, using a kymograph might be a preferred method to generate wave profiles compared to the binned box method above. 
 
-In response, we introduced a method to conduct the same analysis using kymographs. Instead of dividing the image into boxes for temporal wave property measurements, we opt to segment entire columns of a kymograph. By assessing the fluorescence intensity along these columns, we can analyze the same parameters as with the standard method.
+So, we introduced a new method to conduct the same analysis as above with kymographs. Instead of dividing the image into boxes for temporal wave property measurements, we opt to segment entire columns of a kymograph. By assessing the fluorescence intensity along these columns, we can analyze the same parameters as with the standard method.
 
 <img src="assets/images/lines_dark.png#gh-dark-mode-only" alt="GitHub-Mark-Light" width="400">
 <img src="assets/images/lines_light.png#gh-light-mode-only" alt="GitHub-Mark-Dark" width="400">
