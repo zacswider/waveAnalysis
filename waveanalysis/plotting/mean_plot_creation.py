@@ -70,13 +70,13 @@ def return_mean_ACF_figure(
     # Plot histogram of period values
     periods = periods[~np.isnan(periods)]
     ax['B'].hist(periods)
-    ax['B'].set_xlabel(f'Histogram of period values (frames)')
+    ax['B'].set_xlabel(f'Histogram of period values (seconds)')
     ax['B'].set_ylabel('Occurrences')
 
     # Plot boxplot of period values
     ax['C'].boxplot(periods)
     ax['C'].set_xlabel(f'Boxplot of period values')
-    ax['C'].set_ylabel(f'Measured period (frames)')
+    ax['C'].set_ylabel(f'Measured period (seconds)')
 
     fig.subplots_adjust(hspace=0.25, wspace=0.5)  
     plt.close(fig)
@@ -264,13 +264,13 @@ def return_mean_CCF_figure(
     # Plot histogram of period values
     ax['B'].hist(shifts)
     shifts = [val for val in shifts if not np.isnan(val)]
-    ax['B'].set_xlabel(f'Histogram of shift values (frames)')
+    ax['B'].set_xlabel(f'Histogram of shift values (seconds)')
     ax['B'].set_ylabel('Occurrences')
 
     # Plot boxplot of period values
     ax['C'].boxplot(shifts)
     ax['C'].set_xlabel(f'Boxplot of shift values')
-    ax['C'].set_ylabel(f'Measured shift (frames)')
+    ax['C'].set_ylabel(f'Measured shift (seconds)')
 
     fig.subplots_adjust(hspace=0.25, wspace=0.5)   
     plt.close(fig)

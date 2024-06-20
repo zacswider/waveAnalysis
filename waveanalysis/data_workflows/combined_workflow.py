@@ -134,8 +134,6 @@ def combined_workflow(
                         "\n****** ERROR ******")
                     log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
                     continue
-                # log that the file was processed
-                log_params['Files Processed'].append(f'{file_name}')
 
                 # Create the array of bin values for which all the stats will be calculated
                 if analysis_type == 'standard':
@@ -322,13 +320,16 @@ def combined_workflow(
             
                 # append summary data to the summary list
                 summary_list.append(im_summary_dict)
-            
 
+                # log that the file was processed
+                log_params['Files Processed'].append(f'{file_name}')
+            
             except Exception as e:
                 print(f"****** ERROR ******",
                         f"\nError processing {file_name}: {str(e)}",
                         "\n****** ERROR ******")
                 log_params['Errors'].append(f'Error processing {file_name}: {str(e)}')
+                log_params['Files Not Processed'].append(f'{file_name}')
 
             # useless progress bar to force completion of previous bars
             with tqdm(total = 10, miniters = 1) as dummy_pbar:
