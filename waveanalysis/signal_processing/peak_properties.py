@@ -87,6 +87,10 @@ def calc_indv_peak_props_workflow(
                 heights = np.nan
                 leftIndex = np.nan
                 rightIndex = np.nan
+                midpoints = np.nan
+                peak_offsets = np.nan
+                left_bases = np.nan
+                right_bases = np.nan
 
             # Store the mean peak properties in the arrays
             indv_peak_widths[channel, bin] = mean_width
