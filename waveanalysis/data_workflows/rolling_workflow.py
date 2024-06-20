@@ -68,195 +68,206 @@ def rolling_workflow(
     with tqdm(total = len(file_names)) as pbar:
         pbar.set_description('Files processed:')
         for file_name in file_names: 
-            print('******'*10)
-            print(f'Processing {file_name}...')
+            try:
+                print('******'*10)
+                print(f'Processing {file_name}...')
 
-            ############################################
-            ####### Image Convert and Properties #######
-            ############################################
+                ############################################
+                ####### Image Convert and Properties #######
+                ############################################
 
-            # Get image properties
-            image_path = f'{folder_path}/{file_name}'
-            img_props_dict = get_multi_frame_properties(image_path=image_path)
+                # Get image properties
+                image_path = f'{folder_path}/{file_name}'
+                img_props_dict = get_multi_frame_properties(image_path=image_path)
 
-            # check if frame interval is not 1 or None and log it
-            frame_interval = hf.check_frame_interval(frame_interval=img_props_dict['frame_interval'], log_params=log_params, file_name=file_name)
-            img_props_dict['frame_interval'] = frame_interval
+                # check if frame interval is not 1 or None and log it
+                frame_interval = hf.check_frame_interval(frame_interval=img_props_dict['frame_interval'], log_params=log_params, file_name=file_name)
+                img_props_dict['frame_interval'] = frame_interval
 
-            # add other image properties to the dictionary for later use
-            img_props_dict['step'] = box_shift
-            img_props_dict['box_size'] = box_size
-            img_props_dict['peak_thresh'] = acf_peak_thresh
-            num_frames = img_props_dict['num_frames']
-            num_channels = img_props_dict['num_channels']
+                # add other image properties to the dictionary for later use
+                img_props_dict['step'] = box_shift
+                img_props_dict['box_size'] = box_size
+                img_props_dict['peak_thresh'] = acf_peak_thresh
+                num_frames = img_props_dict['num_frames']
+                num_channels = img_props_dict['num_channels']
 
-            # log image properties
-            log_params['Pixel Size'].append(f"{file_name}: {img_props_dict['pixel_size']} {img_props_dict['pixel_unit']}s")
-            log_params['Frame Interval'].append(f"{file_name}: {img_props_dict['frame_interval']} seconds")
+                # log image properties
+                log_params['Pixel Size'].append(f"{file_name}: {img_props_dict['pixel_size']} {img_props_dict['pixel_unit']}s")
+                log_params['Frame Interval'].append(f"{file_name}: {img_props_dict['frame_interval']} seconds")
 
-            assert isinstance(roll_size, int) and isinstance(roll_by, int), 'Roll size and roll by must be integers'
-            num_submovies = (num_frames - roll_size) // roll_by
-            img_props_dict['num_submovies'] = num_submovies
+                assert isinstance(roll_size, int) and isinstance(roll_by, int), 'Roll size and roll by must be integers'
+                num_submovies = (num_frames - roll_size) // roll_by
+                img_props_dict['num_submovies'] = num_submovies
 
-            # log error and skip image if frames < 2 
-            if num_frames < 2:
-                print(f"****** ERROR ******",
-                    f"\n{file_name} has less than 2 frames",
-                    "\n****** ERROR ******")
-                log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
-                continue
-            log_params['Files Processed'].append(f'{file_name}')
-            
-            # Create the array for which all future processing will be based on
-            image_array = tiff_to_np_array_multi_frame(image_path)
-            bin_values, num_bins, num_x_bins, num_y_bins = create_multi_frame_bin_array(
-                                                                image = image_array,
-                                                                img_props = img_props_dict
-                                                            )
-            
-            img_props_dict['num_bins'] = num_bins
-            img_props_dict['num_x_bins'] = num_x_bins
-            img_props_dict['num_y_bins'] = num_y_bins
-
-            # name without the extension
-            name_wo_ext = file_name.rsplit(".",1)[0]
-
-            ############################################
-            ############## Signal Processing ###########
-            ############################################
-
-            # Calculate the individual periods for each channel
-            indv_periods = np.zeros(shape=(num_submovies, num_channels, num_bins))
-            its = num_submovies*num_channels*num_x_bins*num_y_bins
-            with tqdm(total = its, miniters=its/100) as pbar:
-                pbar.set_description( 'Periods: ')
-                for submovie in range(num_submovies):
-                    for channel in range(num_channels):
-                        for bin in range(num_bins):
-                            pbar.update(1)
-                            signal = bin_values[roll_by * submovie: roll_size + roll_by * submovie, channel, bin]
-                            acf_curve = sp.calc_indv_ACF(signal=signal, num_frames=roll_size, peak_thresh=acf_peak_thresh)
-                            period = sp.calc_indv_period(acf_curve=acf_curve, peak_thresh=acf_peak_thresh)
-
-                            indv_periods[submovie, channel, bin] = period
+                # log error and skip image if frames < 2 
+                if num_frames < 2:
+                    print(f"****** ERROR ******",
+                        f"\n{file_name} has less than 2 frames",
+                        "\n****** ERROR ******")
+                    log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
+                    continue
+                log_params['Files Processed'].append(f'{file_name}')
                 
-            # Calculate the individual peak properties for each channel
-            indv_peak_widths = np.zeros(shape=(num_submovies, num_channels, num_bins))
-            indv_peak_maxs = np.zeros(shape=(num_submovies, num_channels, num_bins))
-            indv_peak_mins = np.zeros(shape=(num_submovies, num_channels, num_bins))
-            indv_peak_offsets = np.zeros(shape=(num_submovies, num_channels, num_bins))
+                # Create the array for which all future processing will be based on
+                image_array = tiff_to_np_array_multi_frame(image_path)
+                bin_values, num_bins, num_x_bins, num_y_bins = create_multi_frame_bin_array(
+                                                                    image = image_array,
+                                                                    img_props = img_props_dict
+                                                                )
+                
+                img_props_dict['num_bins'] = num_bins
+                img_props_dict['num_x_bins'] = num_x_bins
+                img_props_dict['num_y_bins'] = num_y_bins
 
-            its = num_submovies*num_channels*num_x_bins*num_y_bins
-            with tqdm(total = its, miniters=its/100) as pbar:
-                pbar.set_description('Peak Props: ')
-                for submovie in range(num_submovies):
-                    for channel in range(num_channels):
-                        for bin in range(num_bins):
-                            pbar.update(1)
-                            signal = sig.savgol_filter(bin_values[roll_by*submovie : roll_size + roll_by*submovie, channel, bin], window_length=11, polyorder=2)
+                # name without the extension
+                name_wo_ext = file_name.rsplit(".",1)[0]
 
-                            mean_width, mean_max, mean_min, mean_offset = sp.calc_indv_peak_props_rolling(signal=signal)
+                ############################################
+                ############## Signal Processing ###########
+                ############################################
 
-                            # Store peak measurements for each bin in each channel
-                            indv_peak_widths[submovie, channel, bin] = mean_width
-                            indv_peak_maxs[submovie, channel, bin] = mean_max
-                            indv_peak_mins[submovie, channel, bin] = mean_min
-                            indv_peak_offsets[submovie, channel, bin] = mean_offset
-                            indv_peak_amps = indv_peak_maxs - indv_peak_mins
-                            indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
-
-            channel_combos = hf.get_channel_combos(num_channels=num_channels)
-            num_combos = len(channel_combos)
-            img_props_dict['channel_combos'] = channel_combos
-            img_props_dict['num_combos'] = num_combos
-
-            # Calculate the individual CCFs and shifts for each channel
-            if num_channels > 1:
-                indv_shifts = np.zeros(shape=(num_submovies, num_combos, num_bins))
-                indv_ccfs = np.zeros(shape=(num_submovies, num_combos, num_bins, roll_size*2-1))
-                its = num_submovies*num_combos*num_bins
+                # Calculate the individual periods for each channel
+                indv_periods = np.zeros(shape=(num_submovies, num_channels, num_bins))
+                its = num_submovies*num_channels*num_x_bins*num_y_bins
                 with tqdm(total = its, miniters=its/100) as pbar:
-                    pbar.set_description( 'Shifts: ')
+                    pbar.set_description( 'Periods: ')
                     for submovie in range(num_submovies):
-                        for combo_number, combo in enumerate(channel_combos):
+                        for channel in range(num_channels):
                             for bin in range(num_bins):
                                 pbar.update(1)
-                                signal1 = bin_values[roll_by*submovie : roll_size + roll_by*submovie, combo[0], bin]
-                                signal2 = bin_values[roll_by*submovie : roll_size + roll_by*submovie, combo[1], bin]
-                                ccf = sp.calc_indv_CCF(signal1=signal1, signal2=signal2, num_frames=roll_size)
-                                indv_ccfs[submovie, combo_number, bin] = ccf
-                                
-                                shift = sp.calc_indv_shift(cc_curve=ccf)
-                                average_period = np.mean(indv_periods[:, :, bin])
-                                shift = sp.small_shifts_correction(delay_frames=shift, average_period=average_period)
-                                indv_shifts[submovie, combo_number, bin] = shift
+                                signal = bin_values[roll_by * submovie: roll_size + roll_by * submovie, channel, bin]
+                                acf_curve = sp.calc_indv_ACF(signal=signal, num_frames=roll_size, peak_thresh=acf_peak_thresh)
+                                period = sp.calc_indv_period(acf_curve=acf_curve, peak_thresh=acf_peak_thresh)
 
-            # create a subfolder within the main save path with the same name as the image file
-            im_save_path = os.path.join(main_save_path, name_wo_ext)
-            os.makedirs(im_save_path, exist_ok=True)
+                                indv_periods[submovie, channel, bin] = period
+                    
+                # Calculate the individual peak properties for each channel
+                indv_peak_widths = np.zeros(shape=(num_submovies, num_channels, num_bins))
+                indv_peak_maxs = np.zeros(shape=(num_submovies, num_channels, num_bins))
+                indv_peak_mins = np.zeros(shape=(num_submovies, num_channels, num_bins))
+                indv_peak_offsets = np.zeros(shape=(num_submovies, num_channels, num_bins))
 
-            # adjust the different waves properties to be the use the frame interval rather than the number of frames
-            indv_periods = indv_periods * img_props_dict['frame_interval']
-            indv_peak_offsets = indv_peak_offsets * img_props_dict['frame_interval']
-            indv_peak_widths = indv_peak_widths * img_props_dict['frame_interval']
+                its = num_submovies*num_channels*num_x_bins*num_y_bins
+                with tqdm(total = its, miniters=its/100) as pbar:
+                    pbar.set_description('Peak Props: ')
+                    for submovie in range(num_submovies):
+                        for channel in range(num_channels):
+                            for bin in range(num_bins):
+                                pbar.update(1)
+                                signal = sig.savgol_filter(bin_values[roll_by*submovie : roll_size + roll_by*submovie, channel, bin], window_length=11, polyorder=2)
 
-            img_parameters_dict = {
-                            'Period': indv_periods,
-                            'Peak Amp': indv_peak_amps,
-                            'Peak Rel Amp': indv_peak_rel_amps,
-                            'Peak Width': indv_peak_widths,
-                            'Peak Max': indv_peak_maxs,
-                            'Peak Min': indv_peak_mins,
-                            'Peak Offset': indv_peak_offsets
-            }
+                                mean_width, mean_max, mean_min, mean_offset = sp.calc_indv_peak_props_rolling(signal=signal)
 
-            # add shifts to the dictionary if there are multiple channels
-            if img_props_dict['num_channels'] > 1:
-                indv_shifts = indv_shifts * img_props_dict['frame_interval']
-                img_parameters_dict['Shift'] = indv_shifts
-                img_parameters_dict['% Phase Shift'] = indv_shifts / indv_periods
+                                # Store peak measurements for each bin in each channel
+                                indv_peak_widths[submovie, channel, bin] = mean_width
+                                indv_peak_maxs[submovie, channel, bin] = mean_max
+                                indv_peak_mins[submovie, channel, bin] = mean_min
+                                indv_peak_offsets[submovie, channel, bin] = mean_offset
+                                indv_peak_amps = indv_peak_maxs - indv_peak_mins
+                                indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
 
-            # calculate the number of subframes used
-            log_params['Submovies Used'].append(num_submovies)
+                channel_combos = hf.get_channel_combos(num_channels=num_channels)
+                num_combos = len(channel_combos)
+                img_props_dict['channel_combos'] = channel_combos
+                img_props_dict['num_combos'] = num_combos
 
-            ############################################
-            ############## Saving and Summary ##########
-            ############################################
+                # Calculate the individual CCFs and shifts for each channel
+                if num_channels > 1:
+                    indv_shifts = np.zeros(shape=(num_submovies, num_combos, num_bins))
+                    indv_ccfs = np.zeros(shape=(num_submovies, num_combos, num_bins, roll_size*2-1))
+                    its = num_submovies*num_combos*num_bins
+                    with tqdm(total = its, miniters=its/100) as pbar:
+                        pbar.set_description( 'Shifts: ')
+                        for submovie in range(num_submovies):
+                            for combo_number, combo in enumerate(channel_combos):
+                                for bin in range(num_bins):
+                                    pbar.update(1)
+                                    signal1 = bin_values[roll_by*submovie : roll_size + roll_by*submovie, combo[0], bin]
+                                    signal2 = bin_values[roll_by*submovie : roll_size + roll_by*submovie, combo[1], bin]
+                                    ccf = sp.calc_indv_CCF(signal1=signal1, signal2=signal2, num_frames=roll_size)
+                                    indv_ccfs[submovie, combo_number, bin] = ccf
+                                    
+                                    shift = sp.calc_indv_shift(cc_curve=ccf)
+                                    average_period = np.mean(indv_periods[:, :, bin])
+                                    shift = sp.small_shifts_correction(delay_frames=shift, average_period=average_period)
+                                    indv_shifts[submovie, combo_number, bin] = shift
 
-            # summarize the data for each subframe as individual dataframes, and save as .csv
-            submovie_meas_list, _ = summarize_image(
-                img_props_dict=img_props_dict,
-                img_parameters=img_parameters_dict
-            )
-            csv_save_path = os.path.join(im_save_path, 'rolling_measurements')
-            os.makedirs(csv_save_path, exist_ok=True)
-            for measurement_index, submovie_meas_df in enumerate(submovie_meas_list):  # type: ignore
-                submovie_meas_df.to_csv(f'{csv_save_path}/{name_wo_ext}_subframe{measurement_index}_measurements.csv', index = False)
-            
-            # summarize the data for each subframe as a single dataframe, and save as .csv
-            summary_df = combine_stats_rolling(
-                img_props_dict=img_props_dict,
-                img_parameters_dict=img_parameters_dict,
-                indv_ccfs=indv_ccfs if num_channels > 1 else None
-            )
-            summary_df.to_csv(f'{im_save_path}/{name_wo_ext}_summary.csv', index = False)
+                # create a subfolder within the main save path with the same name as the image file
+                im_save_path = os.path.join(main_save_path, name_wo_ext)
+                os.makedirs(im_save_path, exist_ok=True)
 
-            # make and save the summary plot for rolling data
-            summary_plots = pt.plot_rolling_summary(
-                num_channels=num_channels,
-                fullmovie_summary=summary_df,
-                channel_combos=channel_combos
-            )
-            plot_save_path = os.path.join(im_save_path, 'summary_plots')
-            os.makedirs(plot_save_path, exist_ok=True)
-            hf.save_plots(summary_plots, plot_save_path)
+                # adjust the different waves properties to be the use the frame interval rather than the number of frames
+                indv_periods = indv_periods * img_props_dict['frame_interval']
+                indv_peak_offsets = indv_peak_offsets * img_props_dict['frame_interval']
+                indv_peak_widths = indv_peak_widths * img_props_dict['frame_interval']
 
-            end = timeit.default_timer()
-            log_params["Time Elapsed"] = f"{end - start:.2f} seconds"
-            # log parameters and errors
-            hf.make_log(main_save_path, log_params)
+                img_parameters_dict = {
+                                'Period': indv_periods,
+                                'Peak Amp': indv_peak_amps,
+                                'Peak Rel Amp': indv_peak_rel_amps,
+                                'Peak Width': indv_peak_widths,
+                                'Peak Max': indv_peak_maxs,
+                                'Peak Min': indv_peak_mins,
+                                'Peak Offset': indv_peak_offsets
+                }
+
+                # add shifts to the dictionary if there are multiple channels
+                if img_props_dict['num_channels'] > 1:
+                    indv_shifts = indv_shifts * img_props_dict['frame_interval']
+                    img_parameters_dict['Shift'] = indv_shifts
+                    img_parameters_dict['% Phase Shift'] = indv_shifts / indv_periods
+
+                # calculate the number of subframes used
+                log_params['Submovies Used'].append(num_submovies)
+
+                ############################################
+                ############## Saving and Summary ##########
+                ############################################
+
+                # summarize the data for each subframe as individual dataframes, and save as .csv
+                submovie_meas_list, _ = summarize_image(
+                    img_props_dict=img_props_dict,
+                    img_parameters=img_parameters_dict
+                )
+                csv_save_path = os.path.join(im_save_path, 'rolling_measurements')
+                os.makedirs(csv_save_path, exist_ok=True)
+                for measurement_index, submovie_meas_df in enumerate(submovie_meas_list):  # type: ignore
+                    submovie_meas_df.to_csv(f'{csv_save_path}/{name_wo_ext}_subframe{measurement_index}_measurements.csv', index = False)
+                
+                # summarize the data for each subframe as a single dataframe, and save as .csv
+                summary_df = combine_stats_rolling(
+                    img_props_dict=img_props_dict,
+                    img_parameters_dict=img_parameters_dict,
+                    indv_ccfs=indv_ccfs if num_channels > 1 else None
+                )
+                summary_df.to_csv(f'{im_save_path}/{name_wo_ext}_summary.csv', index = False)
+
+                # make and save the summary plot for rolling data
+                summary_plots = pt.plot_rolling_summary(
+                    num_channels=num_channels,
+                    fullmovie_summary=summary_df,
+                    channel_combos=channel_combos
+                )
+                plot_save_path = os.path.join(im_save_path, 'summary_plots')
+                os.makedirs(plot_save_path, exist_ok=True)
+                hf.save_plots(summary_plots, plot_save_path)
+
+                end = timeit.default_timer()
+                log_params["Time Elapsed"] = f"{end - start:.2f} seconds"
+                # log parameters and errors
+                hf.make_log(main_save_path, log_params)
+
+            except:
+                print(f"****** ERROR ******",
+                    f"\nError processing {file_name}",
+                    "\n****** ERROR ******")
+                log_params['Errors'].append(f'Error processing {file_name}')
 
             pbar.update(1)
 
-            if name_wo_ext == '1_Group2':
-                return summary_df # only return this now for testing purposes. Will remove later
+            if log_params['Errors']:
+                print('******'*10)
+                print('Errors were encountered during processing. Please check the log file for more information.')
+                print('******'*10)
+
+            return summary_df if name_wo_ext == '1_Group2' else None # only return this now for testing purposes. Will remove later

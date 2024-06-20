@@ -1,1 +1,0 @@
-{"num_channels": 2, "num_frames": 391, "frame_interval": 3.8, "pixel_size": [0.2661448807564476, 0.2661448807564476, 1.0], "pixel_unit": "micron", "step": 20, "box_size": 20, "line_width": null, "analysis_type": "standard", "peak_thresh": 0.1, "channel_combos": [[0, 1]], "num_combos": 1, "num_bins": 36}

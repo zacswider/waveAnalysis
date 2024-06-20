@@ -18,8 +18,8 @@ def test_mean_ACF_plot(default_mean_ACF_plots):
         ]
 
     default_dicts = [
-        'tests/assets/standard/dicts_lists/standard_image_properties_1_Group1_final.json',
-        'tests/assets/standard/dicts_lists/standard_image_properties_1_Group2_final.json'
+        'tests/assets/standard/dicts_lists/1_Group1_img_props.json',
+        'tests/assets/standard/dicts_lists/1_Group2_img_props.json'
     ]
 
     default_ACFs = [

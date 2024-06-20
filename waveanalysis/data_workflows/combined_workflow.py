@@ -96,231 +96,238 @@ def combined_workflow(
     with tqdm(total = len(file_names)) as pbar:
         pbar.set_description('Files processed:')
         for file_name in file_names: 
-            print('******'*10)
-            print(f'Processing {file_name}...')
+            try:
+                print('******'*10)
+                print(f'Processing {file_name}...')
 
-            ############################################
-            ####### Image Convert and Properties #######
-            ############################################
+                ############################################
+                ####### Image Convert and Properties #######
+                ############################################
 
-            image_path = f'{folder_path}/{file_name}'  
-            
-            # Get image properties
-            if analysis_type == 'standard':
-                img_props_dict = get_multi_frame_properties(image_path=image_path)
-            else: 
-                img_props_dict = get_single_frame_properties(image_path=image_path)
-
-            # check if frame interval is not 1 or None and log it
-            frame_interval = hf.check_frame_interval(frame_interval=img_props_dict['frame_interval'], log_params=log_params, file_name=file_name)
-            img_props_dict['frame_interval'] = frame_interval
-
-            # add other image properties to the dictionary for later use
-            img_props_dict['step'] = bin_shift
-            img_props_dict['box_size'] = box_size if analysis_type == 'standard' else None
-            img_props_dict['line_width'] = line_width if analysis_type == 'kymograph' else None
-            img_props_dict['analysis_type'] = analysis_type
-            img_props_dict['peak_thresh'] = acf_peak_thresh
-
-            # log image properties
-            log_params['Pixel Size'].append(f"{file_name}: {img_props_dict['pixel_size']} {img_props_dict['pixel_unit']}s")
-            log_params['Frame Interval'].append(f"{file_name}: {img_props_dict['frame_interval']} seconds")
-
-            # log error and skip image if frames < 2; otherwise, log image as processed
-            if img_props_dict['num_frames'] < 2:
-                print(f"****** ERROR ******",
-                    f"\n{file_name} has less than 2 frames",
-                    "\n****** ERROR ******")
-                log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
-                continue
-            # log that the file was processed
-            log_params['Files Processed'].append(f'{file_name}')
-
-            # Create the array of bin values for which all the stats will be calculated
-            if analysis_type == 'standard':
-                image_array = tiff_to_np_array_multi_frame(image_path)
-                bin_values, num_bins, _, _ = create_multi_frame_bin_array(image = image_array, 
-                                                                          img_props = img_props_dict)
+                image_path = f'{folder_path}/{file_name}'  
                 
-                # np.save(f'/Users/domchom/Desktop/{file_name}_bin_values.npy', bin_values)
-                                
-            else: # analysis_type == 'kymograph'
-                image_array = tiff_to_np_array_single_frame(image_path)
-                bin_values, num_bins = create_kymo_bin_array(image = image_array,
-                                                             img_props = img_props_dict)
+                # Get image properties
+                if analysis_type == 'standard':
+                    img_props_dict = get_multi_frame_properties(image_path=image_path)
+                else: 
+                    img_props_dict = get_single_frame_properties(image_path=image_path)
+
+                # check if frame interval is not 1 or None and log it
+                frame_interval = hf.check_frame_interval(frame_interval=img_props_dict['frame_interval'], log_params=log_params, file_name=file_name)
+                img_props_dict['frame_interval'] = frame_interval
+
+                # add other image properties to the dictionary for later use
+                img_props_dict['step'] = bin_shift
+                img_props_dict['box_size'] = box_size if analysis_type == 'standard' else None
+                img_props_dict['line_width'] = line_width if analysis_type == 'kymograph' else None
+                img_props_dict['analysis_type'] = analysis_type
+                img_props_dict['peak_thresh'] = acf_peak_thresh
+
+                # log image properties
+                log_params['Pixel Size'].append(f"{file_name}: {img_props_dict['pixel_size']} {img_props_dict['pixel_unit']}s")
+                log_params['Frame Interval'].append(f"{file_name}: {img_props_dict['frame_interval']} seconds")
+
+                # log error and skip image if frames < 2; otherwise, log image as processed
+                if img_props_dict['num_frames'] < 2:
+                    print(f"****** ERROR ******",
+                        f"\n{file_name} has less than 2 frames",
+                        "\n****** ERROR ******")
+                    log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
+                    continue
+                # log that the file was processed
+                log_params['Files Processed'].append(f'{file_name}')
+
+                # Create the array of bin values for which all the stats will be calculated
+                if analysis_type == 'standard':
+                    image_array = tiff_to_np_array_multi_frame(image_path)
+                    bin_values, num_bins, _, _ = create_multi_frame_bin_array(image = image_array, 
+                                                                                img_props = img_props_dict)
+                    
+                    # np.save(f'/Users/domchom/Desktop/{file_name}_bin_values.npy', bin_values)
+                                    
+                else: # analysis_type == 'kymograph'
+                    image_array = tiff_to_np_array_single_frame(image_path)
+                    bin_values, num_bins = create_kymo_bin_array(image = image_array,
+                                                                    img_props = img_props_dict)
+                    
+                # get the channel combinations
+                channel_combos = hf.get_channel_combos(num_channels=img_props_dict['num_channels'])
+                num_combos = len(channel_combos)
+                img_props_dict['channel_combos'] = channel_combos
+                img_props_dict['num_combos'] = num_combos
+
+                # store the number of bins and the bin values in the image properties dictionary
+                img_props_dict['num_bins'] = num_bins
+                img_props_dict['bin_values'] = bin_values
+
+                # if user entered group name(s) into GUI, match the group for this file. If no match, keep set to None
+                name_wo_ext = file_name.rsplit(".",1)[0]
+                group_name = hf.match_group_to_file(name_wo_ext=name_wo_ext, group_names=group_names)
+
+                ############################################
+                ############## Signal Processing ###########
+                ############################################
+
+                # Calculate the ACF
+                indv_acfs = sp.calc_indv_ACF_workflow(bin_values=bin_values, img_props=img_props_dict)
+
+                # Calculate the period
+                indv_periods = sp.calc_indv_period_workflow(acf_curve=indv_acfs, img_props=img_props_dict)
+
+                # Calculate the peak properties
+                indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_offsets, indv_peak_props = sp.calc_indv_peak_props_workflow(bin_values=bin_values, img_props=img_props_dict)
+                indv_peak_amps = indv_peak_maxs - indv_peak_mins
+                indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
                 
-            # get the channel combinations
-            channel_combos = hf.get_channel_combos(num_channels=img_props_dict['num_channels'])
-            num_combos = len(channel_combos)
-            img_props_dict['channel_combos'] = channel_combos
-            img_props_dict['num_combos'] = num_combos
+                # Calculate the individual CCFs and shifts
+                if img_props_dict['num_channels'] > 1:
+                    indv_ccfs = sp.calc_indv_CCF_workflow(bin_values=bin_values, img_props=img_props_dict)
+                    indv_shifts = sp.calc_indv_shift_workflow(indv_ccfs=indv_ccfs, indv_periods=indv_periods, img_props=img_props_dict)
 
-            # store the number of bins and the bin values in the image properties dictionary
-            img_props_dict['num_bins'] = num_bins
-            img_props_dict['bin_values'] = bin_values
+                # adjust the different waves properties to be the use the frame interval rather than the number of frames
+                indv_periods = indv_periods * img_props_dict['frame_interval']
+                indv_peak_offsets = indv_peak_offsets * img_props_dict['frame_interval']
+                indv_peak_widths = indv_peak_widths * img_props_dict['frame_interval']
 
-            # if user entered group name(s) into GUI, match the group for this file. If no match, keep set to None
-            name_wo_ext = file_name.rsplit(".",1)[0]
-            group_name = hf.match_group_to_file(name_wo_ext=name_wo_ext, group_names=group_names)
-
-            ############################################
-            ############## Signal Processing ###########
-            ############################################
-
-            # Calculate the ACF
-            indv_acfs = sp.calc_indv_ACF_workflow(bin_values=bin_values, img_props=img_props_dict)
-
-            # Calculate the period
-            indv_periods = sp.calc_indv_period_workflow(acf_curve=indv_acfs, img_props=img_props_dict)
-
-            # Calculate the peak properties
-            indv_peak_widths, indv_peak_maxs, indv_peak_mins, indv_peak_offsets, indv_peak_props = sp.calc_indv_peak_props_workflow(bin_values=bin_values, img_props=img_props_dict)
-            indv_peak_amps = indv_peak_maxs - indv_peak_mins
-            indv_peak_rel_amps = indv_peak_amps / indv_peak_mins
-            
-            # Calculate the individual CCFs and shifts
-            if img_props_dict['num_channels'] > 1:
-                indv_ccfs = sp.calc_indv_CCF_workflow(bin_values=bin_values, img_props=img_props_dict)
-                indv_shifts = sp.calc_indv_shift_workflow(indv_ccfs=indv_ccfs, indv_periods=indv_periods, img_props=img_props_dict)
-
-            # adjust the different waves properties to be the use the frame interval rather than the number of frames
-            indv_periods = indv_periods * img_props_dict['frame_interval']
-            indv_peak_offsets = indv_peak_offsets * img_props_dict['frame_interval']
-            indv_peak_widths = indv_peak_widths * img_props_dict['frame_interval']
-
-            # create dictionary of image parameters and their values for later use
-            img_parameters_dict = {
-                            'Period': indv_periods,
-                            'Peak Amp': indv_peak_amps,
-                            'Peak Rel Amp': indv_peak_rel_amps,
-                            'Peak Width': indv_peak_widths,
-                            'Peak Max': indv_peak_maxs,
-                            'Peak Min': indv_peak_mins,
-                            'Peak Offset': indv_peak_offsets,
-                            }    
-            
-            # add shifts to the dictionary if there are multiple channels
-            if img_props_dict['num_channels'] > 1:
-                indv_shifts = indv_shifts * img_props_dict['frame_interval']
-                img_parameters_dict['Shift'] = indv_shifts
-                indv_phase_shifts = indv_shifts / np.mean(indv_periods, axis=0)
-                img_parameters_dict['% Phase Shift'] = indv_phase_shifts 
+                # create dictionary of image parameters and their values for later use
+                img_parameters_dict = {
+                                'Period': indv_periods,
+                                'Peak Amp': indv_peak_amps,
+                                'Peak Rel Amp': indv_peak_rel_amps,
+                                'Peak Width': indv_peak_widths,
+                                'Peak Max': indv_peak_maxs,
+                                'Peak Min': indv_peak_mins,
+                                'Peak Offset': indv_peak_offsets,
+                                }    
                 
-            # create the directory to save the figures and data for the image
-            im_save_path = os.path.join(main_save_path, name_wo_ext)
-            os.makedirs(im_save_path, exist_ok=True)
+                # add shifts to the dictionary if there are multiple channels
+                if img_props_dict['num_channels'] > 1:
+                    indv_shifts = indv_shifts * img_props_dict['frame_interval']
+                    img_parameters_dict['Shift'] = indv_shifts
+                    indv_phase_shifts = indv_shifts / np.mean(indv_periods, axis=0)
+                    img_parameters_dict['% Phase Shift'] = indv_phase_shifts 
+                    
+                # create the directory to save the figures and data for the image
+                im_save_path = os.path.join(main_save_path, name_wo_ext)
+                os.makedirs(im_save_path, exist_ok=True)
 
-            ############################################
-            ############## Plotting ####################
-            ############################################
+                ############################################
+                ############## Plotting ####################
+                ############################################
 
-            # plot the mean ACF figures for the file
-            if plot_summary_ACFs:
-                mean_acf_figs = pt.plot_mean_ACF_workflow(
-                    img_parameters_dict=img_parameters_dict,
-                    img_props=img_props_dict,
-                    indv_acfs=indv_acfs
-                )
-                hf.save_plots(mean_acf_figs, im_save_path)
+                # plot the mean ACF figures for the file
+                if plot_summary_ACFs:
+                    mean_acf_figs = pt.plot_mean_ACF_workflow(
+                        img_parameters_dict=img_parameters_dict,
+                        img_props=img_props_dict,
+                        indv_acfs=indv_acfs
+                    )
+                    hf.save_plots(mean_acf_figs, im_save_path)
 
-            # plot the mean peak properties figures for the file
-            if plot_summary_peaks:
-                mean_peak_figs = pt.plot_mean_peak_props_workflow(
-                    img_parameters_dict=img_parameters_dict,
-                    img_props=img_props_dict
-                )
-                hf.save_plots(mean_peak_figs, im_save_path)
+                # plot the mean peak properties figures for the file
+                if plot_summary_peaks:
+                    mean_peak_figs = pt.plot_mean_peak_props_workflow(
+                        img_parameters_dict=img_parameters_dict,
+                        img_props=img_props_dict
+                    )
+                    hf.save_plots(mean_peak_figs, im_save_path)
 
-            # plot the mean CCF figures for the file
-            if plot_summary_CCFs and img_props_dict['num_channels'] > 1:
-                mean_ccf_figs = pt.plot_mean_CCF_workflow(
-                    img_parameters_dict=img_parameters_dict,
-                    img_props=img_props_dict,
-                    indv_ccfs=indv_ccfs
-                )
-                hf.save_plots(mean_ccf_figs, im_save_path)
-                # save the mean CCF values for the file
-                mean_ccf_values = get_mean_CCF_values(channel_combos=channel_combos, indv_ccfs=indv_ccfs, frame_interval=img_props_dict['frame_interval'])
-                save_ccf_values_to_csv(mean_ccf_values, im_save_path)
+                # plot the mean CCF figures for the file
+                if plot_summary_CCFs and img_props_dict['num_channels'] > 1:
+                    mean_ccf_figs = pt.plot_mean_CCF_workflow(
+                        img_parameters_dict=img_parameters_dict,
+                        img_props=img_props_dict,
+                        indv_ccfs=indv_ccfs
+                    )
+                    hf.save_plots(mean_ccf_figs, im_save_path)
+                    # save the mean CCF values for the file
+                    mean_ccf_values = get_mean_CCF_values(channel_combos=channel_combos, indv_ccfs=indv_ccfs, frame_interval=img_props_dict['frame_interval'])
+                    save_ccf_values_to_csv(mean_ccf_values, im_save_path)
 
-            # Error check for plotting individual CCFs
-            elif plot_summary_CCFs and img_props_dict['num_channels'] == 1:
-                log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
-
-            # plot the individual ACF figures for the file
-            if plot_indv_ACFs:
-                indv_acf_plots = pt.plot_indv_acf_workflow(
-                    bin_values=bin_values,
-                    indv_acfs=indv_acfs,
-                    img_parameters_dict=img_parameters_dict,
-                    img_props=img_props_dict
-                )
-                indv_acf_path = os.path.join(im_save_path, 'Individual_ACF_plots')
-                os.makedirs(indv_acf_path, exist_ok=True)
-                hf.save_plots(indv_acf_plots, indv_acf_path)
-
-            # plot the individual peak properties figures for the file
-            if plot_indv_peaks:        
-                indv_peak_figs = pt.plot_indv_peak_workflow(
-                    bin_values=bin_values,
-                    img_prop_dict=img_props_dict,
-                    indv_peak_props=indv_peak_props,
-                    num_frames=img_props_dict['num_frames']
-                )
-                indv_peak_path = os.path.join(im_save_path, 'Individual_peak_plots')
-                os.makedirs(indv_peak_path, exist_ok=True)
-                hf.save_plots(indv_peak_figs, indv_peak_path)
-                
-            # plot the individual CCF figures for the file
-            if plot_indv_CCFs and img_props_dict['num_channels'] > 1:
-                if img_props_dict['num_channels'] == 1:
+                # Error check for plotting individual CCFs
+                elif plot_summary_CCFs and img_props_dict['num_channels'] == 1:
                     log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
-                indv_ccf_plots = pt.plot_indv_ccf_workflow(
-                    bin_values=bin_values,
-                    indv_ccfs=indv_ccfs,
-                    img_parameters_dict=img_parameters_dict,
-                    img_props=img_props_dict
-                )
-                indv_ccf_plots_path = os.path.join(im_save_path, 'Individual_CCF_plots')
-                os.makedirs(indv_ccf_plots_path, exist_ok=True)
-                hf.save_plots(indv_ccf_plots, indv_ccf_plots_path)
-                # save the individual CCF values for the file
-                indv_ccf_values = get_indv_CCF_values(
-                    indv_ccfs=indv_ccfs,
-                    bin_values=bin_values,
+
+                # plot the individual ACF figures for the file
+                if plot_indv_ACFs:
+                    indv_acf_plots = pt.plot_indv_acf_workflow(
+                        bin_values=bin_values,
+                        indv_acfs=indv_acfs,
+                        img_parameters_dict=img_parameters_dict,
+                        img_props=img_props_dict
+                    )
+                    indv_acf_path = os.path.join(im_save_path, 'Individual_ACF_plots')
+                    os.makedirs(indv_acf_path, exist_ok=True)
+                    hf.save_plots(indv_acf_plots, indv_acf_path)
+
+                # plot the individual peak properties figures for the file
+                if plot_indv_peaks:        
+                    indv_peak_figs = pt.plot_indv_peak_workflow(
+                        bin_values=bin_values,
+                        img_prop_dict=img_props_dict,
+                        indv_peak_props=indv_peak_props,
+                        num_frames=img_props_dict['num_frames']
+                    )
+                    indv_peak_path = os.path.join(im_save_path, 'Individual_peak_plots')
+                    os.makedirs(indv_peak_path, exist_ok=True)
+                    hf.save_plots(indv_peak_figs, indv_peak_path)
+                    
+                # plot the individual CCF figures for the file
+                if plot_indv_CCFs and img_props_dict['num_channels'] > 1:
+                    if img_props_dict['num_channels'] == 1:
+                        log_params['Miscellaneous'] = f'CCF plots were not generated for {file_name} because the image only has one channel'
+                    indv_ccf_plots = pt.plot_indv_ccf_workflow(
+                        bin_values=bin_values,
+                        indv_ccfs=indv_ccfs,
+                        img_parameters_dict=img_parameters_dict,
+                        img_props=img_props_dict
+                    )
+                    indv_ccf_plots_path = os.path.join(im_save_path, 'Individual_CCF_plots')
+                    os.makedirs(indv_ccf_plots_path, exist_ok=True)
+                    hf.save_plots(indv_ccf_plots, indv_ccf_plots_path)
+                    # save the individual CCF values for the file
+                    indv_ccf_values = get_indv_CCF_values(
+                        indv_ccfs=indv_ccfs,
+                        bin_values=bin_values,
+                        img_props_dict=img_props_dict
+                    )
+                    indv_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')
+                    os.makedirs(indv_ccf_val_path, exist_ok=True)
+                    save_ccf_values_to_csv(indv_ccf_values, indv_ccf_val_path)                    
+
+                ############################################
+                ############## Saving ######################
+                ############################################
+
+                # Summarize the data for current image as dataframe, and save as .csv
+                im_measurements_df, parameters_with_stats_dict = summarize_image(
+                    img_parameters=img_parameters_dict,
                     img_props_dict=img_props_dict
                 )
-                indv_ccf_val_path = os.path.join(im_save_path, 'Individual_CCF_values')
-                os.makedirs(indv_ccf_val_path, exist_ok=True)
-                save_ccf_values_to_csv(indv_ccf_values, indv_ccf_val_path)                    
+                im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)  # type: ignore
+                
+                # generate stats for the image such as mean, median, std, etc
+                im_summary_dict = combine_stats_for_image_kymo_standard(
+                    file_name=file_name, 
+                    group_name=group_name,
+                    img_props=img_props_dict,
+                    img_parameters_dict=img_parameters_dict,
+                    parameters_with_stats_dict=parameters_with_stats_dict
+                )
 
-            ############################################
-            ############## Saving ######################
-            ############################################
-
-            # Summarize the data for current image as dataframe, and save as .csv
-            im_measurements_df, parameters_with_stats_dict = summarize_image(
-                img_parameters=img_parameters_dict,
-                img_props_dict=img_props_dict
-            )
-            im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)  # type: ignore
+                # populate column headers list with keys from the measurements dictionary
+                for key in im_summary_dict.keys(): 
+                    if key not in col_headers: 
+                        col_headers.append(key) 
             
-            # generate stats for the image such as mean, median, std, etc
-            im_summary_dict = combine_stats_for_image_kymo_standard(
-                file_name=file_name, 
-                group_name=group_name,
-                img_props=img_props_dict,
-                img_parameters_dict=img_parameters_dict,
-                parameters_with_stats_dict=parameters_with_stats_dict
-            )
-
-            # populate column headers list with keys from the measurements dictionary
-            for key in im_summary_dict.keys(): 
-                if key not in col_headers: 
-                    col_headers.append(key) 
-        
-            # append summary data to the summary list
-            summary_list.append(im_summary_dict)
+                # append summary data to the summary list
+                summary_list.append(im_summary_dict)
+            
+            except:
+                print(f"****** ERROR ******",
+                    f"\nError processing {file_name}",
+                    "\n****** ERROR ******")
+                log_params['Errors'].append(f'Error processing {file_name}')
 
             # useless progress bar to force completion of previous bars
             with tqdm(total = 10, miniters = 1) as dummy_pbar:
@@ -358,5 +365,10 @@ def combined_workflow(
         # log parameters and errors
         log_params["Time Elapsed"] = f"{end - start:.2f} seconds"
         hf.make_log(main_save_path, log_params)
+
+        if log_params['Errors']:
+            print('******'*10)
+            print('Errors were encountered during processing. Please check the log file for more information.')
+            print('******'*10)
 
         return summary_df # only here for testing

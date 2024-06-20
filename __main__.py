@@ -15,7 +15,7 @@ def main():
     box_size = gui.box_size
     bin_shift = gui.bin_shift
     folder_path = gui.folder_path
-    group_names = gui.group_name
+    group_names = gui.group_names
     acf_peak_thresh = gui.acf_peak_thresh
     plot_summary_ACFs = gui.plot_summary_ACFs
     plot_summary_CCFs = gui.plot_summary_CCFs

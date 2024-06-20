@@ -18,8 +18,8 @@ def test_standard_bin_calc(default_bin_values):
     ]
 
     default_dicts = [
-        'tests/assets/standard/dicts_lists/standard_image_properties_1_Group1_final.json',
-        'tests/assets/standard/dicts_lists/standard_image_properties_1_Group2_final.json'
+        'tests/assets/standard/dicts_lists/1_Group1_img_props.json',
+        'tests/assets/standard/dicts_lists/1_Group2_img_props.json'
     ]
 
     for array, known_results, img_props_file in zip(default_arrays, default_bin_values, default_dicts):
