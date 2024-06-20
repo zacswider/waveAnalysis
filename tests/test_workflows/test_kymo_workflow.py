@@ -29,7 +29,7 @@ def default_log_params():
 
 def test_kymo_workflow(default_log_params):
     # load csv
-    known_results = pd.read_csv('tests/assets/kymo/kymo.csv')
+    known_results = pd.read_csv('tests/assets/kymo/known_kymograph_summary.csv')
     assert isinstance(known_results, pd.DataFrame)
     exp_results = combined_workflow(
         folder_path=str(Path('tests/assets/kymo')),
