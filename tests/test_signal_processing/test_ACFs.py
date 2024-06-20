@@ -1,4 +1,4 @@
-'''import pytest
+import pytest
 import numpy as np
 from waveanalysis.signal_processing.correlation_functions import calc_indv_ACF_workflow
 
@@ -8,8 +8,8 @@ import json
 @pytest.fixture
 def default_ACFs():
     return [
-        'tests/assets/standard/dicts_lists/ACF_1_Group1.tif.pkl',
-        'tests/assets/standard/dicts_lists/ACF_1_Group2.tif.pkl'
+        'tests/assets/standard/dicts_lists/1_Group1.tif_indv_acfs.pkl',
+        'tests/assets/standard/dicts_lists/1_Group2.tif_indv_acfs.pkl'
     ]
      
 def test_ACF_calc(default_ACFs):
@@ -19,8 +19,8 @@ def test_ACF_calc(default_ACFs):
         ]
 
     default_dicts = [
-        'tests/assets/standard/dicts_lists/standard_image_properties_1_Group1_final.json',
-        'tests/assets/standard/dicts_lists/standard_image_properties_1_Group2_final.json'
+        'tests/assets/standard/dicts_lists/1_Group1_img_props.json',
+        'tests/assets/standard/dicts_lists/1_Group2_img_props.json'
     ]
 
     for bin_values, acf_file, img_props_file in zip(default_bin_values, default_ACFs, default_dicts):
@@ -31,4 +31,4 @@ def test_ACF_calc(default_ACFs):
             img_props_dict = json.load(file)
         exp_results = calc_indv_ACF_workflow(bin_values, img_props_dict)
 
-        assert np.array_equal(known_results, exp_results)'''
+        assert np.array_equal(known_results, exp_results)
