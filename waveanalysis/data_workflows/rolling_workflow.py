@@ -257,17 +257,12 @@ def rolling_workflow(
                 # log parameters and errors
                 hf.make_log(main_save_path, log_params)
 
-            except:
+            except Exception as e:
                 print(f"****** ERROR ******",
-                    f"\nError processing {file_name}",
-                    "\n****** ERROR ******")
-                log_params['Errors'].append(f'Error processing {file_name}')
+                        f"\nError processing {file_name}: {str(e)}",
+                        "\n****** ERROR ******")
+                log_params['Errors'].append(f'Error processing {file_name}: {str(e)}')
 
             pbar.update(1)
-
-            if log_params['Errors']:
-                print('******'*10)
-                print('Errors were encountered during processing. Please check the log file for more information.')
-                print('******'*10)
 
             return summary_df if name_wo_ext == '1_Group2' else None # only return this now for testing purposes. Will remove later

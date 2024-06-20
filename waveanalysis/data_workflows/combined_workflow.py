@@ -323,11 +323,12 @@ def combined_workflow(
                 # append summary data to the summary list
                 summary_list.append(im_summary_dict)
             
-            except:
+
+            except Exception as e:
                 print(f"****** ERROR ******",
-                    f"\nError processing {file_name}",
-                    "\n****** ERROR ******")
-                log_params['Errors'].append(f'Error processing {file_name}')
+                        f"\nError processing {file_name}: {str(e)}",
+                        "\n****** ERROR ******")
+                log_params['Errors'].append(f'Error processing {file_name}: {str(e)}')
 
             # useless progress bar to force completion of previous bars
             with tqdm(total = 10, miniters = 1) as dummy_pbar:
