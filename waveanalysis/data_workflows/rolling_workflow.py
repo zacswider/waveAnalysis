@@ -99,14 +99,13 @@ def rolling_workflow(
                 num_submovies = (num_frames - roll_size) // roll_by
                 img_props_dict['num_submovies'] = num_submovies
 
-                # log error and skip image if frames < 2 
-                if num_frames < 2:
+                # log error and skip image if frames < 2; otherwise
+                if img_props_dict['num_frames'] < 11:
                     print(f"****** ERROR ******",
-                        f"\n{file_name} has less than 2 frames",
+                        f"\n{file_name} has less than 11 frames. Movies must have more than 10 frames",
                         "\n****** ERROR ******")
-                    log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
+                    log_params['Files Not Processed'].append(f'{file_name} has less than 11 frames')
                     continue
-                log_params['Files Processed'].append(f'{file_name}')
                 
                 # Create the array for which all future processing will be based on
                 image_array = tiff_to_np_array_multi_frame(image_path)
@@ -256,6 +255,9 @@ def rolling_workflow(
                 log_params["Time Elapsed"] = f"{end - start:.2f} seconds"
                 # log parameters and errors
                 hf.make_log(main_save_path, log_params)
+
+                # log that the file was processed
+                log_params['Files Processed'].append(f'{file_name}')
 
             except Exception as e:
                 print(f"****** ERROR ******",

@@ -128,11 +128,12 @@ def combined_workflow(
                 log_params['Frame Interval'].append(f"{file_name}: {img_props_dict['frame_interval']} seconds")
 
                 # log error and skip image if frames < 2; otherwise, log image as processed
-                if img_props_dict['num_frames'] < 2:
+                if img_props_dict['num_frames'] < 11:
                     print(f"****** ERROR ******",
-                        f"\n{file_name} has less than 2 frames",
+                        f"\n{file_name} has less than 11 frames. Movies must have more than 10 frames",
                         "\n****** ERROR ******")
-                    log_params['Files Not Processed'].append(f'{file_name} has less than 2 frames')
+                    log_params['Files Not Processed'].append(f'{file_name}')
+                    log_params['Errors'].append(f'{file_name} has less than 11 frames')
                     continue
 
                 # Create the array of bin values for which all the stats will be calculated
@@ -369,8 +370,10 @@ def combined_workflow(
         hf.make_log(main_save_path, log_params)
 
         if log_params['Errors']:
-            print('******'*10)
-            print('Errors were encountered during processing. Please check the log file for more information.')
-            print('******'*10)
+            print('*' * 50)
+            print('*' * 50)
+            print('ERRORS WERE ENCOUNTERED DURING PROCESSING. PLEASE CHECK THE LOG FILE FOR MORE INFORMATION.')
+            print('*' * 50)
+            print('*' * 50)
 
         return summary_df # only here for testing
