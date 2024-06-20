@@ -7,24 +7,24 @@ import json
 @pytest.fixture
 def default_mean_ACF_plots():
     return [
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/mean_acf_figs_1_Group1.tif.pkl',
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/mean_acf_figs_1_Group2.tif.pkl'
+        'tests/assets/standard/dicts_lists/mean_acf_figs_1_Group1.tif.pkl',
+        'tests/assets/standard/dicts_lists/mean_acf_figs_1_Group2.tif.pkl'
         ]
      
 def test_mean_ACF_plot(default_mean_ACF_plots):
     default_img_params = [
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/img_parameters_1_Group1.tif.pkl',
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/img_parameters_1_Group2.tif.pkl'       
+        'tests/assets/standard/dicts_lists/img_parameters_1_Group1.tif.pkl',
+        'tests/assets/standard/dicts_lists/img_parameters_1_Group2.tif.pkl'       
         ]
 
     default_dicts = [
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/standard_image_properties_1_Group1_final.json',
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/standard_image_properties_1_Group2_final.json'
+        'tests/assets/standard/dicts_lists/standard_image_properties_1_Group1_final.json',
+        'tests/assets/standard/dicts_lists/standard_image_properties_1_Group2_final.json'
     ]
 
     default_ACFs = [
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/ACF_1_Group1.tif.pkl',
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/ACF_1_Group2.tif.pkl'
+        'tests/assets/standard/dicts_lists/ACF_1_Group1.tif.pkl',
+        'tests/assets/standard/dicts_lists/ACF_1_Group2.tif.pkl'
     ]
 
     for img_param_file, acf_file, img_props_file, mean_acf_plot_file in zip(default_img_params, default_ACFs, default_dicts, default_mean_ACF_plots):

@@ -8,20 +8,20 @@ import json
 @pytest.fixture
 def default_peak_props():
     return [
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/peak_props_1_Group1.tif.pkl',
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/peak_props_1_Group2.tif.pkl'
+        'tests/assets/standard/dicts_lists/peak_props_1_Group1.tif.pkl',
+        'tests/assets/standard/dicts_lists/peak_props_1_Group2.tif.pkl'
         ]
      
 def test_peak_props_calc(default_peak_props):
 
     default_bin_values = [
-        np.load('/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/numpy_arrays/standard_1_Group1.tif_bin_values.npy'),
-        np.load('/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/numpy_arrays/standard_1_Group2.tif_bin_values.npy')
+        np.load('tests/assets/standard/numpy_arrays/standard_1_Group1.tif_bin_values.npy'),
+        np.load('tests/assets/standard/numpy_arrays/standard_1_Group2.tif_bin_values.npy')
         ]
 
     default_dicts = [
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/standard_image_properties_1_Group1_final.json',
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/standard_image_properties_1_Group2_final.json'
+        'tests/assets/standard/dicts_lists/standard_image_properties_1_Group1_final.json',
+        'tests/assets/standard/dicts_lists/standard_image_properties_1_Group2_final.json'
     ]
 
     for bin_values, peak_prop_file, img_props_file in zip(default_bin_values, default_peak_props, default_dicts):

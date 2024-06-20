@@ -31,7 +31,7 @@ def test_standard_workflow(default_log_params):
     known_results = pd.read_csv('tests/assets/standard/standard.csv')
     assert isinstance(known_results, pd.DataFrame)
     exp_results = combined_workflow(
-        folder_path=str(Path('/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/')),
+        folder_path=str(Path('tests/assets/standard/')),
         group_names= default_log_params['Group Names'],
         log_params=default_log_params,
         analysis_type='standard',

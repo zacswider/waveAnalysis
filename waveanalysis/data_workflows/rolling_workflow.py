@@ -6,14 +6,14 @@ import pandas as pd
 from tqdm import tqdm
 from typing import Any
 import scipy.signal as sig
-import plotting as pt
-import signal_processing as sp
-import housekeeping.housekeeping_functions as hf
+import waveanalysis.plotting as pt
+import waveanalysis.signal_processing as sp
+import waveanalysis.housekeeping.housekeeping_functions as hf
 
-from image_props.image_bin_calc import create_multi_frame_bin_array
-from image_props.image_to_np_arrays import tiff_to_np_array_multi_frame
-from image_props.image_properties import get_multi_frame_properties
-from summarize_save.summarize_images import summarize_image, combine_stats_rolling
+from waveanalysis.image_props.image_bin_calc import create_multi_frame_bin_array
+from waveanalysis.image_props.image_to_np_arrays import tiff_to_np_array_multi_frame
+from waveanalysis.image_props.image_properties import get_multi_frame_properties
+from waveanalysis.summarize_save.summarize_images import summarize_image, combine_stats_rolling
 
 def rolling_workflow(
     folder_path: str,
@@ -237,7 +237,7 @@ def rolling_workflow(
             summary_df = combine_stats_rolling(
                 img_props_dict=img_props_dict,
                 img_parameters_dict=img_parameters_dict,
-                indv_ccfs=indv_ccfs
+                indv_ccfs=indv_ccfs if num_channels > 1 else None
             )
             summary_df.to_csv(f'{im_save_path}/{name_wo_ext}_summary.csv', index = False)
 

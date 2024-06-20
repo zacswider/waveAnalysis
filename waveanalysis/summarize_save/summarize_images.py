@@ -177,7 +177,7 @@ def combine_stats_for_image_kymo_standard(
 def combine_stats_rolling(
     img_props_dict: dict,
     img_parameters_dict: dict,
-    indv_ccfs: np.ndarray,
+    indv_ccfs: np.ndarray = None,
 ) -> pd.DataFrame:
     '''
     Combine statistics for rolling analysis.
@@ -199,9 +199,7 @@ def combine_stats_rolling(
 
     # Extract image parameters from the dictionary
     indv_periods = img_parameters_dict['Period']
-    indv_shifts = img_parameters_dict['Shift']
     indv_peak_widths = img_parameters_dict['Peak Width']
-    indv_phase_shifts = img_parameters_dict['% Phase Shift']
 
     # Define the statistics to calculate
     stat_name_and_func = {'Mean' : np.nanmean,
@@ -219,6 +217,8 @@ def combine_stats_rolling(
 
         # Calculate percentage of no shifts for each channel combination
         if num_channels > 1:
+            indv_shifts = img_parameters_dict['Shift']
+            indv_phase_shifts = img_parameters_dict['% Phase Shift']
             for combo_number, combo in enumerate(channel_combos):
                 pcnt_no_shift = np.count_nonzero(np.isnan(indv_ccfs[submovie, combo_number])) / num_bins * 100
                 submovie_summary[f'Ch{combo[0] + 1}-Ch{combo[1] + 1} Pcnt No Shifts'] = pcnt_no_shift

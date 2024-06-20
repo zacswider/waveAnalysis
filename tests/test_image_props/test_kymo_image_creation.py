@@ -6,14 +6,14 @@ from waveanalysis.image_props.image_to_np_arrays import tiff_to_np_array_single_
 @pytest.fixture
 def default_filepaths():
     return [
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/kymo/1_Group1.tif',
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/kymo/1_Group2.tif'
+        'tests/assets/kymo/1_Group1.tif',
+        'tests/assets/kymo/1_Group2.tif'
     ]
 
 def test_kymo_image_creation(default_filepaths):
     default_arrays = [
-        np.load('/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/kymo/numpy_arrays/kymo_1_Group1_array.npy'),
-        np.load('/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/kymo/numpy_arrays/kymo_1_Group2_array.npy')
+        np.load('tests/assets/kymo/numpy_arrays/kymo_1_Group1_array.npy'),
+        np.load('tests/assets/kymo/numpy_arrays/kymo_1_Group2_array.npy')
     ]
     # load csv
     for file_path in default_filepaths:

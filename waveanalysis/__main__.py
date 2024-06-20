@@ -1,7 +1,7 @@
-import housekeeping.housekeeping_functions as hf
-from custom_gui import BaseGUI, RollingGUI, KymographGUI
-from data_workflows.combined_workflow import combined_workflow
-from data_workflows.rolling_workflow import rolling_workflow
+import waveanalysis.housekeeping.housekeeping_functions as hf
+from waveanalysis.custom_gui import BaseGUI, RollingGUI, KymographGUI
+from waveanalysis.data_workflows.combined_workflow import combined_workflow
+from waveanalysis.data_workflows.rolling_workflow import rolling_workflow
 
 def main():
     '''
@@ -15,7 +15,7 @@ def main():
     box_size = gui.box_size
     bin_shift = gui.bin_shift
     folder_path = gui.folder_path
-    group_names = gui.group_names
+    group_names = gui.group_name
     acf_peak_thresh = gui.acf_peak_thresh
     plot_summary_ACFs = gui.plot_summary_ACFs
     plot_summary_CCFs = gui.plot_summary_CCFs

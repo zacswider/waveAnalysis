@@ -8,19 +8,19 @@ import json
 @pytest.fixture
 def default_periods():
     return [
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/periods_1_Group1.tif.pkl',
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/periods_1_Group2.tif.pkl'
+        'tests/assets/standard/dicts_lists/periods_1_Group1.tif.pkl',
+        'tests/assets/standard/dicts_lists/periods_1_Group2.tif.pkl'
     ]
      
 def test_period_calc(default_periods):
     default_acf_values = [
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/ACF_1_Group1.tif.pkl',
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/ACF_1_Group2.tif.pkl'
+        'tests/assets/standard/dicts_lists/ACF_1_Group1.tif.pkl',
+        'tests/assets/standard/dicts_lists/ACF_1_Group2.tif.pkl'
         ]
 
     default_dicts = [
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/standard_image_properties_1_Group1_final.json',
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/standard_image_properties_1_Group2_final.json'
+        'tests/assets/standard/dicts_lists/standard_image_properties_1_Group1_final.json',
+        'tests/assets/standard/dicts_lists/standard_image_properties_1_Group2_final.json'
     ]
 
     for acf_array, period_file, img_props_file in zip(default_acf_values, default_periods, default_dicts):

@@ -6,14 +6,14 @@ import json
 @pytest.fixture
 def default_filepaths():
     return [
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/kymo/1_Group1.tif',
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/kymo/1_Group2.tif'
+        'tests/assets/kymo/1_Group1.tif',
+        'tests/assets/kymo/1_Group2.tif'
     ]
 
 def test_kymo_image_properties(default_filepaths):
     default_dicts = [
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/kymo/dicts_lists/1_Group1.tif_image_properties.json',
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/kymo/dicts_lists/1_Group2.tif_image_properties.json'
+        'tests/assets/kymo/dicts_lists/1_Group1.tif_image_properties.json',
+        'tests/assets/kymo/dicts_lists/1_Group2.tif_image_properties.json'
     ]
     # load csv
     for file_path in default_filepaths:

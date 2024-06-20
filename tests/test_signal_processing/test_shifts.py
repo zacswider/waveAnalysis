@@ -8,24 +8,24 @@ import json
 @pytest.fixture
 def default_shifts():
     return [
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/shifts_1_Group1.tif.pkl',
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/shifts_1_Group2.tif.pkl'
+        'tests/assets/standard/dicts_lists/shifts_1_Group1.tif.pkl',
+        'tests/assets/standard/dicts_lists/shifts_1_Group2.tif.pkl'
     ]
      
 def test_shift_calc(default_shifts):
     default_period_values = [
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/periods_1_Group1.tif.pkl',
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/periods_1_Group2.tif.pkl'
+        'tests/assets/standard/dicts_lists/periods_1_Group1.tif.pkl',
+        'tests/assets/standard/dicts_lists/periods_1_Group2.tif.pkl'
         ]
     
     default_ccf_values = [
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/CCF_1_Group1.tif.pkl',
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/CCF_1_Group2.tif.pkl'
+        'tests/assets/standard/dicts_lists/CCF_1_Group1.tif.pkl',
+        'tests/assets/standard/dicts_lists/CCF_1_Group2.tif.pkl'
         ]
 
     default_dicts = [
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/standard_image_properties_1_Group1_final.json',
-        '/Users/domchom/Documents/GitHub/ZS_wave_analysis/tests/assets/standard/dicts_lists/standard_image_properties_1_Group2_final.json'
+        'tests/assets/standard/dicts_lists/standard_image_properties_1_Group1_final.json',
+        'tests/assets/standard/dicts_lists/standard_image_properties_1_Group2_final.json'
     ]
 
     for period_file, ccf_file, shift_file, img_props_file in zip(default_period_values, default_ccf_values, default_shifts, default_dicts):
