@@ -149,7 +149,8 @@ def main():
             plot_indv_peaks=plot_indv_peaks,
             box_size=box_size,
             bin_shift=bin_shift,
-            line_width=None
+            line_width=None,
+            test=False
         )
     
     if analysis_type == "rolling":
@@ -161,6 +162,7 @@ def main():
             roll_size=subframe_size,    
             roll_by=subframe_roll,
             acf_peak_thresh=acf_peak_thresh,
+            test=False
         )
 
     if analysis_type == "kymograph":                         
@@ -181,6 +183,7 @@ def main():
             box_size=None,
             bin_shift=bin_shift,
             line_width=line_width,
+            test=False
         )
     
 if __name__ == '__main__':

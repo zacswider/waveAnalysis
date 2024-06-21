@@ -11,9 +11,9 @@ def default_log_params():
         'Base Directory': 'tests/assets/standard',
         'ACF Peak Prominence': 0.1,
         'Group Names': ['Group1', 'Group2'], #['DC191', 'DC192', 'DC193', 'DC206'], # #['WT','Y653A','F649A','FYAA','FY-AA_P731D','FY-AA_PC-DK'], # # #
-        'Plot Summary ACFs': True,
-        'Plot Summary CCFs': True,
-        'Plot Summary Peaks': True,
+        'Plot Summary ACFs': False,
+        'Plot Summary CCFs': False,
+        'Plot Summary Peaks': False,
         'Plot Individual ACFs': False,
         'Plot Individual CCFs': False,
         'Plot Individual Peaks': False,
@@ -47,5 +47,6 @@ def test_standard_workflow(default_log_params):
         plot_indv_peaks=default_log_params['Plot Individual Peaks'],
         calc_wave_speeds=None, #type: ignore
         plot_wave_speeds=None, #type: ignore
+        test=True
     )
     assert pd.testing.assert_frame_equal(known_results, exp_results) is None

@@ -31,6 +31,7 @@ def test_rolling_workflow(default_log_params):
         box_shift=default_log_params['Box Shift(px)'],
         roll_size=50,
         roll_by=5,       
-        acf_peak_thresh=default_log_params['ACF Peak Prominence']
+        acf_peak_thresh=default_log_params['ACF Peak Prominence'],
+        test=True
     )
     assert pd.testing.assert_frame_equal(known_results, exp_results) is None

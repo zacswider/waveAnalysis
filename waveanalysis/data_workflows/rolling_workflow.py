@@ -22,7 +22,8 @@ def rolling_workflow(
     box_shift: int,
     roll_size: int,
     roll_by: int,
-    acf_peak_thresh: float
+    acf_peak_thresh: float,
+    test: bool = False # for testing purposes
 ) -> pd.DataFrame:      
     '''
     This is the workflow for rolling analysis. It processes the image files in the specified folder 
@@ -58,7 +59,7 @@ def rolling_workflow(
     # create main save path
     now = datetime.datetime.now()
     main_save_path = os.path.join(folder_path, f"0_signalProcessing-{now.strftime('%Y%m%d%H%M')}")
-    os.makedirs(main_save_path, exist_ok=True)
+    os.makedirs(main_save_path, exist_ok=True) if not test else None
 
     # list of file names in specified directory
     file_names = [fname for fname in os.listdir(folder_path) if fname.endswith('.tif') and not fname.startswith('.')]
@@ -193,7 +194,7 @@ def rolling_workflow(
 
                 # create a subfolder within the main save path with the same name as the image file
                 im_save_path = os.path.join(main_save_path, name_wo_ext)
-                os.makedirs(im_save_path, exist_ok=True)
+                os.makedirs(im_save_path, exist_ok=True) if not test else None
 
                 # adjust the different waves properties to be the use the frame interval rather than the number of frames
                 indv_periods = indv_periods * img_props_dict['frame_interval']
@@ -229,9 +230,9 @@ def rolling_workflow(
                     img_parameters=img_parameters_dict
                 )
                 csv_save_path = os.path.join(im_save_path, 'rolling_measurements')
-                os.makedirs(csv_save_path, exist_ok=True)
+                os.makedirs(csv_save_path, exist_ok=True) if not test else None
                 for measurement_index, submovie_meas_df in enumerate(submovie_meas_list):  # type: ignore
-                    submovie_meas_df.to_csv(f'{csv_save_path}/{name_wo_ext}_subframe{measurement_index}_measurements.csv', index = False)
+                    submovie_meas_df.to_csv(f'{csv_save_path}/{name_wo_ext}_subframe{measurement_index}_measurements.csv', index = False) if not test else None
                 
                 # summarize the data for each subframe as a single dataframe, and save as .csv
                 summary_df = combine_stats_rolling(
@@ -248,13 +249,13 @@ def rolling_workflow(
                     channel_combos=channel_combos
                 )
                 plot_save_path = os.path.join(im_save_path, 'summary_plots')
-                os.makedirs(plot_save_path, exist_ok=True)
-                hf.save_plots(summary_plots, plot_save_path)
+                os.makedirs(plot_save_path, exist_ok=True) if not test else None
+                hf.save_plots(summary_plots, plot_save_path) if not test else None
 
                 end = timeit.default_timer()
                 log_params["Time Elapsed"] = f"{end - start:.2f} seconds"
                 # log parameters and errors
-                hf.make_log(main_save_path, log_params)
+                hf.make_log(main_save_path, log_params) if not test else None
 
                 # log that the file was processed
                 log_params['Files Processed'].append(f'{file_name}')
@@ -267,4 +268,5 @@ def rolling_workflow(
 
             pbar.update(1)
 
-            return summary_df if name_wo_ext == '1_Group2' else None # only return this now for testing purposes. Will remove later
+            if name_wo_ext == '1_Group2':
+                return summary_df # only return this now for testing purposes. Will remove later

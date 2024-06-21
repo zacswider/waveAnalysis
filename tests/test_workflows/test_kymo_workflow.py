@@ -48,6 +48,7 @@ def test_kymo_workflow(default_log_params):
         plot_indv_peaks=default_log_params['Plot Individual Peaks'],
         calc_wave_speeds=default_log_params['Calc Wave Speeds'],
         plot_wave_speeds=default_log_params['Plot Wave Speeds'],
+        test=True
     )
     assert pd.testing.assert_frame_equal(known_results, exp_results) is None
 

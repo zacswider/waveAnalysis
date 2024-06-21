@@ -31,7 +31,8 @@ def combined_workflow(
     plot_wave_speeds: bool = False,
     box_size: int = None,
     bin_shift: int = None, 
-    line_width: int = None
+    line_width: int = None,
+    test: bool = False # for testing purposes
 ) -> pd.DataFrame:
     '''
     This is the combined workflow for kymographs and standard analysis. It processes the image files in the 
@@ -86,7 +87,7 @@ def combined_workflow(
     # create main save path
     now = datetime.datetime.now()
     main_save_path = os.path.join(folder_path, f"0_signalProcessing-{now.strftime('%Y%m%d%H%M')}")
-    os.makedirs(main_save_path, exist_ok=True)
+    os.makedirs(main_save_path, exist_ok=True) if not test else None
 
     # empty list to fill with summary data for each file, and column headers list
     summary_list, col_headers = [], []
@@ -208,7 +209,7 @@ def combined_workflow(
                     
                 # create the directory to save the figures and data for the image
                 im_save_path = os.path.join(main_save_path, name_wo_ext)
-                os.makedirs(im_save_path, exist_ok=True)
+                os.makedirs(im_save_path, exist_ok=True) if not test else None
 
                 ############################################
                 ############## Plotting ####################
@@ -303,7 +304,7 @@ def combined_workflow(
                     img_parameters=img_parameters_dict,
                     img_props_dict=img_props_dict
                 )
-                im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False)  # type: ignore
+                im_measurements_df.to_csv(f'{im_save_path}/{name_wo_ext}_measurements.csv', index = False) if not test else None
                 
                 # generate stats for the image such as mean, median, std, etc
                 im_summary_dict = combine_stats_for_image_kymo_standard(
@@ -346,28 +347,28 @@ def combined_workflow(
         # create dataframe from summary list, then sort and save the summary to a csv file
         summary_df = pd.DataFrame(summary_list, columns=col_headers)
         summary_df = summary_df.sort_values('File Name', ascending=True)
-        summary_df.to_csv(f"{main_save_path}/!{now.strftime('%Y%m%d%H%M')}_summary.csv", index = False)
+        summary_df.to_csv(f"{main_save_path}/!{now.strftime('%Y%m%d%H%M')}_summary.csv", index = False) if not test else None
 
         if group_names != ['']:
             # generate comparisons between each group
             mean_parameter_figs = pt.generate_group_comparison(summary_df = summary_df, log_params = log_params)
             group_plots_save_path = os.path.join(main_save_path, "group_comparison_graphs")
-            os.makedirs(group_plots_save_path, exist_ok=True)
-            hf.save_plots(mean_parameter_figs, group_plots_save_path)
+            os.makedirs(group_plots_save_path, exist_ok=True) if not test else None
+            hf.save_plots(mean_parameter_figs, group_plots_save_path) if not test else None
 
             # save the means each parameter for the attributes to make them easier to work with 
             parameter_tables_dict = save_parameter_means_to_csv(summary_df=summary_df,group_names=group_names)
             mean_measurements_save_path = os.path.join(main_save_path, "mean_parameter_measurements")
-            os.makedirs(mean_measurements_save_path, exist_ok=True)
+            os.makedirs(mean_measurements_save_path, exist_ok=True) if not test else None
             for filename, table in parameter_tables_dict.items():
-                table.to_csv(f"{mean_measurements_save_path}/{filename}", index = False)
+                table.to_csv(f"{mean_measurements_save_path}/{filename}", index = False) if not test else None
 
         # performance tracker end
         end = timeit.default_timer()
 
         # log parameters and errors
         log_params["Time Elapsed"] = f"{end - start:.2f} seconds"
-        hf.make_log(main_save_path, log_params)
+        hf.make_log(main_save_path, log_params) if not test else None
 
         if log_params['Errors']:
             print('*' * 50)
