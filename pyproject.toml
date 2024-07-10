@@ -2,7 +2,7 @@
 name = "waveanalysis"
 version = "0.1.0"
 description = "imaging processing of oscillatory dynamics"
-authors = ["Zac Swider <zswider@wisc.edu>"]
+authors = ["Zac Swider <zac.swider@gmail.com> and Dominic Chomchai <chomchai@wisc.edu>"]
 readme = "README.md"
 packages = [{include = "waveanalysis"}]
 
