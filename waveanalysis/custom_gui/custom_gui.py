@@ -407,12 +407,12 @@ class KymographGUI(tk.Tk):
         self.plot_indv_peaks_label = ttk.Label(self, text = 'Plot individual peaks')
         self.plot_indv_peaks_label.grid(row = 9, column = 3, padx = 10, sticky = 'W')
 
-        ''' # Removing this for the moment as it is not fully implemented
+        # Removing this for the moment as it is not fully implemented
         # create checkbox for calculating wave speeds
         self.calc_wave_speeds_checkbox = ttk.Checkbutton(self, variable = self.calc_wave_speeds)
         self.calc_wave_speeds_checkbox.grid(row = 10, column = 0, padx = 10, sticky = 'E')
         self.calc_wave_speeds_label = ttk.Label(self, text = 'Calculate wave speeds')
-        self.calc_wave_speeds_label.grid(row = 10, column = 1, padx = 10, sticky = 'W')'''
+        self.calc_wave_speeds_label.grid(row = 10, column = 1, padx = 10, sticky = 'W')
         
         # create start button
         self.start_button = ttk.Button(self, text = 'Start analysis')
