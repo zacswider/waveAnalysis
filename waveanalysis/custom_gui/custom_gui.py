@@ -329,7 +329,7 @@ class KymographGUI(tk.Tk):
         self.plot_indv_peaks = tk.BooleanVar()
         self.plot_indv_peaks.set(False)
         self.calc_wave_speeds = tk.BooleanVar()
-        self.calc_wave_speeds.set(False)
+        self.calc_wave_speeds.set(True)
         self.group_names = tk.StringVar()
         # self.group_names.set("003,007")
         self.folder_path = tk.StringVar()

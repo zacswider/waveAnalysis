@@ -19,7 +19,7 @@ def define_wave_tracks(file_path):
     # add a shapes layer to the viewer
     shapes_layer = viewer.add_shapes()
 
-    @viewer.bind_key('s') # user presses "s" to save and close the window
+    @viewer.bind_key('u') # user presses "s" to save and close the window
     def save_and_close_ROIs(viewer):
         '''
         Save and close the ROIs.
@@ -50,11 +50,14 @@ def calc_wave_speeds(wave_tracks: np.array, pixel_size: float, frame_interval: f
     wave_speeds = []
     for wave_track in wave_tracks:
         # get the x and y coordinates of the wave track
-        x1, x2 = wave_track[0][1], wave_track[1][1]
-        y1, y2 = wave_track[0][0], wave_track[1][0]
+        print(wave_track)
+        x1, y1 = wave_track[0][1], wave_track[0][0]
+        x2, y2 =  wave_track[1][1], wave_track[1][0]
+        # Ensure we're subtracting larger absolute value from the smaller for both x and y
+        dx = abs(x1) - abs(x2) if abs(x1) >= abs(x2) else abs(x2) - abs(x1)
+        dy = abs(y1) - abs(y2) if abs(y1) >= abs(y2) else abs(y2) - abs(y1)
         # calculate the wave speed
-        wave_speed = abs(y2 - y1 / x2 - x1)
-        wave_speed = wave_speed * pixel_size[0] / frame_interval
+        wave_speed = (dx / dy) # * pixel_size[0] / frame_interval
         wave_speeds.append(wave_speed)
 
     return wave_speeds

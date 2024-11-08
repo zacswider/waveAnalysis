@@ -150,6 +150,29 @@ def combined_workflow(
                     bin_values, num_bins = create_kymo_bin_array(image = image_array,
                                                                     img_props = img_props_dict)
                     
+                    if calc_wave_speeds:
+                        # Have the user define the wave tracks for each kymograph
+                        wave_tracks = sp.define_wave_tracks(file_path=image_path)
+                        # wave_tracks = [np.array([[40, 1], [7,  30]]), np.array([[26, 2], [3,  30]]), np.array([[9, 22], [12, 30]])] # for testing
+
+                        # check if wave tracks were created and if they are within the image
+                        hf.check_if_wave_tracks_created(wave_tracks=wave_tracks, 
+                                                        log_params=log_params, 
+                                                        file_name=file_name)
+                        
+                        hf.check_wave_track_coords(wave_tracks=wave_tracks, 
+                                                log_params=log_params, 
+                                                file_name=file_name, 
+                                                num_columns=img_props_dict['num_columns'], 
+                                                num_frames=img_props_dict['num_frames'])
+
+                        # calculate the wave speeds form the wave tracks
+                        wave_speeds = sp.calc_wave_speeds(wave_tracks=wave_tracks, 
+                                                        pixel_size=img_props_dict['pixel_size'], 
+                                                        frame_interval=img_props_dict['frame_interval'])
+                        
+                        print(wave_speeds)
+                    
                 # get the channel combinations
                 channel_combos = hf.get_channel_combos(num_channels=img_props_dict['num_channels'])
                 num_combos = len(channel_combos)
