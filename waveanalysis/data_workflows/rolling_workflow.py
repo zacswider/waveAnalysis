@@ -189,7 +189,7 @@ def rolling_workflow(
                                     ccf = sp.calc_indv_CCF(signal1=signal1, signal2=signal2, num_frames=roll_size)
                                     indv_ccfs[submovie, combo_number, bin] = ccf
                                     
-                                    shift = sp.calc_indv_shift(cc_curve=ccf, peak_thresh=ccf_peak_thresh)
+                                    shift = sp.calc_indv_shift(cc_curve=ccf, ccf_peak_thresh=ccf_peak_thresh)
                                     if small_shifts_correction:
                                         average_period = np.mean(indv_periods[:, :, bin])
                                         shift = sp.small_shifts_correction(delay_frames=shift, average_period=average_period)
