@@ -17,12 +17,14 @@ def main():
     folder_path = gui.folder_path
     group_names = gui.group_names
     acf_peak_thresh = gui.acf_peak_thresh
+    small_shifts_correction = gui.small_shifts_correction
     plot_summary_ACFs = gui.plot_summary_ACFs
     plot_summary_CCFs = gui.plot_summary_CCFs
     plot_summary_peaks = gui.plot_summary_peaks
     plot_indv_ACFs = gui.plot_indv_ACFs
     plot_indv_CCFs = gui.plot_indv_CCFs
     plot_indv_peaks = gui.plot_indv_peaks
+    ccf_peak_thresh = gui.ccf_peak_thresh
     # set the analysis type
     analysis_type = "standard"
 
@@ -37,6 +39,8 @@ def main():
         box_shift = gui.box_shift
         folder_path = gui.folder_path
         acf_peak_thresh = gui.acf_peak_thresh
+        ccf_peak_thresh = gui.ccf_peak_thresh
+        small_shifts_correction = gui.small_shifts_correction
         plot_sf_ACFs = gui.plot_sf_ACFs
         plot_sf_CCFs = gui.plot_sf_CCFs
         plot_sf_peaks = gui.plot_sf_peaks
@@ -62,7 +66,9 @@ def main():
         bin_shift = gui.bin_shift
         group_names = gui.group_names
         acf_peak_thresh = gui.acf_peak_thresh
+        ccf_peak_thresh = gui.ccf_peak_thresh
         calc_wave_speeds = gui.calc_wave_speeds
+        small_shifts_correction = gui.small_shifts_correction
         # set the analysis type
         analysis_type = "kymograph"
 
@@ -71,6 +77,8 @@ def main():
                     "Box Shift(px)" : bin_shift,
                     "Base Directory" : folder_path,
                     "ACF Peak Prominence" : acf_peak_thresh,
+                    "CCF Peak Prominence" : ccf_peak_thresh,
+                    "Small Shifts Correction" : small_shifts_correction,
                     "Group Names" : group_names,
                     "Plot Summary ACFs" : plot_summary_ACFs,
                     "Plot Summary CCFs" : plot_summary_CCFs,
@@ -92,6 +100,8 @@ def main():
                         "Box Shift(px)" : bin_shift,
                         "Base Directory" : folder_path,
                         "ACF Peak Prominence" : acf_peak_thresh,
+                        "CCF Peak Prominence" : ccf_peak_thresh,
+                        "Small Shifts Correction" : small_shifts_correction,
                         "Plot sub-movie ACFs" : plot_sf_ACFs,
                         "Plot movie CCFs" : plot_sf_CCFs,
                         "Plot movie Peaks" : plot_sf_peaks,
@@ -108,6 +118,8 @@ def main():
                         "Line Shift(px)": bin_shift,
                         "Base Directory": folder_path,
                         "ACF Peak Prominence" : acf_peak_thresh,
+                        "CCF Peak Prominence" : ccf_peak_thresh,
+                        "Small Shifts Correction" : small_shifts_correction,
                         "Group Names" : group_names,
                         "Plot Summary ACFs": plot_summary_ACFs,
                         "Plot Summary CCFs": plot_summary_CCFs,
@@ -139,6 +151,8 @@ def main():
             log_params=log_params,
             analysis_type=analysis_type,
             acf_peak_thresh=acf_peak_thresh,
+            ccf_peak_thresh=ccf_peak_thresh,
+            small_shifts_correction=small_shifts_correction,
             plot_summary_ACFs=plot_summary_ACFs,
             plot_summary_CCFs=plot_summary_CCFs,
             plot_summary_peaks=plot_summary_peaks,
@@ -162,6 +176,8 @@ def main():
             roll_size=subframe_size,    
             roll_by=subframe_roll,
             acf_peak_thresh=acf_peak_thresh,
+            ccf_peak_thresh=ccf_peak_thresh,
+            small_shifts_correction=small_shifts_correction,
             test=False
         )
 
@@ -172,6 +188,8 @@ def main():
             log_params=log_params,
             analysis_type=analysis_type,
             acf_peak_thresh=acf_peak_thresh,
+            ccf_peak_thresh=ccf_peak_thresh,
+            small_shifts_correction=small_shifts_correction,
             plot_summary_ACFs=plot_summary_ACFs,
             plot_summary_CCFs=plot_summary_CCFs,
             plot_summary_peaks=plot_summary_peaks,

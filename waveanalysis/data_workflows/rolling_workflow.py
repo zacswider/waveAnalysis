@@ -23,6 +23,8 @@ def rolling_workflow(
     roll_size: int,
     roll_by: int,
     acf_peak_thresh: float,
+    ccf_peak_thresh: float,
+    small_shifts_correction: bool,
     test: bool = False # for testing purposes
 ) -> pd.DataFrame:      
     '''
@@ -187,9 +189,10 @@ def rolling_workflow(
                                     ccf = sp.calc_indv_CCF(signal1=signal1, signal2=signal2, num_frames=roll_size)
                                     indv_ccfs[submovie, combo_number, bin] = ccf
                                     
-                                    shift = sp.calc_indv_shift(cc_curve=ccf)
-                                    average_period = np.mean(indv_periods[:, :, bin])
-                                    shift = sp.small_shifts_correction(delay_frames=shift, average_period=average_period)
+                                    shift = sp.calc_indv_shift(cc_curve=ccf, peak_thresh=ccf_peak_thresh)
+                                    if small_shifts_correction:
+                                        average_period = np.mean(indv_periods[:, :, bin])
+                                        shift = sp.small_shifts_correction(delay_frames=shift, average_period=average_period)
                                     indv_shifts[submovie, combo_number, bin] = shift
 
                 # create a subfolder within the main save path with the same name as the image file
