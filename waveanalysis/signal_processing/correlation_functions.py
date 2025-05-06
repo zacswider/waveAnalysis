@@ -214,7 +214,7 @@ def calc_indv_shift_workflow(
             shift = calc_indv_shift(cc_curve=indv_ccfs[combo_number, bin], ccf_peak_thresh=ccf_peak_thresh)
             if small_shifts_correction == True:
                 average_period = np.mean(indv_periods[:, bin]) # If the shift is too small, correct it
-                shift = small_shifts_correction(delay_frames=shift, average_period=average_period)
+                shift = correct_small_shifts(delay_frames=shift, average_period=average_period)
             indv_shifts[combo_number, bin] = shift
 
     return indv_shifts
@@ -239,7 +239,7 @@ def calc_indv_shift(cc_curve: np.ndarray,
     
     return delay_frames
 
-def small_shifts_correction(
+def correct_small_shifts(
     delay_frames: float, 
     average_period: float
 ) -> float:

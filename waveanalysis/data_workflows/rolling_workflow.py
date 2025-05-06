@@ -192,7 +192,7 @@ def rolling_workflow(
                                     shift = sp.calc_indv_shift(cc_curve=ccf, ccf_peak_thresh=ccf_peak_thresh)
                                     if small_shifts_correction:
                                         average_period = np.mean(indv_periods[:, :, bin])
-                                        shift = sp.small_shifts_correction(delay_frames=shift, average_period=average_period)
+                                        shift = sp.correct_small_shifts(delay_frames=shift, average_period=average_period)
                                     indv_shifts[submovie, combo_number, bin] = shift
 
                 # create a subfolder within the main save path with the same name as the image file
