@@ -1,3 +1,16 @@
+# /// script
+# requires-python = ">=3.8"
+# dependencies = [
+#     "scipy",
+#     "numpy",
+#     "tifffile",
+#     "matplotlib",
+#     "pandas",
+#     "tqdm",
+#     "seaborn",
+#     "waveanalysis@https://github.com/zacswider/waveAnalysis.git",
+# ]
+# ///
 import waveanalysis.housekeeping.housekeeping_functions as hf
 from waveanalysis.custom_gui import BaseGUI, RollingGUI, KymographGUI
 from waveanalysis.data_workflows.combined_workflow import combined_workflow
