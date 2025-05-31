@@ -38,3 +38,6 @@ include = ["waveanalysis/**/*.py"]
 source = "vcs"
 tag-pattern = "v(.*)"
 format = "{tag}"
+
+[dependency-groups]
+dev = ["pytest>=8.3.5"]
