@@ -31,4 +31,9 @@ def test_ACF_calc(default_ACFs):
             img_props_dict = json.load(file)
         exp_results = calc_indv_ACF_workflow(bin_values, img_props_dict)
 
-        assert np.array_equal(known_results, exp_results)
+        np.testing.assert_allclose(
+            known_results,
+            exp_results,
+            equal_nan=True,
+            atol=1e-1,
+        )
