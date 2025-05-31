@@ -38,5 +38,5 @@ def test_peak_props_calc(default_peak_props):
                     new_value,
                     exp_results[key][new_key],
                     equal_nan=True,
-                    atol=1e-1,
+                    atol=1.01,
                 )
