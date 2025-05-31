@@ -7,13 +7,11 @@ authors = [
     { name = "Dominic Chomchai", email = "chomchai@wisc.edu" },
 ]
 license = { text = "GNU General Public License v3.0" }
-requires-python = ">=3.9, <=3.11"
+requires-python = ">=3.9, <3.10"
 classifiers = [
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
 ]
 dynamic = ["version"]
 dependencies = [
