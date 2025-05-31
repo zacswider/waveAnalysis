@@ -39,6 +39,6 @@ def test_shift_calc(default_shifts):
         with open(shift_file, 'rb') as f:
             known_results = pickle.load(f)
 
-        exp_results = calc_indv_shift_workflow(ccfs, periods, img_props_dict)
+        exp_results = calc_indv_shift_workflow(ccfs, periods, img_props_dict, small_shifts_correction=True, ccf_peak_thresh=0.1)
 
         assert np.array_equal(known_results, exp_results)

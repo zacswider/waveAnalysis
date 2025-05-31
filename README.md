@@ -77,18 +77,20 @@ In this section I will assume that you have no idea what Python is, or how to us
 2) This is the box size used for analysis. Boxes should be large enough to filter out noise, but small enough that they don't over-fill the structures being analyzed. A good way to empirically find the appropriate box size is to open your data in [FIJI](https://imagej.net/software/fiji/), draw a box with the rectangle selection tool, open up the z-axis profile plotter `Image > Stacks > Plot Z-axis Profile`, click the "Live" button, and adjust the box dimensions to find a size that you feel like accurately captures the temporal dynamics.
 3) This is the spatial shift between boxes. If you want to analyze non-overlapping segments of your images, make this the same as the box size. If you want maximum overlap between boxes, set this to 1. If you want to sparsely quantify your images (e.g., for speed) set this to a value greater than your box size.
 4) The is the minimum prominence in the autocorrelation curve to be considered a genuine period. Using the default parameter `0.1`, 
-5) If you want to compare the population measurements between different groups, enter the groups names in this space. These names *must* be present within the names of the file being processed. A single data set cannot match multiple groups.
-6) If you check this box, a graphical output of the population autocorrelation will be saved to the analysis folder.
-7) If you check this box, a graphical output of the population crosscorrelation will be saved to the analysis folder.
-8) If you check this box, a graphical output of the population wave peak analysis will be saved to the analysis folder.
+5) The is the minimum prominence in the crosscorrelation curve to be considered a genuine shift. Using the default parameter `0.1`, 
+6) If you want to compare the population measurements between different groups, enter the groups names in this space. These names *must* be present within the names of the file being processed. A single data set cannot match multiple groups.
+7) If you check this box, a graphical output of the population autocorrelation will be saved to the analysis folder.
+8) If you check this box, a graphical output of the population crosscorrelation will be saved to the analysis folder.
+9) If you check this box, a graphical output of the population wave peak analysis will be saved to the analysis folder.
 ** Options 6-8 execute very quickly and are set on as a default. You can disable them if you really need to go fast. 
-9) If you check this box, a graphical output of the autocorrelation for _each box_ will be saved to the analysis folder.
-10) If you check this box, a graphical output of the crosscorrelation for _each box_ will be saved to the analysis folder.
-11) If you check this box, a graphical output of the wave peak properties for _each box_ will be saved to the analysis folder.
+10) For shifts that are very small (like comparing the same protein but different flourophores), the script often adds one whole period to the shift. Checking this box will subtract one period from the shifts that are detected to be at least 60% the size of the period.
+11) If you check this box, a graphical output of the autocorrelation for _each box_ will be saved to the analysis folder.
+12) If you check this box, a graphical output of the crosscorrelation for _each box_ will be saved to the analysis folder.
+13) If you check this box, a graphical output of the wave peak properties for _each box_ will be saved to the analysis folder.
 ** Options 9-11 can be very useful to see how accurately the script is identifying your signal properties. However, depending on how densely you sample your images, executing these options can be very slow. I recommend very sparsely analyzing your images (i.e., choose a large box shift) to avoid writing hundreds (or thousands) of individual graphs to your computer.
-12) Click this button to start the analysis.
-13) Click this button if you're not ready to start the analysis.
-14) Click this button if you want to launch the GUI for rolling analysis. 
+14) Click this button to start the analysis.
+15) Click this button if you're not ready to start the analysis.
+16) Click this button if you want to launch the GUI for rolling analysis. 
 
 ### Rolling analysis
 
@@ -99,11 +101,13 @@ If you clicked button 14 in the previous GUI, the following window will appear:
 1) This is the source directory for your analysis. Navigate to it using the "Select source directory button". This directory should have one or more time lapse datasets saved in standard standard `tzcyx` order. If the data are not max projected along the z-axis prior to analysis, they will be max projected by the processing script.
 2) This is the box size used for analysis. Boxes should be large enough to filter out noise, but small enough that they don't over-fill the structures being analyzed. A good way to empirically find the appropriate box size is to open your data in [FIJI](https://imagej.net/software/fiji/), draw a box with the rectangle selection tool, open up the z-axis profile plotter `Image > Stacks > Plot Z-axis Profile`, click the "Live" button, and adjust the box dimensions to find a size that you feel like accurately captures the temporal dynamics.
 3) This is the spatial shift between boxes. If you want to analyze non-overlapping segments of your images, make this the same as the box size. If you want maximum overlap between boxes, set this to 1. If you want to sparsely quantify your images (e.g., for speed) set this to a value greater than your box size.
-3) This is the number of frames in each sub-movie. This should cover at least a few wave periods to ensure accurate period measurements.
-4) This is the number of frames to roll forward each sub-movie. The smaller the number, the more finely you will samples the waves over time.
-5) The is the minimum prominence in the autocorrelation curve to be considered a genuine period. Using the default parameter `0.1`, 
-6) Click this button to start the analysis.
-7) Click this button if you're not ready to start the analysis.
+4) This is the number of frames in each sub-movie. This should cover at least a few wave periods to ensure accurate period measurements.
+5) This is the number of frames to roll forward each sub-movie. The smaller the number, the more finely you will samples the waves over time.
+6) The is the minimum prominence in the autocorrelation curve to be considered a genuine period. Using the default parameter `0.1`, 
+7) If you check this box, a graphical output of the population crosscorrelation will be saved to the analysis folder.
+8) For shifts that are very small (like comparing the same protein but different flourophores), the script often adds one whole period to the shift. Checking this box will subtract one period from the shifts that are detected to be at least 60% the size of the period.
+9) Click this button to start the analysis.
+10) Click this button if you're not ready to start the analysis.
 
 ### Kymograph analysis
 
@@ -115,14 +119,16 @@ If you clicked button 15 in the previous GUI, the following window will appear:
 2) This is the line width used for analysis. Lines should be large enough to filter out noise, but small enough that they don't over-fill the structures being analyzed.
 3) This is the spatial shift between lines. If you want to analyze non-overlapping segments of your images, make this the same as the line width. If you want maximum overlap between boxes, set this to 1. If you want to sparsely quantify your images (e.g., for speed) set this to a value greater than your box size.
 4) The is the minimum prominence in the autocorrelation curve to be considered a genuine period. Using the default parameter `0.1`, 
-5) If you want to compare the population measurements between different groups, enter the groups names in this space. These names *must* be present within the names of the file being processed. A single data set cannot match multiple groups.
-6) If you check this box, a graphical output of the population autocorrelation will be saved to the analysis folder.
-7) If you check this box, a graphical output of the population crosscorrelation will be saved to the analysis folder.
-8) If you check this box, a graphical output of the population wave peak analysis will be saved to the analysis folder.
+5) The is the minimum prominence in the crosscorrelation curve to be considered a genuine shift. Using the default parameter `0.1`, 
+6) If you want to compare the population measurements between different groups, enter the groups names in this space. These names *must* be present within the names of the file being processed. A single data set cannot match multiple groups.
+7) If you check this box, a graphical output of the population autocorrelation will be saved to the analysis folder.
+8) If you check this box, a graphical output of the population crosscorrelation will be saved to the analysis folder.
+9) If you check this box, a graphical output of the population wave peak analysis will be saved to the analysis folder.
 ** Options 6-8 execute very quickly and are set on as a default. You can disable them if you really need to go fast. 
-9) If you check this box, a graphical output of the autocorrelation for _each line_ will be saved to the analysis folder.
-10) If you check this box, a graphical output of the crosscorrelation for _each line_ will be saved to the analysis folder.
-11) If you check this box, a graphical output of the wave peak properties for _each line_ will be saved to the analysis folder.
+10) For shifts that are very small (like comparing the same protein but different flourophores), the script often adds one whole period to the shift. Checking this box will subtract one period from the shifts that are detected to be at least 60% the size of the period.
+11) If you check this box, a graphical output of the autocorrelation for _each line_ will be saved to the analysis folder.
+12) If you check this box, a graphical output of the crosscorrelation for _each line_ will be saved to the analysis folder.
+13) If you check this box, a graphical output of the wave peak properties for _each line_ will be saved to the analysis folder.
 ** Options 9-11 can be very useful to see how accurately the script is identifying your signal properties. However, depending on how densely you sample your images, executing these options can be very slow. I recommend very sparsely analyzing your images (i.e., choose a large line shift) to avoid writing hundreds (or thousands) of individual graphs to your computer.
-12) Click this button to start the analysis.
-13) Click this button if you're not ready to start the analysis.
+14) Click this button to start the analysis.
+15) Click this button if you're not ready to start the analysis.

@@ -23,7 +23,9 @@ def default_log_params():
         'Files Not Processed': [],
         'Errors': [],
         'Frame Interval': [],
-        'Pixel Size': []
+        'Pixel Size': [],
+        'Small Shifts Correction': True,
+        'CCF Peak Prominence': 0.1,
     }
 
 def test_standard_workflow(default_log_params):
@@ -39,6 +41,8 @@ def test_standard_workflow(default_log_params):
         bin_shift=default_log_params['Box Shift(px)'],
         line_width=None, #type: ignore
         acf_peak_thresh=default_log_params['ACF Peak Prominence'],
+        ccf_peak_thresh=default_log_params['CCF Peak Prominence'],
+        small_shifts_correction=default_log_params['Small Shifts Correction'],
         plot_summary_ACFs=default_log_params['Plot Summary ACFs'],
         plot_summary_CCFs=default_log_params['Plot Summary CCFs'],
         plot_summary_peaks=default_log_params['Plot Summary Peaks'],

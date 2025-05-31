@@ -182,7 +182,9 @@ def calc_indv_CCF(
 def calc_indv_shift_workflow(
     indv_ccfs: np.ndarray,
     indv_periods: np.ndarray,
-    img_props: dict
+    img_props: dict,
+    small_shifts_correction: bool,
+    ccf_peak_thresh: float
 ) -> np.ndarray:
     '''
     Calculate individual shifts for each channel combination and bin.
@@ -191,6 +193,8 @@ def calc_indv_shift_workflow(
         indv_ccfs (np.ndarray): Array of cross-correlation functions for each channel combination and bin.
         indv_periods (np.ndarray): Array of periods for each channel combination and bin.
         img_props (dict): Dictionary containing image properties.
+        small_shifts_correction (bool): Flag to indicate if small shifts should be corrected.
+        ccf_peak_thresh (float): Threshold for peak detection in the cross-correlation function.
 
     Returns:
         np.ndarray: Array of individual shifts for each channel combination and bin.
@@ -207,19 +211,21 @@ def calc_indv_shift_workflow(
     for combo_number, combo in enumerate(channel_combos):
         for bin in range(num_bins):
             # Calculate and store the individual shift for the current combination of channels and bin
-            shift = calc_indv_shift(cc_curve=indv_ccfs[combo_number, bin])
-            average_period = np.mean(indv_periods[:, bin]) # If the shift is too small, correct it
-            shift = small_shifts_correction(delay_frames=shift, average_period=average_period)
+            shift = calc_indv_shift(cc_curve=indv_ccfs[combo_number, bin], ccf_peak_thresh=ccf_peak_thresh)
+            if small_shifts_correction == True:
+                average_period = np.mean(indv_periods[:, bin]) # If the shift is too small, correct it
+                shift = correct_small_shifts(delay_frames=shift, average_period=average_period)
             indv_shifts[combo_number, bin] = shift
 
     return indv_shifts
 
-def calc_indv_shift(cc_curve: np.ndarray) -> np.ndarray:
+def calc_indv_shift(cc_curve: np.ndarray,
+                    ccf_peak_thresh: float) -> np.ndarray:
     '''
     Space saving function to calculate individual shifts for each channel combination and bin.
     '''
     # Find peaks in the cross-correlation curve
-    peaks, _ = sig.find_peaks(cc_curve, prominence=0.1)
+    peaks, _ = sig.find_peaks(cc_curve, prominence=ccf_peak_thresh)
     peaks_abs = abs(peaks - cc_curve.shape[0] // 2)
 
     # If multiple peaks found, select the one closest to the center
@@ -233,7 +239,7 @@ def calc_indv_shift(cc_curve: np.ndarray) -> np.ndarray:
     
     return delay_frames
 
-def small_shifts_correction(
+def correct_small_shifts(
     delay_frames: float, 
     average_period: float
 ) -> float:

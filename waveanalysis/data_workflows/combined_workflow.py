@@ -21,6 +21,8 @@ def combined_workflow(
     log_params: dict[str, Any],
     analysis_type: str,
     acf_peak_thresh: float,
+    ccf_peak_thresh: float,
+    small_shifts_correction: bool,
     plot_summary_ACFs: bool,
     plot_summary_CCFs: bool,
     plot_summary_peaks: bool,
@@ -182,7 +184,7 @@ def combined_workflow(
                 # Calculate the individual CCFs and shifts
                 if img_props_dict['num_channels'] > 1:
                     indv_ccfs = sp.calc_indv_CCF_workflow(bin_values=bin_values, img_props=img_props_dict)
-                    indv_shifts = sp.calc_indv_shift_workflow(indv_ccfs=indv_ccfs, indv_periods=indv_periods, img_props=img_props_dict)
+                    indv_shifts = sp.calc_indv_shift_workflow(indv_ccfs=indv_ccfs, indv_periods=indv_periods, img_props=img_props_dict, small_shifts_correction=small_shifts_correction, ccf_peak_thresh=ccf_peak_thresh)
 
                 # adjust the different waves properties to be the use the frame interval rather than the number of frames
                 indv_periods = indv_periods * img_props_dict['frame_interval']

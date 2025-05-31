@@ -16,7 +16,9 @@ def default_log_params():
         'Submovies Used' : [],
         'Errors': [],
         'Frame Interval': [],
-        'Pixel Size': []
+        'Pixel Size': [],
+        'Small Shifts Correction': True,
+        'CCF Peak Prominence': 0.1,
         }
 
 
@@ -32,6 +34,8 @@ def test_rolling_workflow(default_log_params):
         roll_size=50,
         roll_by=5,       
         acf_peak_thresh=default_log_params['ACF Peak Prominence'],
+        ccf_peak_thresh=default_log_params['CCF Peak Prominence'],
+        small_shifts_correction=default_log_params['Small Shifts Correction'],
         test=True
     )
     assert pd.testing.assert_frame_equal(known_results, exp_results) is None
