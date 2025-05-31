@@ -13,37 +13,48 @@ permissions:
   contents: read
 
 jobs:
-  tox_tests:
-    name: Tox Tests (${{ matrix.python-version }}) # Add python version to name for clarity
+  test:
+    name: Build the package & run pytest
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.10", "3.11"]
-      fail-fast: true # Optional: prevent other matrix jobs from cancelling if one fails
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # Set up the specific Python version for this matrix job
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      # Install UV using the official action, enabling caching
-      - name: Install UV
+      - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
-          # Enable uv's cache for faster subsequent runs
           enable-cache: true
 
-      # Install tox and tox-uv using uv tool install
-      # This installs them into an isolated environment managed by uv
-      - name: Install Tox with tox-uv plugin using UV
-        run: uv tool install tox --with tox-uv
+      - name: Install the project
+        run: uv sync --all-extras --dev
 
-      # Run Tox using uvx
-      # uvx ensures that the 'tox' command installed via 'uv tool install' is used
-      - name: Run Tox tests via uvx
-        run: |
-          PY_VERSION=$(echo ${{ matrix.python-version }} | tr -d '.')
-          uvx tox -e py$PY_VERSION
+      - name: Run pytest
+        shell: bash -l {0}
+        run: uv run pytest
+
+  build_and_publish:
+      name: Build and Publish to PyPI
+      needs: test
+      if: startsWith(github.ref, 'refs/tags/') && github.event.head_commit.message != '[skip ci]'
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - name: Set up Python 3.9
+          uses: actions/setup-python@v5
+          with:
+            python-version: "3.9"
+        - name: Install dependencies
+          run: |
+            python -m pip install --upgrade pip
+            python -m pip install setuptools wheel
+            python -m pip install twine
+        - name: Build package
+          run: |
+            python -m pip install --upgrade pip
+            pip install build
+            python -m build
+        - name: Publish distribution to PyPI
+          uses: pypa/gh-action-pypi-publish@release/v1
+          with:
+            password: ${{ secrets.PYPI_API_TOKEN }}
