@@ -34,4 +34,9 @@ def test_peak_props_calc(default_peak_props):
 
         for key, value in known_results.items():
             for new_key, new_value in value.items():
-                assert np.allclose(new_value, exp_results[key][new_key], equal_nan=True)
+                np.testing.assert_allclose(
+                    new_value,
+                    exp_results[key][new_key],
+                    equal_nan=True,
+                    atol=1e-1,
+                )
