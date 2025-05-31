@@ -1,21 +1,40 @@
-[tool.poetry]
+[project]
 name = "waveanalysis"
-version = "0.1.0"
 description = "imaging processing of oscillatory dynamics"
-authors = ["Zac Swider <zac.swider@gmail.com> and Dominic Chomchai <chomchai@wisc.edu>"]
 readme = "README.md"
-packages = [{include = "waveanalysis"}]
-
-[tool.poetry.dependencies]
-python = ">=3.8"
-scipy = "1.10.1"
-numpy = "1.25.0"
-tifffile = "2021.7.2"
-matplotlib = "3.7.1"
-pandas = "1.5.3"
-tqdm = "4.65.0"
-seaborn = "0.12.2"
+authors = [
+    { name = "Zac Swider", email = "zac.swider@gmail.com" },
+    { name = "Dominic Chomchai", email = "chomchai@wisc.edu" },
+]
+license = { text = "GNU General Public License v3.0" }
+requires-python = ">=3.9, <=3.11"
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3.0",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dynamic = ["version"]
+dependencies = [
+    "numpy==1.25.0",
+    "scipy==1.10.1",
+    "tifffile==2021.7.2",
+    "matplotlib==3.7.1",
+    "pandas==1.5.3",
+    "tqdm==4.65.0",
+    "seaborn==0.12.2",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+packages = ["waveanalysis"]
+include = ["waveanalysis/**/*.py"]
+
+[tool.hatch.version]
+source = "vcs"
+tag-pattern = "v(.*)"
+format = "{tag}"
