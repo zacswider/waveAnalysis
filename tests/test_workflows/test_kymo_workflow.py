@@ -59,8 +59,3 @@ def test_kymo_workflow(default_log_params):
         exp_results.reset_index(drop=True),
         atol=1e-1,
     )
-
-    # return(len(result))
-
-
-
