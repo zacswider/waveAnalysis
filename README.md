@@ -1,3 +1,9 @@
+[![CI](https://github.com/zacswider/waveAnalysis/actions/workflows/CI.yml/badge.svg)](https://github.com/zacswider/waveAnalysis/actions/workflows/CI.yml)
+![PyPI - License](https://img.shields.io/pypi/l/waveAnalysis)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/waveAnalysis)
+![PyPI](https://img.shields.io/pypi/v/waveAnalysis)
+
+
 # Wave analysis scripts
 This workflow was written to batch analyze excitable / oscillatory dynamics in multichannel time lapse datasets. It was inspired by a MATLAB framework written by Marcin Leda and Andrew Goryachev (published in Bement _et al.,_ 2015; PMID 26479320) and was reimagined here to increase speed, accuracy, and access. This pipeline analyzes signal period, amplitude, temporal duration, and (if applicable) the temporal shift between signals in short time lapse datasets (tens of frames, typically). We have also extended the ability to analyze these metrics between arbitrary numbers of channels and across extended time-lapse datasets (hundreds - thousands of frames).
 
