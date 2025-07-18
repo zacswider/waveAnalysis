@@ -1,3 +1,9 @@
+[![CI](https://github.com/zacswider/waveAnalysis/actions/workflows/CI.yml/badge.svg)](https://github.com/zacswider/waveAnalysis/actions/workflows/CI.yml)
+![PyPI - License](https://img.shields.io/pypi/l/waveAnalysis)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/waveAnalysis)
+![PyPI](https://img.shields.io/pypi/v/waveAnalysis)
+
+
 # Wave analysis scripts
 This workflow was written to batch analyze excitable / oscillatory dynamics in multichannel time lapse datasets. It was inspired by a MATLAB framework written by Marcin Leda and Andrew Goryachev (published in Bement _et al.,_ 2015; PMID 26479320) and was reimagined here to increase speed, accuracy, and access. This pipeline analyzes signal period, amplitude, temporal duration, and (if applicable) the temporal shift between signals in short time lapse datasets (tens of frames, typically). We have also extended the ability to analyze these metrics between arbitrary numbers of channels and across extended time-lapse datasets (hundreds - thousands of frames).
 
@@ -61,15 +67,40 @@ Before running any analysis on your data, be sure to complete all necessary pre-
 
 ## Install and run code
 
-In this section I will assume that you have no idea what Python is, or how to use it. If you already know how to use Python and Conda, you can skip ahead. 
+### Run with UV
 
+By far the simplest way to get this code running on your machine is to use UV to automatically install the dependencies and start the main entry point. Visit the [UV website](https://docs.astral.sh/uv/getting-started/installation/) and follow the instructions to install the tool. As of July 2025, you can do this with:
+
+MacOS and Linux
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Windows
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Once you have installed UV, you can run wave analysis with:
+
+```bash
+uv run "https://raw.githubusercontent.com/zacswider/waveAnalysis/main/analyze.py"
+```
+
+### Install and run with conda
+
+You can also install this package into an existing virtual environment, for example one managed by conda.
 1) Go to the mambaforge website and download/install the appropriate distribution of [mambaforge](https://mamba.readthedocs.io/en/latest/installation.html) for your operating system. 
 2) Open the miniforge prompt.
 3) Make a new virtual environment with `mamba create -n myenv python=3.9 -y`
 4) Activate your new environment with `conda activate myenv`
-5) Install this repo with `pip install git+https://github.com/zacswider/waveAnalysis.git`
+5) Install this repo with `pip install waveAnalysis`
 6) Launch the gui with `python -m waveanalysis` 
-7) Next a window will appear asking you for some parameters to adjust:
+
+
+## Using the GUI
+
+If you were successful in installing/running the project, a window will appear asking you for some parameters to adjust:
 
 <img src="assets/images/gui1.png" width="800">
 

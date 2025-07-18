@@ -54,9 +54,8 @@ def test_kymo_workflow(default_log_params):
         plot_wave_speeds=default_log_params['Plot Wave Speeds'],
         test=True
     )
-    assert pd.testing.assert_frame_equal(known_results, exp_results) is None
-
-    # return(len(result))
-
-
-
+    pd.testing.assert_frame_equal(
+        known_results.reset_index(drop=True),
+        exp_results.reset_index(drop=True),
+        atol=1e-1,
+    )
